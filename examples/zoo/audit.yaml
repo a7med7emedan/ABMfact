@@ -1,0 +1,48 @@
+# Audit of the clean reference model from the planted-fault zoo.
+# Run:  abmfact run examples/zoo/audit.yaml --out results/zoo
+# Swap the target for abmfact.zoo:fault_boundary (or any other fault_*) to watch a check catch its bug.
+title: "Planted-fault zoo: clean reference model"
+
+model:
+  adapter: python
+  target: abmfact.zoo:clean
+
+params:
+  beta: 0.4
+  beta_g: 0.03
+  gamma: 0.1
+  immune: 0.2
+  L: 20
+  T: 60
+  dt: 0.25
+  x0: 0.4
+  y0: 0.4
+
+claims:
+  - id: C1
+    statement: "most of the population is infected"
+    metric: attack_rate
+    test: greater_than
+    value: 0.6
+  - id: C2
+    statement: "the attack rate rises with local transmission"
+    metric: attack_rate
+    test: monotone_increasing
+    over: beta
+    where: {beta: [0.25, 0.4]}
+  - id: C3
+    statement: "peak prevalence stays below half the population"
+    metric: peak_prevalence
+    test: less_than
+    value: 0.5
+  - id: C4
+    statement: "the epidemic peaks within 25 time units"
+    metric: peak_time
+    test: less_than
+    value: 25
+    skip_checks:
+      population_scale: "peak time legitimately grows with system size"
+
+budget:
+  seeds: 100
+  jobs: 2

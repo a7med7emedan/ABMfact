@@ -1,0 +1,35 @@
+# Audit of a small Mesa model. Needs: pip install "abmfact[mesa]"
+# Run from the repository root:  abmfact run examples/mesa_sir/audit.yaml --out results/mesa
+title: "Mesa SIR on a torus"
+
+model:
+  adapter: mesa
+  target: mesa_sir:SIRModel          # module next to this file
+  steps: 60
+  outputs:
+    attack_rate: mesa_sir:attack_rate
+    prevalence: datacollector:Infected
+  knob_kwargs:
+    update_order: activation
+    agent_order: relabel_seed
+  update_orders: [random, id]
+
+params:
+  beta: 0.35
+  gamma: 0.1
+  side: 15
+
+claims:
+  - id: M1
+    statement: "most agents are infected by the end"
+    metric: attack_rate
+    test: greater_than
+    value: 0.7
+  - id: M2
+    statement: "the epidemic peaks above 20% prevalence"
+    metric: max(prevalence)
+    test: greater_than
+    value: 0.2
+
+budget:
+  seeds: 40

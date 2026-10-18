@@ -1,0 +1,25 @@
+# Audit of a model in another process. The program reads JSON on stdin and prints JSON.
+# Run from the repository root:  abmfact run examples/command/audit.yaml --out results/voter
+# The model declares no knobs, so only the determinism and random-stream checks can run;
+# the others are reported as NOT_TESTABLE rather than skipped silently.
+title: "Voter model on a ring (command adapter)"
+
+model:
+  adapter: command
+  argv: ["{python}", "voter.py"]       # {python} is the interpreter running ABMfact
+  timeout: 60
+
+params:
+  n: 200
+  steps: 2000
+  p_red: 0.6
+
+claims:
+  - id: V1
+    statement: "the initial majority usually stays ahead"
+    metric: final_red
+    test: greater_than
+    value: 0.5
+
+budget:
+  seeds: 60
