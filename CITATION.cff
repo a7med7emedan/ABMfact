@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use ABMfact, please cite it as below."
+title: "ABMfact: is it a finding or an artefact?"
+abstract: >-
+  ABMfact audits the conclusions of agent-based models against implementation artefacts. It reruns a
+  model under changes that a correct implementation must not care about, such as activation order,
+  agent labels, random streams, grid placement, time step and population size, and reports which
+  stated conclusions survive, with intervals and reproducible commands.
+type: software
+authors:
+  - family-names: Hemedan
+    given-names: Ahmed
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/a7med7emedan/ABMfact"
+keywords:
+  - agent-based modelling
+  - verification
+  - reproducibility
+  - artefacts
+  - simulation
+references:
+  - type: article
+    title: "Errors and artefacts in agent-based modelling"
+    authors:
+      - family-names: Galán
+        given-names: José Manuel
+      - family-names: Izquierdo
+        given-names: Luis R.
+      - family-names: Izquierdo
+        given-names: Segismundo S.
+      - family-names: Santos
+        given-names: José Ignacio
+      - family-names: del Olmo
+        given-names: Ricardo
+      - family-names: López-Paredes
+        given-names: Adolfo
+      - family-names: Edmonds
+        given-names: Bruce
+    journal: "Journal of Artificial Societies and Social Simulation"
+    volume: 12
+    issue: 1
+    year: 2009
+    url: "https://www.jasss.org/12/1/1.html"

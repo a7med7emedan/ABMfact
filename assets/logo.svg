@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64" role="img" aria-labelledby="t">
+  <title id="t">ABMfact</title>
+  <circle cx="11" cy="11" r="4.6" fill="#99c9c3"/>
+  <circle cx="25" cy="11" r="4.6" fill="#0f766e"/>
+  <circle cx="39" cy="11" r="4.6" fill="#0f766e"/>
+  <circle cx="53" cy="11" r="4.6" fill="#99c9c3"/>
+  <circle cx="11" cy="25" r="4.6" fill="#0f766e"/>
+  <circle cx="25" cy="25" r="4.6" fill="#0f766e"/>
+  <circle cx="53" cy="25" r="4.6" fill="#0f766e"/>
+  <circle cx="11" cy="39" r="4.6" fill="#0f766e"/>
+  <circle cx="25" cy="39" r="4.6" fill="#99c9c3"/>
+  <circle cx="39" cy="39" r="4.6" fill="#0f766e"/>
+  <circle cx="53" cy="39" r="4.6" fill="#0f766e"/>
+  <circle cx="11" cy="53" r="4.6" fill="#99c9c3"/>
+  <circle cx="25" cy="53" r="4.6" fill="#0f766e"/>
+  <circle cx="39" cy="53" r="4.6" fill="#0f766e"/>
+  <circle cx="53" cy="53" r="4.6" fill="#99c9c3"/>
+  <circle cx="39" cy="25" r="3.4" fill="none" stroke="#d97706" stroke-width="1.8" stroke-dasharray="2.2 1.6"/>
+  <circle cx="39" cy="25" r="7.6" fill="none" stroke="#d97706" stroke-width="2.4"/>
+  <line x1="44.6" y1="30.6" x2="50.5" y2="36.5" stroke="#d97706" stroke-width="3.4" stroke-linecap="round"/>
+  <text x="74" y="41" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" letter-spacing="-0.5" fill="#1d2430"><tspan font-weight="700">ABM</tspan><tspan font-weight="400" fill="#0f766e">fact</tspan></text>
+  <text x="76" y="57" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" letter-spacing="0.6" fill="#5b6575">FINDING OR ARTEFACT?</text>
+</svg>
