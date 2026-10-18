@@ -1,0 +1,16 @@
+name: Feature or new check
+description: Propose a feature, an adapter or a new check
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What artefact or workflow is not covered today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: For a new check, describe the realistic bug a planted-fault model would carry.

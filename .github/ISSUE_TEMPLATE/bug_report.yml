@@ -1,0 +1,30 @@
+name: Bug report
+description: Something ABMfact did that it should not have
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what you saw. Paste the verdict row or the error.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: audit
+    attributes:
+      label: Minimal audit file
+      description: The smallest audit.yaml (and model, if you can share it) that shows the problem.
+      render: yaml
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `abmfact --version` and `python --version`, and your OS.
+    validations:
+      required: true

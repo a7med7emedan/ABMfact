@@ -1,0 +1,89 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . ruff mypy types-PyYAML
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy src
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+        include:
+          - os: macos-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[mesa]" pytest pytest-cov
+      - name: Fast suite with coverage
+        run: pytest -m "not slow" --cov=abmfact --cov-report=term --cov-fail-under=85
+      - name: Examples
+        run: |
+          abmfact check examples/command/audit.yaml -q
+          abmfact check examples/mesa_sir/audit.yaml -q --seeds 20
+
+  validation:
+    name: planted-fault matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . pytest
+      - run: pytest -m slow
+      - name: Demo and example report
+        run: |
+          abmfact demo --jobs 4 -q
+          abmfact run examples/zoo/audit.yaml --out results/zoo --jobs 4 -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zoo-report
+          path: results/zoo
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - name: Install the wheel in a clean environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+          cd /tmp && /tmp/clean/bin/abmfact --version
+          /tmp/clean/bin/abmfact init -o - > /dev/null
