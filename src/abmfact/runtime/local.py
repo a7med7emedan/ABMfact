@@ -3,12 +3,34 @@
 from __future__ import annotations
 
 import os
+import pickle
 import subprocess
+import sys
 import time
+from collections.abc import Callable, Sequence
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import Any, TypeVar
 
 from ..engines.base import Availability, EngineError, PreparedRun, RunHandle
 from .base import Backend
+
+J = TypeVar("J")
+R = TypeVar("R")
+
+_WORKER_TASK: Any = None
+
+
+def _init_worker(blob: bytes, paths: list[str]) -> None:
+    global _WORKER_TASK
+    for path in paths:
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    _WORKER_TASK = pickle.loads(blob)  # noqa: S301 - the task was pickled by this same process
+
+
+def _call(job: Any) -> Any:
+    return _WORKER_TASK(job)
 
 
 class LocalBackend(Backend):
@@ -35,6 +57,40 @@ class LocalBackend(Backend):
         if not prepared.argv or prepared.workdir is None:
             raise EngineError(f"{prepared.engine}: a prepared run needs a call, or an argv and a work directory")
         return run_command(prepared, prepared.argv, self.name, self.timeout)
+
+    def map(
+        self,
+        task: Callable[[J], R],
+        jobs: Sequence[J],
+        progress: Callable[[int, int], None] | None = None,
+    ) -> list[R]:
+        """Apply ``task`` to every job, in a process pool when ``workers > 1``. Results keep job order.
+
+        The task is pickled once and installed in each worker. A task that cannot be pickled (a lambda,
+        say) runs serially in this process instead.
+        """
+        total = len(jobs)
+        blob: bytes | None = None
+        if self.workers > 1 and total > 1:
+            try:
+                blob = pickle.dumps(task)
+            except Exception:  # noqa: BLE001 - an unpicklable task simply runs serially
+                blob = None
+        results: list[R] = []
+        if blob is not None:
+            chunk = max(1, total // (self.workers * 8))
+            paths = [p for p in sys.path if p]
+            with ProcessPoolExecutor(max_workers=self.workers, initializer=_init_worker, initargs=(blob, paths)) as ex:
+                for i, out in enumerate(ex.map(_call, jobs, chunksize=chunk), 1):
+                    results.append(out)
+                    if progress:
+                        progress(i, total)
+            return results
+        for i, job in enumerate(jobs, 1):
+            results.append(task(job))
+            if progress:
+                progress(i, total)
+        return results
 
 
 def run_command(prepared: PreparedRun, argv: list[str], backend: str, timeout: float | None) -> RunHandle:

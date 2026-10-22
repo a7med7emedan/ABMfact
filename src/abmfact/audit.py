@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import json
 import os
-import pickle
 import platform
-import sys
 from collections.abc import Callable
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -22,7 +19,9 @@ from .checks import Check, Variant, select_checks
 from .claims import Claim
 from .config import Audit
 from .diagnose import diagnose
+from .engines.legacy import AdapterEngine, engine_for_adapter
 from .knobs import Knobs, perm_seed
+from .runtime.local import LocalBackend
 
 SCHEMA_VERSION = "1"
 
@@ -54,52 +53,35 @@ class Condition:
 # ---------------------------------------------------------------------------------------------------------
 # Execution
 
-_WORKER_ADAPTER: Adapter | None = None
+Job = tuple[str, str, dict[str, Any], int, dict[str, Any]]
 
 
-def _init_worker(blob: bytes, paths: list[str]) -> None:
-    global _WORKER_ADAPTER
-    for path in paths:
-        if path not in sys.path:
-            sys.path.insert(0, path)
-    _WORKER_ADAPTER = pickle.loads(blob)  # noqa: S301 - the adapter was pickled by this same process
+class _AuditTask:
+    """One audit job through the engine contract: prepare, run on the local backend, collect."""
 
+    def __init__(self, engine: AdapterEngine):
+        self.engine = engine
 
-def _run_one(job: tuple[str, str, dict[str, Any], int, dict[str, Any]]) -> tuple[str, str, int, Outputs]:
-    label, pkey, params, seed, knobs = job
-    assert _WORKER_ADAPTER is not None
-    return label, pkey, seed, _WORKER_ADAPTER.run(params, seed, Knobs.from_dict(knobs))
+    def __call__(self, job: Job) -> tuple[str, str, int, Outputs]:
+        label, pkey, params, seed, knobs = job
+        record = self.engine.run_once(self.engine.adapter, params, seed, Knobs.from_dict(knobs))
+        assert record.outputs is not None
+        return label, pkey, seed, record.outputs.scalars
 
 
 def execute(
     adapter: Adapter,
-    jobs: list[tuple[str, str, dict[str, Any], int, dict[str, Any]]],
+    jobs: list[Job],
     workers: int,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict[tuple[str, str, int], Outputs]:
-    """Run every job, in parallel when possible. Results are keyed, so order never matters."""
-    results: dict[tuple[str, str, int], Outputs] = {}
-    total = len(jobs)
-    blob: bytes | None = None
-    if workers > 1 and total > 1:
-        try:
-            blob = pickle.dumps(adapter)
-        except Exception:  # noqa: BLE001 - an unpicklable adapter simply runs serially
-            blob = None
-    if blob is not None:
-        chunk = max(1, total // (workers * 8))
-        paths = [p for p in sys.path if p]
-        with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker, initargs=(blob, paths)) as ex:
-            for i, (label, pkey, seed, out) in enumerate(ex.map(_run_one, jobs, chunksize=chunk), 1):
-                results[(label, pkey, seed)] = out
-                if progress:
-                    progress(i, total)
-        return results
-    for i, (label, pkey, params, seed, knobs) in enumerate(jobs, 1):
-        results[(label, pkey, seed)] = adapter.run(params, seed, Knobs.from_dict(knobs))
-        if progress:
-            progress(i, total)
-    return results
+    """Run every job through the adapter's engine on the local backend, in parallel when possible.
+
+    Results are keyed, so order never matters.
+    """
+    task = _AuditTask(engine_for_adapter(adapter))
+    results = LocalBackend(workers).map(task, jobs, progress)
+    return {(label, pkey, seed): out for label, pkey, seed, out in results}
 
 
 # ---------------------------------------------------------------------------------------------------------
