@@ -17,6 +17,7 @@ others make their checks `NOT_TESTABLE`.
 | `grid_rotation` | `0`, `90`, `180`, `270` | rotate the whole world |
 | `dt_scale` | for example `0.5` | multiply the time step |
 | `pop_scale` | for example `2.0` | multiply population and space together, at fixed density |
+| `dx_scale` | for example `0.5` | multiply the voxel size of a model's fields; used by the convergence check |
 
 Only declare an `update_order` value when your theory treats it as equivalent to the default. If the
 theory says agents act in random order, a synchronous update is a different model, not an artefact.

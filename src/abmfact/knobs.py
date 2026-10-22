@@ -19,6 +19,7 @@ KNOB_NAMES = (
     "grid_rotation",
     "dt_scale",
     "pop_scale",
+    "dx_scale",
 )
 
 
@@ -27,7 +28,8 @@ class Knobs:
     """Settings passed to every model run.
 
     ``None`` for ``update_order`` means "use the model's own default". All other defaults are the
-    identity: they leave a correct model unchanged.
+    identity: they leave a correct model unchanged. ``dx_scale`` multiplies the spatial resolution of
+    a model's fields (the voxel size); the convergence check refines it together with ``dt_scale``.
     """
 
     update_order: str | None = None
@@ -38,6 +40,7 @@ class Knobs:
     grid_rotation: int = 0
     dt_scale: float = 1.0
     pop_scale: float = 1.0
+    dx_scale: float = 1.0
 
     def with_(self, **changes: Any) -> Knobs:
         return replace(self, **changes)
@@ -75,6 +78,7 @@ class Support:
     grid: bool = False
     dt_scale: bool = False
     pop_scale: bool = False
+    dx_scale: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -97,7 +101,7 @@ class Support:
         return cls(update_order=values, update_order_default=default, extra=m, **known)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "update_order": {"values": list(self.update_order), "default": self.update_order_default},
             "agent_order": self.agent_order,
             "rng_streams": self.rng_streams,
@@ -105,6 +109,10 @@ class Support:
             "dt_scale": self.dt_scale,
             "pop_scale": self.pop_scale,
         }
+        # Knobs added after v0.1 appear only when declared, so v0.1 audit records stay byte-identical.
+        if self.dx_scale:
+            d["dx_scale"] = True
+        return d
 
 
 def derived_seed(seed: int, salt: int = RNG_SALT) -> int:

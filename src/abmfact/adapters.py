@@ -81,7 +81,7 @@ class MesaAdapter(Adapter):
     ``outputs`` maps output names to either a callable taking the model, or the string
     ``"datacollector:<column>"`` for a model-level reporter series. ``knob_kwargs`` maps knob names
     (``update_order``, ``agent_order``, ``rng_streams``, ``grid_offset``, ``grid_rotation``,
-    ``dt_scale``, ``pop_scale``) to constructor keyword names. A knob is supported exactly when it is
+    ``dt_scale``, ``pop_scale``, ``dx_scale``) to constructor keyword names. A knob is supported exactly when it is
     mapped.
     """
 
@@ -111,6 +111,7 @@ class MesaAdapter(Adapter):
             grid="grid_offset" in kk and "grid_rotation" in kk,
             dt_scale="dt_scale" in kk,
             pop_scale="pop_scale" in kk,
+            dx_scale="dx_scale" in kk,
         )
 
     def _run(self, params: dict[str, Any], seed: int, knobs: Knobs) -> Mapping[str, Any]:
@@ -208,6 +209,7 @@ class NetLogoAdapter(Adapter):
             grid="grid_offset" in kg and "grid_rotation" in kg,
             dt_scale="dt_scale" in kg,
             pop_scale="pop_scale" in kg,
+            dx_scale="dx_scale" in kg,
         )
 
     def _link(self) -> Any:

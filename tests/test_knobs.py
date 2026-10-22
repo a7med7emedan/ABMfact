@@ -31,3 +31,12 @@ def test_derived_seeds_are_stable_and_distinct():
     assert derived_seed(1) != derived_seed(2)
     assert derived_seed(1) != perm_seed(1)
     assert 0 <= derived_seed(2**40) < 2**31
+
+
+def test_dx_scale_is_a_knob_but_hidden_from_v01_records():
+    k = Knobs(dx_scale=0.5)
+    assert Knobs.from_dict(k.to_dict()) == k
+    assert k.changed() == {"dx_scale": 0.5}
+    assert "dx_scale" not in Support().to_dict()
+    s = Support.from_mapping({"dt_scale": True, "dx_scale": True})
+    assert s.dx_scale and s.to_dict()["dx_scale"] is True
