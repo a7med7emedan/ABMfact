@@ -1,0 +1,51 @@
+# Tumour spheroid with an oxygen field: the core runs short of oxygen and turns necrotic.
+# Run:  abmfact run-model examples/ir/spheroid.yaml --engine reference --out results/spheroid
+schema_version: "0.1"
+name: spheroid
+description: >
+  A 2D tumour cross-section in an oxygen field held at 38 mmHg on the domain edge. Cells consume
+  oxygen; low oxygen slows division and raises necrosis, and crowding stops division.
+space:
+  dimensions: 2
+  bounds: {x_min: -400, x_max: 400, y_min: -400, y_max: 400}
+  voxel: {dx: 20, dy: 20}
+  boundary: closed
+substrates:
+  - name: oxygen
+    units: mmHg
+    diffusion_coefficient: 100000
+    decay_rate: 0.1
+    initial_value: 38
+    boundary: {kind: dirichlet, value: 38}
+cell_types:
+  - name: tumour
+    volume: 2494
+    cycle: {model: live, rates: [0.0]}               # division is set by the oxygen rule below
+    death: {apoptosis_rate: 0.00005, necrosis_rate: 0.0028}
+    mechanics: {adhesion_strength: 0.4, repulsion_strength: 10}
+    secretion:
+      - {substrate: oxygen, uptake_rate: 10}
+rules:
+  - {cell_type: tumour, signal: oxygen, direction: increases, behaviour: cycle entry,
+     saturation_value: 0.0014, half_max: 21.5, hill_power: 4}
+  - {cell_type: tumour, signal: pressure, direction: decreases, behaviour: cycle entry,
+     saturation_value: 0, half_max: 0.5, hill_power: 4}
+  - {cell_type: tumour, signal: oxygen, direction: decreases, behaviour: necrosis,
+     saturation_value: 0, half_max: 3.75, hill_power: 8}
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: tumour, count: 120, centre: [0, 0], radius: 100}
+observables:
+  - {name: live, kind: live_count}
+  - {name: dead, kind: dead_count}
+  - {name: oxygen_min, kind: substrate_min, substrate: oxygen}
+  - {name: radius, kind: radius_of_gyration}
+experiment:
+  max_time: 2880
+  dt_diffusion: 0.5
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 120
+provenance:
+  source: ABMfact example, rules after the PhysiCell 1.14.2 rules_sample
+  licence: Apache-2.0

@@ -1,0 +1,44 @@
+# Chemotaxis: cells climb a gradient towards a source held on the right edge.
+# Run:  abmfact run-model examples/ir/chemotaxis.yaml --engine reference --out results/chemotaxis
+schema_version: "0.1"
+name: chemotaxis
+description: >
+  A chemoattractant is held at 1 on the right edge and decays in the domain, giving a steady gradient.
+  Motile cells start on the left and move up the gradient with a partial bias.
+space:
+  dimensions: 2
+  bounds: {x_min: -500, x_max: 500, y_min: -200, y_max: 200}
+  voxel: {dx: 20, dy: 20}
+  boundary: closed
+substrates:
+  - name: attractant
+    diffusion_coefficient: 1000
+    decay_rate: 0.001
+    initial_value: 0
+    boundary: {kind: no_flux, sides: {x_max: 1.0}}
+cell_types:
+  - name: leukocyte
+    volume: 1000
+    cycle: {model: live, rates: [0.0]}
+    mechanics: {adhesion_strength: 0, repulsion_strength: 10}
+    motility:
+      speed: 2
+      persistence_time: 5
+      migration_bias: 0.6
+      chemotaxis: {substrate: attractant, direction: 1}
+initial_conditions:
+  placements:
+    - {kind: rectangle, cell_type: leukocyte, count: 60, centre: [-400, 0], size: [100, 300]}
+observables:
+  - {name: mean_x, kind: mean_position, axis: x}
+  - {name: cells, kind: live_count}
+  - {name: attractant_mean, kind: substrate_mean, substrate: attractant}
+experiment:
+  max_time: 720
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 60
+provenance:
+  source: ABMfact example
+  licence: Apache-2.0

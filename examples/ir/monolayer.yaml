@@ -1,0 +1,41 @@
+# Monolayer growth with contact inhibition: cells divide until crowding stops them.
+# Run:  abmfact run-model examples/ir/monolayer.yaml --engine reference --out results/monolayer
+schema_version: "0.1"
+name: monolayer
+description: >
+  A small colony on a periodic 2D domain. Cells divide at a fixed rate, and mechanical pressure from
+  neighbours switches division off, so growth slows as the colony packs.
+space:
+  dimensions: 2
+  bounds: {x_min: -250, x_max: 250, y_min: -250, y_max: 250}
+  voxel: {dx: 25, dy: 25}
+  boundary: periodic
+cell_types:
+  - name: epithelial
+    volume: 2494
+    cycle: {model: live, rates: [0.00139]}          # one division per 12 hours, uncrowded
+    death: {apoptosis_rate: 0.00001}
+    mechanics: {adhesion_strength: 0.4, repulsion_strength: 10, max_adhesion_distance: 1.25}
+rules:
+  - cell_type: epithelial
+    signal: pressure
+    direction: decreases
+    behaviour: cycle entry
+    saturation_value: 0
+    half_max: 0.5
+    hill_power: 4
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: epithelial, count: 40, centre: [0, 0], radius: 60}
+observables:
+  - {name: cells, kind: live_count}
+  - {name: spread, kind: radius_of_gyration}
+experiment:
+  max_time: 2880
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 120
+provenance:
+  source: ABMfact example
+  licence: Apache-2.0

@@ -1,0 +1,1253 @@
+{
+  "$defs": {
+    "Bounds": {
+      "additionalProperties": false,
+      "properties": {
+        "x_max": {
+          "title": "X Max",
+          "type": "number"
+        },
+        "x_min": {
+          "title": "X Min",
+          "type": "number"
+        },
+        "y_max": {
+          "title": "Y Max",
+          "type": "number"
+        },
+        "y_min": {
+          "title": "Y Min",
+          "type": "number"
+        },
+        "z_max": {
+          "default": 10.0,
+          "title": "Z Max",
+          "type": "number"
+        },
+        "z_min": {
+          "default": -10.0,
+          "title": "Z Min",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x_min",
+        "x_max",
+        "y_min",
+        "y_max"
+      ],
+      "title": "Bounds",
+      "type": "object"
+    },
+    "CellType": {
+      "additionalProperties": false,
+      "properties": {
+        "custom": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Custom",
+          "type": "object"
+        },
+        "cycle": {
+          "$ref": "#/$defs/Cycle"
+        },
+        "death": {
+          "$ref": "#/$defs/Death"
+        },
+        "interactions": {
+          "$ref": "#/$defs/Interactions"
+        },
+        "mechanics": {
+          "$ref": "#/$defs/Mechanics"
+        },
+        "motility": {
+          "$ref": "#/$defs/Motility"
+        },
+        "name": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Name",
+          "type": "string"
+        },
+        "secretion": {
+          "items": {
+            "$ref": "#/$defs/Secretion"
+          },
+          "title": "Secretion",
+          "type": "array"
+        },
+        "transformations": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Transformations",
+          "type": "object"
+        },
+        "volume": {
+          "default": 2494.0,
+          "exclusiveMinimum": 0,
+          "title": "Volume",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "CellType",
+      "type": "object"
+    },
+    "Chemotaxis": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "default": 1,
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "substrate": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Substrate",
+          "type": "string"
+        }
+      },
+      "required": [
+        "substrate"
+      ],
+      "title": "Chemotaxis",
+      "type": "object"
+    },
+    "Cycle": {
+      "additionalProperties": false,
+      "description": "A cell cycle. ``live`` has one phase whose exit rate is the division rate.\n\nGive either ``rates`` (phase exit rates, per time unit, in phase order) or ``durations`` (fixed phase\ndurations), as PhysiCell does.",
+      "properties": {
+        "durations": {
+          "anyOf": [
+            {
+              "items": {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durations"
+        },
+        "model": {
+          "default": "live",
+          "enum": [
+            "live",
+            "flow_cytometry",
+            "flow_cytometry_separated",
+            "ki67_basic",
+            "ki67_advanced",
+            "cycling_quiescent",
+            "custom"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "rates": {
+          "anyOf": [
+            {
+              "items": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rates"
+        }
+      },
+      "title": "Cycle",
+      "type": "object"
+    },
+    "Death": {
+      "additionalProperties": false,
+      "properties": {
+        "apoptosis_duration": {
+          "default": 516.0,
+          "exclusiveMinimum": 0,
+          "title": "Apoptosis Duration",
+          "type": "number"
+        },
+        "apoptosis_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Apoptosis Rate",
+          "type": "number"
+        },
+        "necrosis_duration": {
+          "default": 86400.0,
+          "exclusiveMinimum": 0,
+          "title": "Necrosis Duration",
+          "type": "number"
+        },
+        "necrosis_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Necrosis Rate",
+          "type": "number"
+        }
+      },
+      "title": "Death",
+      "type": "object"
+    },
+    "DerivedFrom": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "engine",
+        "path"
+      ],
+      "title": "DerivedFrom",
+      "type": "object"
+    },
+    "Experiment": {
+      "additionalProperties": false,
+      "properties": {
+        "dt_diffusion": {
+          "default": 0.01,
+          "exclusiveMinimum": 0,
+          "title": "Dt Diffusion",
+          "type": "number"
+        },
+        "dt_mechanics": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "title": "Dt Mechanics",
+          "type": "number"
+        },
+        "dt_phenotype": {
+          "default": 6.0,
+          "exclusiveMinimum": 0,
+          "title": "Dt Phenotype",
+          "type": "number"
+        },
+        "max_time": {
+          "exclusiveMinimum": 0,
+          "title": "Max Time",
+          "type": "number"
+        },
+        "save_interval": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "title": "Save Interval",
+          "type": "number"
+        },
+        "threads": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Threads",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_time"
+      ],
+      "title": "Experiment",
+      "type": "object"
+    },
+    "InitialConditions": {
+      "additionalProperties": false,
+      "properties": {
+        "placements": {
+          "items": {
+            "$ref": "#/$defs/Placement"
+          },
+          "title": "Placements",
+          "type": "array"
+        }
+      },
+      "title": "InitialConditions",
+      "type": "object"
+    },
+    "Interactions": {
+      "additionalProperties": false,
+      "properties": {
+        "attack_rates": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Attack Rates",
+          "type": "object"
+        },
+        "damage_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Damage Rate",
+          "type": "number"
+        },
+        "dead_phagocytosis_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Dead Phagocytosis Rate",
+          "type": "number"
+        },
+        "fusion_rates": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Fusion Rates",
+          "type": "object"
+        },
+        "phagocytosis_rates": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Phagocytosis Rates",
+          "type": "object"
+        }
+      },
+      "title": "Interactions",
+      "type": "object"
+    },
+    "IntracellularModel": {
+      "additionalProperties": false,
+      "description": "A reference to an intracellular model file. Paths are relative to the IR file.",
+      "properties": {
+        "cell_type": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Cell Type",
+          "type": "string"
+        },
+        "files": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "object"
+        },
+        "format": {
+          "enum": [
+            "maboss",
+            "sbml",
+            "sbml-qual"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "object"
+        },
+        "outputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Outputs",
+          "type": "object"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "title": "Settings",
+          "type": "object"
+        },
+        "time_step": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Step"
+        }
+      },
+      "required": [
+        "cell_type",
+        "format",
+        "files"
+      ],
+      "title": "IntracellularModel",
+      "type": "object"
+    },
+    "Mechanics": {
+      "additionalProperties": false,
+      "description": "Centre-based mechanics. ``max_adhesion_distance`` is relative to the cell radius, as in PhysiCell.",
+      "properties": {
+        "adhesion_affinities": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Adhesion Affinities",
+          "type": "object"
+        },
+        "adhesion_strength": {
+          "default": 0.4,
+          "minimum": 0,
+          "title": "Adhesion Strength",
+          "type": "number"
+        },
+        "max_adhesion_distance": {
+          "default": 1.25,
+          "minimum": 1.0,
+          "title": "Max Adhesion Distance",
+          "type": "number"
+        },
+        "repulsion_strength": {
+          "default": 10.0,
+          "minimum": 0,
+          "title": "Repulsion Strength",
+          "type": "number"
+        }
+      },
+      "title": "Mechanics",
+      "type": "object"
+    },
+    "Motility": {
+      "additionalProperties": false,
+      "properties": {
+        "chemotaxis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Chemotaxis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "migration_bias": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Migration Bias",
+          "type": "number"
+        },
+        "persistence_time": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Persistence Time",
+          "type": "number"
+        },
+        "speed": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        }
+      },
+      "title": "Motility",
+      "type": "object"
+    },
+    "NativeExtension": {
+      "additionalProperties": false,
+      "properties": {
+        "affects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Affects",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "custom_cpp",
+            "custom_function",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "engine",
+        "kind"
+      ],
+      "title": "NativeExtension",
+      "type": "object"
+    },
+    "Observable": {
+      "additionalProperties": false,
+      "properties": {
+        "axis": {
+          "default": "x",
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cell_type": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^,\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell Type"
+        },
+        "kind": {
+          "enum": [
+            "cell_count",
+            "live_count",
+            "dead_count",
+            "type_fraction",
+            "mean_position",
+            "radius_of_gyration",
+            "substrate_mean",
+            "substrate_min",
+            "substrate_max"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "substrate": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^,\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Substrate"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "Observable",
+      "type": "object"
+    },
+    "Placement": {
+      "additionalProperties": false,
+      "description": "Initial cells. ``density`` is cells per unit area (2D) or volume (3D); ``positions`` are explicit.",
+      "properties": {
+        "cell_type": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^,\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell Type"
+        },
+        "centre": {
+          "default": [
+            0.0,
+            0.0
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Centre",
+          "type": "array"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "density": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Density"
+        },
+        "kind": {
+          "enum": [
+            "disc",
+            "rectangle",
+            "random",
+            "positions",
+            "positions_csv"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "positions": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Positions"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radius"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Placement",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authors",
+          "type": "array"
+        },
+        "created_with": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created With"
+        },
+        "derived_from": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DerivedFrom"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doi"
+        },
+        "licence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licence"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "description": "One signal-to-behaviour rule in PhysiCell's cell behaviour grammar (CBHG, rules CSV version 3).\n\n``saturation_value`` is the behaviour value when the signal saturates: the maximum for an\n``increases`` rule and the minimum for a ``decreases`` rule. The base value comes from the cell type.",
+      "properties": {
+        "apply_to_dead": {
+          "default": false,
+          "title": "Apply To Dead",
+          "type": "boolean"
+        },
+        "behaviour": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Behaviour",
+          "type": "string"
+        },
+        "cell_type": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Cell Type",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "increases",
+            "decreases"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "half_max": {
+          "exclusiveMinimum": 0,
+          "title": "Half Max",
+          "type": "number"
+        },
+        "hill_power": {
+          "exclusiveMinimum": 0,
+          "title": "Hill Power",
+          "type": "number"
+        },
+        "saturation_value": {
+          "minimum": 0,
+          "title": "Saturation Value",
+          "type": "number"
+        },
+        "signal": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Signal",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cell_type",
+        "signal",
+        "direction",
+        "behaviour",
+        "saturation_value",
+        "half_max",
+        "hill_power"
+      ],
+      "title": "Rule",
+      "type": "object"
+    },
+    "Secretion": {
+      "additionalProperties": false,
+      "properties": {
+        "net_export_rate": {
+          "default": 0.0,
+          "title": "Net Export Rate",
+          "type": "number"
+        },
+        "secretion_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Secretion Rate",
+          "type": "number"
+        },
+        "substrate": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Substrate",
+          "type": "string"
+        },
+        "target": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Target",
+          "type": "number"
+        },
+        "uptake_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Uptake Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "substrate"
+      ],
+      "title": "Secretion",
+      "type": "object"
+    },
+    "Space": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "default": "closed",
+          "enum": [
+            "closed",
+            "periodic"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
+        "dimensions": {
+          "default": 2,
+          "enum": [
+            2,
+            3
+          ],
+          "title": "Dimensions",
+          "type": "integer"
+        },
+        "voxel": {
+          "$ref": "#/$defs/Voxel"
+        }
+      },
+      "required": [
+        "bounds",
+        "voxel"
+      ],
+      "title": "Space",
+      "type": "object"
+    },
+    "Substrate": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "$ref": "#/$defs/SubstrateBoundary"
+        },
+        "decay_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Decay Rate",
+          "type": "number"
+        },
+        "diffusion_coefficient": {
+          "minimum": 0,
+          "title": "Diffusion Coefficient",
+          "type": "number"
+        },
+        "initial_value": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Initial Value",
+          "type": "number"
+        },
+        "name": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Name",
+          "type": "string"
+        },
+        "units": {
+          "default": "dimensionless",
+          "title": "Units",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "diffusion_coefficient"
+      ],
+      "title": "Substrate",
+      "type": "object"
+    },
+    "SubstrateBoundary": {
+      "additionalProperties": false,
+      "description": "``dirichlet`` holds every side at ``value``; ``sides`` overrides one side, ``None`` makes it no-flux.",
+      "properties": {
+        "kind": {
+          "default": "no_flux",
+          "enum": [
+            "no_flux",
+            "dirichlet"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "sides": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "propertyNames": {
+            "enum": [
+              "x_min",
+              "x_max",
+              "y_min",
+              "y_max",
+              "z_min",
+              "z_max"
+            ]
+          },
+          "title": "Sides",
+          "type": "object"
+        },
+        "value": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "SubstrateBoundary",
+      "type": "object"
+    },
+    "TimedEvent": {
+      "additionalProperties": false,
+      "description": "A change at a set time, held until ``until`` when given (then reverted), for example a drug pulse.",
+      "properties": {
+        "action": {
+          "enum": [
+            "set_substrate_boundary",
+            "set_substrate",
+            "add_cells",
+            "set_parameter"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "pattern": "^[^,\\n]+$",
+          "title": "Target",
+          "type": "string"
+        },
+        "time": {
+          "minimum": 0,
+          "title": "Time",
+          "type": "number"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Until"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "time",
+        "action",
+        "target"
+      ],
+      "title": "TimedEvent",
+      "type": "object"
+    },
+    "Units": {
+      "additionalProperties": false,
+      "properties": {
+        "space": {
+          "default": "micron",
+          "title": "Space",
+          "type": "string"
+        },
+        "time": {
+          "default": "min",
+          "title": "Time",
+          "type": "string"
+        }
+      },
+      "title": "Units",
+      "type": "object"
+    },
+    "Voxel": {
+      "additionalProperties": false,
+      "properties": {
+        "dx": {
+          "exclusiveMinimum": 0,
+          "title": "Dx",
+          "type": "number"
+        },
+        "dy": {
+          "exclusiveMinimum": 0,
+          "title": "Dy",
+          "type": "number"
+        },
+        "dz": {
+          "default": 20.0,
+          "exclusiveMinimum": 0,
+          "title": "Dz",
+          "type": "number"
+        }
+      },
+      "required": [
+        "dx",
+        "dy"
+      ],
+      "title": "Voxel",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/a7med7emedan/ABMfact/blob/main/schemas/abm-ir-0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "An ABM-IR document.",
+  "properties": {
+    "cell_types": {
+      "items": {
+        "$ref": "#/$defs/CellType"
+      },
+      "minItems": 1,
+      "title": "Cell Types",
+      "type": "array"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/TimedEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "experiment": {
+      "$ref": "#/$defs/Experiment"
+    },
+    "initial_conditions": {
+      "$ref": "#/$defs/InitialConditions"
+    },
+    "intracellular": {
+      "items": {
+        "$ref": "#/$defs/IntracellularModel"
+      },
+      "title": "Intracellular",
+      "type": "array"
+    },
+    "name": {
+      "minLength": 1,
+      "pattern": "^[^,\\n]+$",
+      "title": "Name",
+      "type": "string"
+    },
+    "native_extensions": {
+      "items": {
+        "$ref": "#/$defs/NativeExtension"
+      },
+      "title": "Native Extensions",
+      "type": "array"
+    },
+    "observables": {
+      "items": {
+        "$ref": "#/$defs/Observable"
+      },
+      "title": "Observables",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/Rule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "space": {
+      "$ref": "#/$defs/Space"
+    },
+    "substrates": {
+      "items": {
+        "$ref": "#/$defs/Substrate"
+      },
+      "title": "Substrates",
+      "type": "array"
+    },
+    "units": {
+      "$ref": "#/$defs/Units"
+    }
+  },
+  "required": [
+    "name",
+    "space",
+    "cell_types",
+    "experiment"
+  ],
+  "title": "ABM-IR 0.1",
+  "type": "object"
+}
