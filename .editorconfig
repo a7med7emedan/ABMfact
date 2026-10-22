@@ -10,3 +10,7 @@ indent_size = 4
 
 [*.{yml,yaml,json,toml,cff,md}]
 indent_size = 2
+
+[tests/fixtures/physicell/**]
+insert_final_newline = unset
+trim_trailing_whitespace = unset
