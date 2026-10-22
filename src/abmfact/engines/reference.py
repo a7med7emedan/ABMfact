@@ -43,7 +43,11 @@ class ReferenceEngine(Engine):
             native_formats=("abm-ir",),
             ir_features=FEATURES,
             notes="grid knobs need a periodic domain; no intracellular models, attack or phagocytosis",
+            update_orders=("random", "id", "reverse", "synchronous"),
         )
+
+    def load(self, model: Any) -> IRModel:
+        return as_model(model)
 
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
         from ..reference import refusals

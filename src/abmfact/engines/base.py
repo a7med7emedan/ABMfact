@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from ..knobs import KNOB_NAMES, Knobs, derived_seed
+from ..knobs import KNOB_NAMES, Knobs, Support, derived_seed
 from ..records import RunOutputs, RunRecord, RunRequest
 
 if TYPE_CHECKING:
@@ -39,11 +39,12 @@ class Capabilities:
     native_formats: tuple[str, ...] = ()
     ir_features: frozenset[str] = frozenset()
     notes: str = ""
+    update_orders: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["ir_features"] = sorted(self.ir_features)
-        for k in ("dimensions", "intracellular", "knobs", "native_formats"):
+        for k in ("dimensions", "intracellular", "knobs", "native_formats", "update_orders"):
             d[k] = list(d[k])
         return d
 
@@ -103,6 +104,33 @@ class Engine(ABC):
 
     def availability(self) -> Availability:
         return Availability(True, "built in")
+
+    def load(self, model: Any) -> Any:
+        """Turn a user-supplied model (often a path) into what :meth:`prepare` takes. Default: unchanged."""
+        return model
+
+    def support_for(self, model: Any) -> Support:
+        """The knobs this engine honours for this model, found by asking :meth:`refuse` about each one.
+
+        ``update_order`` lists :attr:`Capabilities.update_orders` (the first is the default). ``rng_streams``
+        is declared only when the engine manages its own streams; otherwise the seed is remapped.
+        """
+        caps = self.capabilities()
+
+        def ok(knob: str, *probes: Knobs) -> bool:
+            return knob in caps.knobs and all(not self.refuse(model, k) for k in probes)
+
+        orders = tuple(v for v in caps.update_orders if ok("update_order", Knobs(update_order=v)))
+        return Support(
+            update_order=orders if len(orders) > 1 else (),
+            update_order_default=orders[0] if len(orders) > 1 else None,
+            agent_order=ok("agent_order", Knobs(agent_order="shuffled", agent_perm_seed=1)),
+            rng_streams=ok("rng_streams", Knobs(rng_streams="independent")),
+            grid=ok("grid_offset", Knobs(grid_offset=(0.5, 0.5))) and ok("grid_rotation", Knobs(grid_rotation=90)),
+            dt_scale=ok("dt_scale", Knobs(dt_scale=0.5)),
+            pop_scale=ok("pop_scale", Knobs(pop_scale=2.0)),
+            dx_scale=ok("dx_scale", Knobs(dx_scale=0.5)),
+        )
 
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
         """Reasons this engine cannot honour the request; empty when it can run it.

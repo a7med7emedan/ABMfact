@@ -185,6 +185,9 @@ MODEL_BLOCKS = {
     "command": '  argv: ["{python}", "model.py"]  # reads JSON on stdin, prints JSON\n'
     "  supports:\n"
     "    agent_order: false\n",
+    "engine": "  engine: reference               # see: abmfact engines\n"
+    "  model: model.yaml                # an ABM-IR file; outputs are its observables\n"
+    "  # store: .abmfact-store          # reuse identical runs across audits\n",
 }
 
 

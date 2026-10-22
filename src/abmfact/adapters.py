@@ -363,4 +363,17 @@ def load_adapter(cfg: Mapping[str, Any], base_dir: Path | None = None) -> Adapte
             timeout=float(cfg.get("timeout", 600)),
             cwd=str(base),
         )
-    raise AdapterError(f"unknown adapter {kind!r}; expected python, mesa, netlogo or command")
+    if kind == "engine":
+        from .engines.model_adapter import EngineModelAdapter
+
+        if "engine" not in cfg or "model" not in cfg:
+            raise AdapterError("the engine adapter needs 'engine' and 'model'")
+        model_path = Path(str(cfg["model"]))
+        store = cfg.get("store")
+        return EngineModelAdapter(
+            str(cfg["engine"]),
+            model_path if model_path.is_absolute() else base / model_path,
+            options=cfg.get("options"),
+            store=None if store is None else (Path(store) if Path(store).is_absolute() else base / store),
+        )
+    raise AdapterError(f"unknown adapter {kind!r}; expected python, mesa, netlogo, command or engine")

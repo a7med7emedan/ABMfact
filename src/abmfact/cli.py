@@ -198,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--jobs", type=int, default=1)
     d.add_argument("-q", "--quiet", action="store_true")
     i = sub.add_parser("init", help="write a commented audit file template")
-    i.add_argument("--adapter", default="python", choices=["python", "mesa", "netlogo", "command"])
+    i.add_argument("--adapter", default="python", choices=["python", "mesa", "netlogo", "command", "engine"])
     i.add_argument("-o", "--output", default="audit.yaml", help="file to write, or - for stdout")
     i.add_argument("--force", action="store_true")
     rp = sub.add_parser("replay", help="run one model run and print its outputs")
