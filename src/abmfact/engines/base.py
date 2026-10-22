@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from ..knobs import KNOB_NAMES, Knobs, Support, derived_seed
 from ..records import RunOutputs, RunRecord, RunRequest
+from ..records.cache import cache_bypassed
 
 if TYPE_CHECKING:
     from ..records.store import RunStore
@@ -173,7 +174,8 @@ class Engine(ABC):
         """Prepare, run and collect one run, refusing first if the engine cannot honour it.
 
         With a ``store``, an identical earlier request is returned from it (``status="cached"``) and a new
-        successful run is written to it.
+        successful run is written to it, except while the cache is bypassed (determinism reruns), when the
+        run always executes and the store is left as it was.
         """
         knobs = knobs or Knobs()
         reasons = self.refuse(model, knobs)
@@ -183,7 +185,7 @@ class Engine(ABC):
         if store is not None and (hit := store.get(prepared.request)) is not None:
             return hit
         record = self.collect(self.run(prepared, backend))
-        if store is not None and record.status == "ok":
+        if store is not None and record.status == "ok" and not cache_bypassed():
             outputs = record.outputs
             record = store.put(record)
             record.outputs = outputs

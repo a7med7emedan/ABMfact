@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 import yaml
@@ -77,3 +78,80 @@ def test_audit_of_an_ir_model(model_file, capsys):
 def test_init_engine_template(capsys):
     assert cli.main(["init", "-o", "-", "--adapter", "engine"]) == 0
     assert "engine: reference" in capsys.readouterr().out
+
+
+# -- determinism with a run store attached ------------------------------------------------------------------
+
+from abmfact import zoo  # noqa: E402
+from abmfact.engines import registry  # noqa: E402
+from abmfact.engines.base import Capabilities, Engine, PreparedRun  # noqa: E402
+from abmfact.records import RunOutputs, RunRequest  # noqa: E402
+from abmfact.records.cache import bypass_cache, cache_bypassed  # noqa: E402
+from abmfact.records.store import RunStore  # noqa: E402
+
+
+class ZooEngine(Engine):
+    """A test engine that runs a planted-fault zoo model named by the model path."""
+
+    name = "zootest"
+
+    def capabilities(self):
+        return Capabilities(name=self.name, mechanics="lattice", knobs=("rng_streams",))
+
+    def load(self, model):
+        return Path(model).name
+
+    def prepare(self, model, params, knobs, seed, workdir=None):
+        fault = None if model == "clean" else model
+        request = RunRequest(self.name, f"zoo:{model}", dict(params), int(seed), knobs.to_dict())
+        return PreparedRun(
+            self.name, request, call=lambda: RunOutputs(scalars=zoo.simulate(params, seed, knobs, fault))
+        )
+
+    def collect(self, handle):
+        return self.record(handle)
+
+
+@pytest.fixture
+def zoo_engine(monkeypatch):
+    monkeypatch.setitem(registry.BUILTIN, "zootest", "test_engine_audits:ZooEngine")
+
+
+def _zoo_audit(tmp_path, model, store):
+    doc = {
+        "model": {"adapter": "engine", "engine": "zootest", "model": model, **({"store": "store"} if store else {})},
+        "params": {**zoo.DEFAULT_PARAMS, "T": 20},
+        "claims": [{"id": "C1", "metric": "attack_rate", "test": "greater_than", "value": 0.05}],
+        "budget": {"seeds": 6, "jobs": 1, "checks": ["determinism"]},
+    }
+    path = tmp_path / "audit.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    return run_audit(load_audit(path)).matrix()["C1"]["determinism"]
+
+
+@pytest.mark.parametrize("store", [False, True])
+def test_planted_nondeterminism_is_caught_with_a_store_attached(tmp_path, zoo_engine, store):
+    assert _zoo_audit(tmp_path, "nondeterminism", store) == "FRAGILE"
+    assert _zoo_audit(tmp_path, "clean", store) == "ROBUST"
+    if store:
+        # Baseline runs were stored once each; the reruns executed again and left the store unchanged.
+        assert len(list((tmp_path / "store" / "runs").glob("*/*/record.json"))) == 6 + 6
+
+
+def test_bypass_skips_reading_and_writing_the_store(tmp_path):
+    from toymodels import noisy_model
+
+    from abmfact.engines.legacy import engine_for_adapter
+
+    store = RunStore(tmp_path, formats="basic", index="jsonl")
+    engine = engine_for_adapter(noisy_model)
+    assert not cache_bypassed()
+    engine.run_once(noisy_model, {}, 1, Knobs(), store=store)
+    with bypass_cache():
+        assert cache_bypassed()
+        rec = engine.run_once(noisy_model, {}, 1, Knobs(), store=store)
+        assert rec.status == "ok" and store.get(rec.request) is None
+        engine.run_once(noisy_model, {}, 2, Knobs(), store=store)
+    assert not cache_bypassed()
+    assert store.get(rec.request).status == "cached"
+    assert len(store.query()) == 1

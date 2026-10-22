@@ -22,6 +22,7 @@ import numpy as np
 
 from abmfact.adapters import AdapterError, PythonAdapter
 from abmfact.knobs import Knobs
+from abmfact.records.cache import cache_bypassed
 
 SHIPPED_HORIZON = {"heterogeneity": 64800.0, "biorobots": 2880.0}
 NEAR = 50.0  # micron, fixed in PROTOCOL.md
@@ -92,7 +93,8 @@ class Gate2Model:
             json.dumps([self.project, dict(params), seed, knobs.to_dict(), horizon, threads], sort_keys=True).encode()
         ).hexdigest()[:24]
         done = cache / "metrics" / f"{key}.json"
-        if done.exists():
+        fresh = cache_bypassed()  # a determinism rerun: execute again, keep the first run's metrics
+        if done.exists() and not fresh:
             return json.loads(done.read_text())
         end = float(params.get("overall/max_time", horizon))
         engine = PhysiCellEngine(
@@ -114,8 +116,9 @@ class Gate2Model:
         finally:
             shutil.rmtree(work, ignore_errors=True)
         out["wall_time"] = float(record.wall_time or np.nan)
-        done.parent.mkdir(parents=True, exist_ok=True)
-        done.write_text(json.dumps(out), encoding="utf-8")
+        if not fresh:
+            done.parent.mkdir(parents=True, exist_ok=True)
+            done.write_text(json.dumps(out), encoding="utf-8")
         return out
 
 

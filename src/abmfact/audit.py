@@ -21,6 +21,7 @@ from .config import Audit
 from .diagnose import diagnose
 from .engines.legacy import AdapterEngine, engine_for_adapter
 from .knobs import Knobs, perm_seed
+from .records.cache import bypass_cache
 from .runtime.local import LocalBackend
 
 SCHEMA_VERSION = "1"
@@ -64,7 +65,12 @@ class _AuditTask:
 
     def __call__(self, job: Job) -> tuple[str, str, int, Outputs]:
         label, pkey, params, seed, knobs = job
-        record = self.engine.run_once(self.engine.adapter, params, seed, Knobs.from_dict(knobs))
+        if label == RERUN:
+            # A determinism rerun must execute again: no cache may answer it with the first run.
+            with bypass_cache():
+                record = self.engine.run_once(self.engine.adapter, params, seed, Knobs.from_dict(knobs))
+        else:
+            record = self.engine.run_once(self.engine.adapter, params, seed, Knobs.from_dict(knobs))
         assert record.outputs is not None
         return label, pkey, seed, record.outputs.scalars
 

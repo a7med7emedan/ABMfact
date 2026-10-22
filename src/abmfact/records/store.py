@@ -30,6 +30,7 @@ from typing import Any
 
 import numpy as np
 
+from .cache import cache_bypassed
 from .record import RunRecord, RunRequest
 from .schema import CELL_COLUMNS, FieldFrame, RunOutputs, cells_table
 
@@ -93,7 +94,10 @@ class RunStore:
     # -- reading -----------------------------------------------------------------------------------------
 
     def get(self, request: RunRequest) -> RunRecord | None:
-        """The stored record for this request with ``status="cached"``, or ``None``. Failed runs miss."""
+        """The stored record for this request with ``status="cached"``, or ``None``. Failed runs miss, and
+        so does everything while :func:`abmfact.records.cache.bypass_cache` is active."""
+        if cache_bypassed():
+            return None
         path = self.run_dir(request.key()) / "record.json"
         if not path.exists():
             return None
