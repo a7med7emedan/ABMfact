@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/a7med7emedan/ABMfact/actions/workflows/tests.yml"><img src="https://github.com/a7med7emedan/ABMfact/actions/workflows/tests.yml/badge.svg" alt="tests"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11 to 3.13">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-green" alt="Apache-2.0"></a>
+  <a href="https://github.com/a7med7emedan/ABMfact/blob/main/LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-green" alt="Apache-2.0"></a>
 </p>
 
 **ABMfact tells you whether the conclusions of an agent-based model are findings or implementation
@@ -19,6 +19,13 @@ correct implementation must not care about: activation order, agent labels, rand
 world sits on the grid, the time step and the population size. It then reports, claim by claim, which
 conclusions survive. Every verdict comes with an interval, a reason and a one-line command that
 reproduces it.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works-dark.svg">
+    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works.svg" alt="The audit pipeline: a model and its claims run under a baseline and six perturbed conditions, over many seeds; intervals and equivalence tests give a verdict per claim and check (ROBUST, SHIFTED or FRAGILE), written to report.html, results.json and an RO-Crate record." width="100%">
+  </picture>
+</p>
 
 ## Why
 
@@ -86,7 +93,7 @@ them from the paper or the abstract before running anything.
 ## What you get
 
 For example, auditing the zoo model with a stale-buffer bug (`abmfact.zoo:fault_stale_state`, claims as
-in [examples/zoo/audit.yaml](examples/zoo/audit.yaml)) gives:
+in [examples/zoo/audit.yaml](https://github.com/a7med7emedan/ABMfact/blob/main/examples/zoo/audit.yaml)) gives:
 
 | Claim | determinism | update order | agent order | rng streams | grid | time step | population |
 |---|---|---|---|---|---|---|---|
@@ -136,13 +143,23 @@ its own streams, ABMfact remaps the seed.
 
 Decisions use one-sided tests at `alpha` (0.05 by default, so 90% intervals) and a three-outcome
 equivalence test against a tolerance, 10% of the baseline mean unless the claim sets one. See
-[docs/statistics.md](docs/statistics.md).
+[docs/statistics.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/statistics.md).
 
 ## Validation: the planted-fault zoo
 
 A checker is only as good as its evidence that it catches what it claims to catch, and nothing else.
 `abmfact.zoo` holds one clean SIR model on a torus and seven copies of it, each with one realistic bug.
-`abmfact demo` audits all eight with every check. The test suite requires this exact matrix:
+`abmfact demo` audits all eight with every check. The figure below is drawn from a real run with 100 seeds
+per condition by [scripts/make_figures.py](https://github.com/a7med7emedan/ABMfact/blob/main/scripts/make_figures.py).
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/matrix-dark.svg">
+    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/matrix.svg" alt="Planted-fault detection matrix: each of the seven faulty models is caught only by its own check, and the clean model by none." width="100%">
+  </picture>
+</p>
+
+The test suite requires this exact matrix:
 
 ```
                 determinism  update order  agent order  rng streams  grid    time step  population scale
@@ -157,7 +174,7 @@ density         .            .             .            .            .       .  
 ```
 
 Each fault is caught by its own check and by no other, and the clean model is robust everywhere. The
-bugs are described in [docs/zoo.md](docs/zoo.md) and marked `# FAULT` in the source.
+bugs are described in [docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/zoo.md) and marked `# FAULT` in the source.
 
 ## Adapters
 
@@ -168,7 +185,7 @@ bugs are described in [docs/zoo.md](docs/zoo.md) and marked `# FAULT` in the sou
 | `netlogo` | `.nlogo` models through pynetlogo | knobs map to globals; needs a local NetLogo |
 | `command` | anything else: R, Julia, Java, C++ | reads JSON on stdin, prints JSON on stdout |
 
-Working examples for each live in [examples/](examples). See [docs/adapters.md](docs/adapters.md).
+Working examples for each live in [examples/](https://github.com/a7med7emedan/ABMfact/tree/main/examples). See [docs/adapters.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/adapters.md).
 
 ## Limits
 
@@ -179,7 +196,7 @@ made in one audit, so treat a single marginal `SHIFTED` as a lead to investigate
 
 ## Citing
 
-If ABMfact helps your work, please cite it using [CITATION.cff](CITATION.cff) (GitHub shows a "Cite this
+If ABMfact helps your work, please cite it using [CITATION.cff](https://github.com/a7med7emedan/ABMfact/blob/main/CITATION.cff) (GitHub shows a "Cite this
 repository" button). The idea it implements comes from:
 
 > Galán, J. M., Izquierdo, L. R., Izquierdo, S. S., Santos, J. I., del Olmo, R., López-Paredes, A., &
@@ -188,4 +205,4 @@ repository" button). The idea it implements comes from:
 
 ## Licence
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/a7med7emedan/ABMfact/blob/main/LICENSE).
