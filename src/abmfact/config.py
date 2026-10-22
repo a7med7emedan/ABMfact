@@ -74,12 +74,13 @@ class Audit:
     source: Path | None = None
     sha256: str | None = None
     title: str = "ABMfact audit"
+    convergence: dict[str, Any] = field(default_factory=dict)
 
 
 def parse_audit(doc: Mapping[str, Any], base_dir: Path | None = None) -> Audit:
     if not isinstance(doc, Mapping):
         raise ConfigError("the audit file must be a YAML mapping")
-    unknown = sorted(set(doc) - {"title", "model", "params", "claims", "budget"})
+    unknown = sorted(set(doc) - {"title", "model", "params", "claims", "budget", "convergence"})
     if unknown:
         raise ConfigError(f"unknown top-level keys: {unknown}")
     if "model" not in doc:
@@ -87,7 +88,7 @@ def parse_audit(doc: Mapping[str, Any], base_dir: Path | None = None) -> Audit:
     model_cfg = dict(doc["model"])
     adapter = load_adapter(model_cfg, base_dir=base_dir)
     try:
-        claims = parse_claims(list(doc.get("claims") or []), known_checks=CHECK_NAMES)
+        claims = parse_claims(list(doc.get("claims") or []), known_checks=(*CHECK_NAMES, "convergence"))
     except ClaimError as exc:
         raise ConfigError(str(exc)) from exc
     return Audit(
@@ -97,6 +98,7 @@ def parse_audit(doc: Mapping[str, Any], base_dir: Path | None = None) -> Audit:
         budget=Budget.from_mapping(doc.get("budget")),
         model_cfg=model_cfg,
         title=str(doc.get("title", "ABMfact audit")),
+        convergence=dict(doc.get("convergence") or {}),
     )
 
 

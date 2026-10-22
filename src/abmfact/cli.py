@@ -1,4 +1,5 @@
-"""Command line: ``abmfact run | check | demo | init | replay | engines | run-model | import | export``."""
+"""Command line: ``abmfact run | check | demo | init | replay | engines | run-model | import | export |
+converge``."""
 
 from __future__ import annotations
 
@@ -225,6 +226,39 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_converge(args: argparse.Namespace) -> int:
+    from .verify.convergence import ConvergenceError, ConvergenceSettings, converge
+
+    audit = load_audit(args.audit, _overrides(args))
+    try:
+        settings = ConvergenceSettings.from_mapping(audit.convergence)
+    except ConvergenceError as exc:
+        raise ConfigError(str(exc)) from exc
+    result = converge(audit, settings, progress=_progress(args.quiet))
+    if not args.quiet:
+        levels = ", ".join(f"dt x{lv['dt_scale']:g}" + (f" dx x{lv['dx_scale']:g}" if lv["dx_scale"] != 1 else "")
+                           for lv in result.data["levels"])  # fmt: skip
+        print(f"  levels: {levels}")
+        for v in result.verdicts:
+            print(f"  {v['claim']:<6} {v['metric']:<24} {v['verdict']:<14} {v['reason']}")
+            for pk, pv in v.get("points", {}).items():
+                point = {k: x for k, x in json.loads(pk).items() if audit.params.get(k) != x}
+                where = ", ".join(f"{k}={x}" for k, x in point.items()) or "base parameters"
+                means = " -> ".join(f"{lv['estimate']:.4g}" if lv else "non-finite" for lv in pv["levels"])
+                print(f"         {where}: {means}  {pv['verdict']}")
+    if args.out:
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "convergence.json").write_text(result.to_json(), encoding="utf-8")
+        if not args.quiet:
+            print(f"  wrote {out / 'convergence.json'}")
+    if result.any_not_converged:
+        print("  not converged: " + ", ".join(v["claim"] for v in result.verdicts if v["verdict"] == "NOT_CONVERGED"),
+              file=sys.stderr)  # fmt: skip
+        return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="abmfact",
@@ -268,6 +302,9 @@ def build_parser() -> argparse.ArgumentParser:
     rm.add_argument("--store", help="run store directory; an identical earlier run is reused")
     rm.add_argument("--option", action="append", metavar="KEY=VALUE", help="engine option, e.g. threads=1")
     rm.add_argument("-q", "--quiet", action="store_true")
+    cv = sub.add_parser("converge", help="check that claim metrics converge as dt (and voxel size) are refined")
+    common(cv)
+    cv.add_argument("--out", default=None, help="write convergence.json to this directory")
     im = sub.add_parser("import", help="translate a simulator's project into an ABM-IR model")
     im.add_argument("source", choices=["physicell"], help="the simulator the project is for")
     im.add_argument("project", help="project folder")
@@ -301,6 +338,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_run_model(args)
         if args.command == "import":
             return cmd_import(args)
+        if args.command == "converge":
+            return cmd_converge(args)
         if args.command == "export":
             return cmd_export(args)
         return cmd_replay(args)

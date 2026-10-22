@@ -57,3 +57,27 @@ order_bug_model = PythonAdapter(order_bug, supports=ALL, name="order_bug")
 spread_bug_model = PythonAdapter(spread_bug, supports=ALL, name="spread_bug")
 constant_model = PythonAdapter(constant, supports=ALL, name="constant")
 bare_noisy = PythonAdapter(noisy, supports=None, name="bare")
+
+
+def refined(params: Mapping[str, Any], seed: int, knobs: Knobs) -> dict[str, Any]:
+    """x = 10 + c * h^p + noise, with h the time-step scale: converges at order p as h shrinks."""
+    rng = _rng(seed, knobs)
+    h = knobs.dt_scale
+    c, p, sd = float(params.get("c", 4.0)), float(params.get("p", 2.0)), float(params.get("sd", 0.05))
+    return {"x": 10.0 + c * h**p + rng.normal(0.0, sd)}
+
+
+def diverging(params: Mapping[str, Any], seed: int, knobs: Knobs) -> dict[str, Any]:
+    """A rate tied to the calibration step: the result grows as 1/h."""
+    rng = _rng(seed, knobs)
+    return {"x": 10.0 / knobs.dt_scale + rng.normal(0.0, 0.05)}
+
+
+def blow_up(params: Mapping[str, Any], seed: int, knobs: Knobs) -> dict[str, Any]:
+    return {"x": float("inf") if knobs.dx_scale < 0.3 else 10.0 + _rng(seed, knobs).normal(0.0, 0.05)}
+
+
+DT = {"dt_scale": True, "rng_streams": True}
+refined_model = PythonAdapter(refined, supports=DT, name="refined")
+diverging_model = PythonAdapter(diverging, supports=DT, name="diverging")
+blow_up_model = PythonAdapter(blow_up, supports={**DT, "dx_scale": True}, name="blow_up")
