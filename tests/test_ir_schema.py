@@ -27,3 +27,13 @@ def test_examples_load_and_match_the_schema(path):
     jsonschema = pytest.importorskip("jsonschema")
     load_model(path)
     jsonschema.validate(yaml.safe_load(path.read_text()), json.loads(SCHEMA.read_text()))
+
+
+def test_reference_page_is_current():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("make_ir_reference", ROOT / "scripts" / "make_ir_reference.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    page = (ROOT / "docs" / "ir-reference.md").read_text()
+    assert page == mod.render(schema_dict()), "regenerate with: python scripts/make_ir_reference.py"

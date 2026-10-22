@@ -148,33 +148,41 @@ equivalence test against a tolerance, 10% of the baseline mean unless the claim 
 ## Validation: the planted-fault zoo
 
 A checker is only as good as its evidence that it catches what it claims to catch, and nothing else.
-`abmfact.zoo` holds one clean SIR model on a torus and seven copies of it, each with one realistic bug.
-`abmfact demo` audits all eight with every check. The figure below is drawn from a real run with 100 seeds
-per condition by [scripts/make_figures.py](https://github.com/a7med7emedan/ABMfact/blob/main/scripts/make_figures.py).
+`abmfact.zoo` holds one clean SIR model on a torus and seven copies of it, each with one realistic bug,
+plus a second clean model with a diffusing nutrient and one copy whose diffusion step breaks its
+stability limit. `abmfact demo` audits all ten with every check and checks their convergence. The figure
+below is drawn from a real run with 100 seeds per condition by
+[scripts/make_figures.py](https://github.com/a7med7emedan/ABMfact/blob/main/scripts/make_figures.py).
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/matrix-dark.svg">
-    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/matrix.svg" alt="Planted-fault detection matrix: each of the seven faulty models is caught only by its own check, and the clean model by none." width="100%">
+    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/matrix.svg" alt="Planted-fault detection matrix: each of the eight faulty models is caught by its own check, dt_unscaled also by convergence, and the two clean models by none." width="100%">
   </picture>
 </p>
 
 The test suite requires this exact matrix:
 
 ```
-                determinism  update order  agent order  rng streams  grid    time step  population scale
-clean           .            .             .            .            .       .          .
-nondeterminism  CAUGHT       .             .            .            .       .          .
-stale_state     .            CAUGHT        .            .            .       .          .
-id_dependence   .            .             CAUGHT       .            .       .          .
-ignored_seed    .            .             .            CAUGHT       .       .          .
-boundary        .            .             .            .            CAUGHT  .          .
-dt_unscaled     .            .             .            .            .       CAUGHT     .
-density         .            .             .            .            .       .          CAUGHT
+                    determinism  update order  agent order  rng streams  grid    time step  population scale  convergence
+clean               .            .             .            .            .       .          .                 .
+nondeterminism      CAUGHT       .             .            .            .       .          .                 .
+stale_state         .            CAUGHT        .            .            .       .          .                 .
+id_dependence       .            .             CAUGHT       .            .       .          .                 .
+ignored_seed        .            .             .            CAUGHT       .       .          .                 .
+boundary            .            .             .            .            CAUGHT  .          .                 .
+dt_unscaled         .            .             .            .            .       CAUGHT     .                 CAUGHT
+density             .            .             .            .            .       .          CAUGHT            .
+field_clean         .            .             .            .            .       .          .                 .
+unstable_diffusion  .            .             .            .            .       .          .                 CAUGHT
 ```
 
-Each fault is caught by its own check and by no other, and the clean model is robust everywhere. The
-bugs are described in [docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/zoo.md) and marked `# FAULT` in the source.
+Each fault is caught by its own check and by no other, with one documented overlap: `dt_unscaled` is also
+caught by convergence. Both checks refine the time step, and a rate tied to the calibration step
+genuinely does not converge, so two checks rightly flag the same bug. The `unstable_diffusion` fault is
+identical to its clean model at the audit's resolution and is caught by convergence alone. The clean
+models are never flagged. The bugs are described in
+[docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/zoo.md) and marked `# FAULT` in the source.
 
 ## Adapters
 
@@ -186,6 +194,32 @@ bugs are described in [docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob
 | `command` | anything else: R, Julia, Java, C++ | reads JSON on stdin, prints JSON on stdout |
 
 Working examples for each live in [examples/](https://github.com/a7med7emedan/ABMfact/tree/main/examples). See [docs/adapters.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/adapters.md).
+
+## Simulators and ABM-IR (0.2, in development)
+
+The platform core runs biological agent-based models in several simulators behind one interface:
+
+- **ABM-IR**, a versioned, engine-neutral model description with a JSON Schema
+  ([reference](https://github.com/a7med7emedan/ABMfact/blob/main/docs/ir-reference.md)).
+- **Engines** behind one contract, listed by `abmfact engines`: the v0.1 adapters, a small
+  [reference engine](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engines/reference.md), and
+  [PhysiCell and PhysiBoSS](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engines/physicell.md),
+  built natively or in a pinned container.
+- **Translation** between PhysiCell projects and ABM-IR, each way with a fidelity report.
+- **Run records and a store**, so an identical run is served from disk, and local, container and Slurm
+  backends.
+- **Convergence**: does a result stop changing as the time step and voxel size shrink?
+  ([how](https://github.com/a7med7emedan/ABMfact/blob/main/docs/convergence.md)).
+
+```bash
+abmfact run-model examples/ir/monolayer.yaml --engine reference --out results/monolayer
+abmfact import physicell path/to/project -o model.yaml
+abmfact export model.yaml --to physicell -o exported/
+abmfact converge examples/ir/audit_monolayer.yaml
+```
+
+Any audit file can name an engine and a model (`adapter: engine`), so every check applies to models run
+in any engine. See the [architecture](https://github.com/a7med7emedan/ABMfact/blob/main/docs/architecture.md).
 
 ## Limits
 

@@ -32,11 +32,48 @@ Each fault model differs from the clean model in one place, marked `# FAULT` in
 Several faults are invisible at baseline: the model gives exactly the clean model's results until the
 relevant knob moves. That is what makes such bugs survive review.
 
+## The field model and a fault for convergence
+
+A second clean model, `field_clean`, has cells dividing at a rate set by a nutrient that diffuses in
+from the edges of a square and decays inside. The nutrient is solved with the explicit FTCS scheme, split
+into the substeps its stability limit needs, with the edge value imposed on the domain faces (second
+order in space). Its claims are that the population at least triples in ten hours (`F1`) and that cells
+sense less nutrient than the edges supply (`F2`).
+
+| Model | Bug | Caught by |
+|---|---|---|
+| `fault_unstable_diffusion` | one explicit diffusion step per time step, whatever the stability limit says | `convergence` |
+
+At the audit's resolution, and when only the time step is halved, one step is within the limit, so the
+fault model is identical to the clean one and every audit check passes it. Refining the time step and
+the voxel size together doubles `D dt / dx^2` at each level, past the limit of 1/4, and the field blows
+up. Only the convergence check refines both, so only it catches the bug.
+
 ## The acceptance test
 
-`tests/test_matrix.py` audits every zoo model with 100 seeds and asserts a diagonal matrix: each fault
-flagged (`FRAGILE` or `SHIFTED`) by its own check and by no other, and the clean model `ROBUST` (or
-`SKIPPED` where the claim declares it) everywhere. `abmfact demo` prints the same matrix.
+`tests/test_matrix.py` audits every zoo model with 100 seeds, checks convergence, and asserts the exact
+expected matrix:
+
+```
+                    determinism  update order  agent order  rng streams  grid    time step  population scale  convergence
+clean               .            .             .            .            .       .          .                 .
+nondeterminism      CAUGHT       .             .            .            .       .          .                 .
+stale_state         .            CAUGHT        .            .            .       .          .                 .
+id_dependence       .            .             CAUGHT       .            .       .          .                 .
+ignored_seed        .            .             .            CAUGHT       .       .          .                 .
+boundary            .            .             .            .            CAUGHT  .          .                 .
+dt_unscaled         .            .             .            .            .       CAUGHT     .                 CAUGHT
+density             .            .             .            .            .       .          CAUGHT            .
+field_clean         .            .             .            .            .       .          .                 .
+unstable_diffusion  .            .             .            .            .       .          .                 CAUGHT
+```
+
+Each fault is flagged (`FRAGILE` or `SHIFTED` by an audit check, `NOT_CONVERGED` by convergence) by its
+own check and by no other, with one documented overlap: `dt_unscaled` is also caught by convergence. Both
+checks refine the time step, and a rate tied to the calibration step genuinely does not converge, so
+this is a true detection by two checks, not a false alarm; `abmfact.zoo.EXPECTED_ALSO` records it. The
+clean models are never flagged. `abmfact demo` prints the same matrix (add `--no-convergence` for the
+seven audit checks alone).
 
 The claims are in `abmfact.zoo.CLAIMS` and in [examples/zoo/audit.yaml](../examples/zoo/audit.yaml).
 Point that file at any `fault_*` model to see a single audit.

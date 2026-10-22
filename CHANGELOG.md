@@ -6,6 +6,38 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- ABM-IR 0.1: a versioned, engine-neutral model description (space, substrates, cell types, Hill-type
+  rules, intracellular model references, initial conditions, timed events, observables, experiment
+  settings, provenance and native extensions), with a JSON Schema, validation errors that name the place
+  in the document, parameter changes by path, and a model hash. Three example models.
+- The engine contract (`capabilities`, `prepare`, `run`, `collect`), a registry on the `abmfact.engines`
+  entry point group, and `abmfact engines`. The v0.1 adapters run through it unchanged.
+- Run records, a common output schema (cells, fields, observables) and a content-addressed run store,
+  with Parquet, Zarr and DuckDB under the `[store]` extra.
+- Runtime backends: local, container (Docker, Podman, Apptainer, with the image digest recorded) and
+  Slurm job arrays.
+- The reference engine: a small 2D NumPy simulator with PhysiCell's mechanics and rule semantics, an
+  unconditionally stable diffusion solver, and every audit knob.
+- The PhysiCell and PhysiBoSS engine: native runs of 1.14.2 projects, builds with a local GNU g++ or the
+  pinned image in `containers/physicell/Dockerfile`, output reading with pcdl or a SciPy reader, and
+  translation to and from ABM-IR with fidelity reports. A warning when `dt_diffusion` exceeds
+  `dt_mechanics`, which makes PhysiCell move cells too slowly.
+- Convergence under time-step and voxel refinement with the observed order and Roache's GCI, and
+  `abmfact converge`.
+- Audit files can name an engine and a model (`adapter: engine`), and gain an optional `convergence:`
+  section.
+- Commands: `run-model`, `import`, `export`, `converge` and `engines`.
+- The planted-fault zoo gains a field model and the `unstable_diffusion` fault, caught only by
+  convergence; the acceptance test asserts the extended matrix with its one documented overlap.
+- The `dx_scale` knob (voxel size).
+
+### Changed
+
+- Version 0.2.0.dev0. pydantic is now a core dependency (ABM-IR only; `import abmfact` does not load it).
+- `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
+
 ## [0.1.0] - 2026-10-18
 
 ### Added

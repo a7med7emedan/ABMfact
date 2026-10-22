@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e ".[mesa]" pytest pytest-cov
+      - run: pip install -e ".[mesa]" pytest pytest-cov jsonschema
       - name: Fast suite with coverage
         run: pytest -m "not slow" --cov=abmfact --cov-report=term --cov-fail-under=85
       - name: Examples
@@ -53,6 +53,36 @@ jobs:
         run: |
           abmfact check examples/command/audit.yaml -q
           abmfact check examples/mesa_sir/audit.yaml -q --seeds 20
+
+  store:
+    name: store extras
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[store,physicell]" pytest jsonschema
+      - run: pytest -m "not slow" tests/test_store.py tests/test_physicell_engine.py tests/test_physicell_translate.py
+
+  physicell:
+    name: PhysiCell integration (native g++)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . pytest
+      - name: PhysiCell 1.14.2 sources
+        run: git clone --depth 1 --branch 1.14.2 https://github.com/MathCancer/PhysiCell.git "$RUNNER_TEMP/PhysiCell"
+      - name: Build and run PhysiCell projects
+        env:
+          PHYSICELL_SOURCE: ${{ runner.temp }}/PhysiCell
+        run: pytest -m physicell -rs
 
   validation:
     name: planted-fault matrix

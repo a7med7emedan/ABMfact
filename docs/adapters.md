@@ -74,6 +74,25 @@ print one JSON object of outputs. A non-zero exit, a timeout or invalid JSON bec
 `{python}` in `argv` stands for the interpreter running ABMfact. A runnable example is in
 [examples/command](../examples/command).
 
+## Engine (ABM-IR models and native projects)
+
+```yaml
+model:
+  adapter: engine
+  engine: reference            # or physicell; see: abmfact engines
+  model: monolayer.yaml        # an ABM-IR file, or a native project folder for engines that take one
+  options: {threads: 1}        # engine options, optional
+  store: .abmfact-store        # reuse identical runs across audits, optional
+```
+
+The model's observables become the outputs, one series each plus `time`, so claims read them with the
+usual grammar, for example `last(cells)`. Parameters are ABM-IR paths such as `rules[0].half_max` or
+`cell_types[tumour].cycle.rates[0]`; for a native PhysiCell project they are settings paths such as
+`overall/max_time` or `user_parameters.number_of_cells`. The engine decides which knobs the model
+supports by refusing what it cannot honour, so a check it cannot run is `NOT_TESTABLE`. A runnable
+example is [examples/ir/audit_monolayer.yaml](../examples/ir/audit_monolayer.yaml); see the
+[architecture](architecture.md) and the engine pages.
+
 ## Parallel runs
 
 `budget.jobs` (or `--jobs`) runs model runs in worker processes. The adapter is pickled once per
