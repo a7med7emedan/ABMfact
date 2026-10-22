@@ -50,6 +50,12 @@ Changelog = "https://github.com/a7med7emedan/ABMfact/blob/main/CHANGELOG.md"
 [project.scripts]
 abmfact = "abmfact.cli:main"
 
+[project.entry-points."abmfact.engines"]
+python = "abmfact.engines.legacy:PythonEngine"
+mesa = "abmfact.engines.legacy:MesaEngine"
+netlogo = "abmfact.engines.legacy:NetLogoEngine"
+command = "abmfact.engines.legacy:CommandEngine"
+
 [dependency-groups]
 dev = [
   "pytest>=8",

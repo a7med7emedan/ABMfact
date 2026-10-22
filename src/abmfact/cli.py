@@ -1,4 +1,4 @@
-"""Command line: ``abmfact run | check | demo | init | replay``."""
+"""Command line: ``abmfact run | check | demo | init | replay | engines``."""
 
 from __future__ import annotations
 
@@ -112,6 +112,36 @@ def cmd_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_engines(args: argparse.Namespace) -> int:
+    from .engines import list_engines
+
+    rows: list[dict[str, Any]] = []
+    for name, cls in list_engines().items():
+        engine = cls()
+        caps, avail = engine.capabilities(), engine.availability()
+        rows.append({"name": name, "description": cls.description, "available": avail.ok, "detail": avail.detail,
+                     "version": avail.version, "capabilities": caps.to_dict()})  # fmt: skip
+    if args.json:
+        json.dump(rows, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+        return 0
+    width = max(len(r["name"]) for r in rows) + 2
+    for r in rows:
+        c = r["capabilities"]
+        mark = "available" if r["available"] else "not available"
+        version = f" {r['version']}" if r["version"] else ""
+        print(f"{r['name']:<{width}}{mark}{version}: {r['detail']}")
+        print(f"{'':<{width}}{r['description']}; mechanics: {c['mechanics']}")
+        dims = "/".join(f"{d}D" for d in c["dimensions"]) or "any"
+        diffusion = "yes" if c["diffusion"] else "no"
+        intra = ", ".join(c["intracellular"]) or "none"
+        print(f"{'':<{width}}dimensions {dims}; diffusion {diffusion}; intracellular {intra}")
+        print(f"{'':<{width}}knobs: {', '.join(c['knobs']) or 'none'}")
+        if c["notes"]:
+            print(f"{'':<{width}}{c['notes']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="abmfact",
@@ -145,6 +175,8 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--seed", type=int, required=True)
     rp.add_argument("--params", help="JSON object merged into the audit's params")
     rp.add_argument("--knobs", help='JSON object of knobs, e.g. {"update_order": "id"}')
+    en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
+    en.add_argument("--json", action="store_true", help="print JSON instead of a table")
     return p
 
 
@@ -159,6 +191,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_demo(args)
         if args.command == "init":
             return cmd_init(args)
+        if args.command == "engines":
+            return cmd_engines(args)
         return cmd_replay(args)
     except (ConfigError, ClaimError, AdapterError, json.JSONDecodeError, FileNotFoundError) as exc:
         print(f"abmfact: error: {exc}", file=sys.stderr)
