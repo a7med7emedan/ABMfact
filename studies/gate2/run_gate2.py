@@ -124,6 +124,8 @@ def determinism_diagnostic(name: str, audit_file: Path) -> dict:
     """The same 8 seeds, twice each, at 1 thread: are the reruns identical?"""
     import gate2_models as gm
 
+    from abmfact.records.cache import bypass_cache
+
     a = load_audit(audit_file)
     model = getattr(gm, name)
     os.environ["ABMFACT_GATE2_THREADS"] = "1"
@@ -131,18 +133,8 @@ def determinism_diagnostic(name: str, audit_file: Path) -> dict:
     try:
         for seed in range(8):
             first = model.run(a.params, seed, Knobs())
-            # A second, uncached run of the same request: clear its cached metrics first.
-            import hashlib
-
-            horizon = os.environ[f"ABMFACT_GATE2_HORIZON_{name.upper()}"]
-            key = hashlib.sha256(
-                json.dumps(
-                    [name, dict(a.params), seed, Knobs().to_dict(), float(horizon), "1"], sort_keys=True
-                ).encode()
-            ).hexdigest()[:24]
-            cached = Path(os.environ["ABMFACT_GATE2_CACHE"]) / "metrics" / f"{key}.json"
-            cached.unlink(missing_ok=True)
-            second = model.run(a.params, seed, Knobs())
+            with bypass_cache():  # the second run executes again; nothing is read from or written to the cache
+                second = model.run(a.params, seed, Knobs())
             same = {k: first[k] == second[k] for k in first if k != "wall_time"}
             rows.append({"seed": seed, "identical": all(same.values()), "first": first, "second": second})
     finally:
