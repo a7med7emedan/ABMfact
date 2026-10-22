@@ -1,0 +1,24 @@
+# Gate 2: PhysiCell 1.14.2 sample project "biorobots", run as shipped. Claims fixed in PROTOCOL.md.
+title: "Gate 2: PhysiCell biorobots sample (Ghaffarizadeh et al. 2018)"
+
+model:
+  adapter: python
+  target: gate2_models:biorobots
+  supports: {dt_scale: true, dx_scale: true}
+
+claims:
+  - id: B1
+    statement: "workers bring cargo towards the directors"
+    metric: delivery
+    test: greater_than
+    value: 0
+  - id: B2
+    statement: "more cargo sits near a director at the end"
+    metric: near_gain
+    test: greater_than
+    value: 0
+
+budget:
+  seeds: 20
+  jobs: 2
+  checks: [determinism, rng_streams, time_step]

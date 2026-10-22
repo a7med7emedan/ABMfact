@@ -1,0 +1,29 @@
+# Gate 2: PhysiCell 1.14.2 sample project "heterogeneity", run as shipped. Claims fixed in PROTOCOL.md.
+title: "Gate 2: PhysiCell heterogeneity sample (Ghaffarizadeh et al. 2018)"
+
+model:
+  adapter: python
+  target: gate2_models:heterogeneity
+  supports: {dt_scale: true, dx_scale: true}
+
+claims:
+  - id: H1
+    statement: "the tumour grows"
+    metric: growth
+    test: greater_than
+    value: 1
+  - id: H2
+    statement: "selection raises the mean oncoprotein of live cells"
+    metric: onco_shift
+    test: greater_than
+    value: 0
+  - id: H3
+    statement: "a necrotic core forms"
+    metric: necrotic_fraction
+    test: greater_than
+    value: 0
+
+budget:
+  seeds: 20
+  jobs: 2
+  checks: [determinism, rng_streams, time_step]
