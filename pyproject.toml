@@ -59,6 +59,7 @@ mesa = "abmfact.engines.legacy:MesaEngine"
 netlogo = "abmfact.engines.legacy:NetLogoEngine"
 command = "abmfact.engines.legacy:CommandEngine"
 reference = "abmfact.engines.reference:ReferenceEngine"
+physicell = "abmfact.engines.physicell:PhysiCellEngine"
 
 [dependency-groups]
 dev = [
@@ -81,7 +82,10 @@ include = ["src", "tests", "examples", "docs", "assets", "schemas", "README.md",
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-markers = ["slow: the full planted-fault matrix (deselect with -m 'not slow')"]
+markers = [
+  "slow: the full planted-fault matrix (deselect with -m 'not slow')",
+  "physicell: runs PhysiCell; needs a g++ with OpenMP or the Docker image, skipped otherwise",
+]
 
 [tool.coverage.run]
 source = ["abmfact"]

@@ -143,11 +143,25 @@ def cmd_engines(args: argparse.Namespace) -> int:
     return 0
 
 
+def _options(pairs: list[str] | None) -> dict[str, Any]:
+    """``KEY=VALUE`` engine options; a value is read as JSON when it parses, else kept as text."""
+    out: dict[str, Any] = {}
+    for pair in pairs or []:
+        key, sep, value = pair.partition("=")
+        if not sep:
+            raise ConfigError(f"engine option {pair!r} must look like KEY=VALUE")
+        try:
+            out[key] = json.loads(value)
+        except json.JSONDecodeError:
+            out[key] = value
+    return out
+
+
 def cmd_run_model(args: argparse.Namespace) -> int:
     from .engines import get_engine
     from .records.store import RunStore, write_run
 
-    engine = get_engine(args.engine)
+    engine = get_engine(args.engine, **_options(args.option))
     params = json.loads(args.params) if args.params else {}
     knobs = Knobs.from_dict(json.loads(args.knobs)) if args.knobs else Knobs()
     out = Path(args.out)
@@ -214,6 +228,7 @@ def build_parser() -> argparse.ArgumentParser:
     rm.add_argument("--params", help='JSON object of parameter overrides, e.g. {"experiment.max_time": 600}')
     rm.add_argument("--knobs", help='JSON object of knobs, e.g. {"dt_scale": 0.5}')
     rm.add_argument("--store", help="run store directory; an identical earlier run is reused")
+    rm.add_argument("--option", action="append", metavar="KEY=VALUE", help="engine option, e.g. threads=1")
     rm.add_argument("-q", "--quiet", action="store_true")
     en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
     en.add_argument("--json", action="store_true", help="print JSON instead of a table")

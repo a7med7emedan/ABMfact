@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -60,11 +61,16 @@ def value_at(spec: Observable, outputs: RunOutputs, time: float) -> float:
 
 def compute_observables(model: IRModel, outputs: RunOutputs) -> RunOutputs:
     """Fill ``outputs.observables`` (tidy) and ``outputs.scalars`` (one series per observable)."""
+    return compute_series(model.observables, outputs)
+
+
+def compute_series(specs: Iterable[Observable], outputs: RunOutputs) -> RunOutputs:
+    """Like :func:`compute_observables`, for observable specs that do not come from an IR model."""
     times = outputs.times()
     t_col: list[float] = []
     n_col: list[str] = []
     v_col: list[float] = []
-    for spec in model.observables:
+    for spec in specs:
         series = [value_at(spec, outputs, t) for t in times]
         outputs.scalars[spec.name] = series
         t_col.extend(times)

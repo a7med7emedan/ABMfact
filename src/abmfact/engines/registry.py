@@ -23,6 +23,7 @@ BUILTIN: dict[str, str] = {
     "netlogo": "abmfact.engines.legacy:NetLogoEngine",
     "command": "abmfact.engines.legacy:CommandEngine",
     "reference": "abmfact.engines.reference:ReferenceEngine",
+    "physicell": "abmfact.engines.physicell:PhysiCellEngine",
 }
 
 
