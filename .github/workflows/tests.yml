@@ -37,6 +37,8 @@ jobs:
         include:
           - os: macos-latest
             python: "3.13"
+          - os: windows-latest
+            python: "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,6 +49,7 @@ jobs:
       - name: Fast suite with coverage
         run: pytest -m "not slow" --cov=abmfact --cov-report=term --cov-fail-under=85
       - name: Examples
+        shell: bash
         run: |
           abmfact check examples/command/audit.yaml -q
           abmfact check examples/mesa_sir/audit.yaml -q --seeds 20
