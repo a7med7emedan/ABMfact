@@ -6,7 +6,7 @@ implementation must not care about, and report which conclusions survive.
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.2.0.dev0"
 
 from .adapters import Adapter, AdapterError, CommandAdapter, MesaAdapter, NetLogoAdapter, PythonAdapter
 from .audit import AuditResult, run_audit
