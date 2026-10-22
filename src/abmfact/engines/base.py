@@ -12,6 +12,7 @@ from ..knobs import KNOB_NAMES, Knobs, derived_seed
 from ..records import RunOutputs, RunRecord, RunRequest
 
 if TYPE_CHECKING:
+    from ..records.store import RunStore
     from ..runtime.base import Backend
 
 
@@ -139,13 +140,26 @@ class Engine(ABC):
         knobs: Knobs | None = None,
         backend: Backend | None = None,
         workdir: Path | None = None,
+        store: RunStore | None = None,
     ) -> RunRecord:
-        """Prepare, run and collect one run, refusing first if the engine cannot honour it."""
+        """Prepare, run and collect one run, refusing first if the engine cannot honour it.
+
+        With a ``store``, an identical earlier request is returned from it (``status="cached"``) and a new
+        successful run is written to it.
+        """
         knobs = knobs or Knobs()
         reasons = self.refuse(model, knobs)
         if reasons:
             raise EngineError("; ".join(reasons))
-        return self.collect(self.run(self.prepare(model, dict(params or {}), knobs, seed, workdir), backend))
+        prepared = self.prepare(model, dict(params or {}), knobs, seed, workdir)
+        if store is not None and (hit := store.get(prepared.request)) is not None:
+            return hit
+        record = self.collect(self.run(prepared, backend))
+        if store is not None and record.status == "ok":
+            outputs = record.outputs
+            record = store.put(record)
+            record.outputs = outputs
+        return record
 
     def record(self, handle: RunHandle, **extra: Any) -> RunRecord:
         """A run record from a finished handle; subclasses add output paths and warnings."""
