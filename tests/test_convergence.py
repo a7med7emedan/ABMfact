@@ -49,6 +49,10 @@ def test_point_verdicts():
     assert grows["verdict"] == "NOT_CONVERGED" and "grows" in grows["reason"]
     noisy = _point_verdict(_vals([10.0, 10.0, 10.0], sd=5.0, n=5), None, 0.05, s)
     assert noisy["verdict"] == "INCONCLUSIVE" and noisy["seeds_needed"] > 5
+    flat = [np.full(5, 10.0), np.full(5, 11.0), np.full(5, 13.0)]
+    assert _point_verdict(flat, None, 0.05, s)["verdict"] == "INCONCLUSIVE"
+    exact = _point_verdict(flat, None, 0.05, ConvergenceSettings(deterministic=True))
+    assert exact["verdict"] == "NOT_CONVERGED" and "grows" in exact["reason"]
     boom = _point_verdict([np.ones(3), np.ones(3), np.array([1.0, np.inf, 1.0])], None, 0.05, s)
     assert boom["verdict"] == "NOT_CONVERGED" and "blew up" in boom["reason"] and boom["levels"][2] is None
 

@@ -18,7 +18,9 @@ the fine mean as in the audit) using the same three-outcome equivalence test as 
 * ``NOT_CONVERGED``: the change between levels is established (its intervals exclude zero) and grows with
   refinement, whatever its size; or it lies outside the tolerance; or a level gave non-finite values (the
   solution blew up);
-* ``INCONCLUSIVE``: the intervals are too wide to decide; the result says how many seeds would settle it;
+* ``INCONCLUSIVE``: the intervals are too wide to decide (the result says how many seeds would settle it),
+  or every seed gave the same value at some level, so noise cannot be told from discretisation error
+  (the audit treats such degenerate data the same way); a deterministic model sets ``deterministic``;
 * ``NOT_TESTABLE``: the model does not declare ``dt_scale``.
 
 Roache, P. J. (1994). Perspective: a method for uniform reporting of grid refinement studies. *Journal of
@@ -59,6 +61,7 @@ class ConvergenceSettings:
     ratio: float = 2.0
     refine: tuple[str, ...] = ("dt", "dx")
     safety_factor: float = 1.25
+    deterministic: bool = False
 
     @classmethod
     def from_mapping(cls, m: Mapping[str, Any] | None) -> ConvergenceSettings:
@@ -71,6 +74,7 @@ class ConvergenceSettings:
             ratio=float(m.get("ratio", 2.0)),
             refine=tuple(m.get("refine", ("dt", "dx"))),
             safety_factor=float(m.get("safety_factor", 1.25)),
+            deterministic=bool(m.get("deterministic", False)),
         )
         if s.levels != 3:
             raise ConvergenceError("convergence.levels must be 3 (the GCI uses three levels)")
@@ -155,6 +159,16 @@ def _point_verdict(
     bad = [k for k, v in enumerate(vals) if not np.all(np.isfinite(v))]
     if bad:
         out.update(verdict="NOT_CONVERGED", reason=f"non-finite values at level {bad[0]}: the solution blew up")
+        return out
+    flat = [k for k, v in enumerate(vals) if v.size > 1 and float(np.ptp(v)) == 0.0]
+    if flat and not settings.deterministic:
+        # As in the audit: with no between-seed variance, sampling noise cannot be told from discretisation
+        # error. A model that is meant to be deterministic declares it, and its differences are then exact.
+        reason = (
+            f"every seed gave the same value at level {flat[0]}, so sampling noise cannot be told from "
+            "discretisation error (declare convergence.deterministic for a deterministic model)"
+        )
+        out.update(verdict="INCONCLUSIVE", reason=reason)
         return out
     f3, f2, f1 = (float(v.mean()) for v in vals)
     est = gci(f1, f2, f3, settings.ratio, settings.safety_factor)

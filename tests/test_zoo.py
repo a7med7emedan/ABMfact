@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from abmfact import zoo
@@ -69,3 +71,47 @@ def test_extinction_pads_prevalence():
     out = zoo.simulate({"beta": 0.0, "beta_g": 0.0, "gamma": 5.0}, 1, Knobs())
     assert len(out["prevalence"]) == zoo.DEFAULT_PARAMS["T"]
     assert out["prevalence"][-1] == 0.0
+
+
+def test_field_fault_is_invisible_until_dt_and_dx_are_refined_together():
+    small = {"T": 60, "n0": 10}
+    for knobs in (Knobs(), Knobs(dt_scale=0.5), Knobs(agent_order="shuffled", agent_perm_seed=3)):
+        assert zoo.simulate_field(small, 2, knobs) == zoo.simulate_field(small, 2, knobs, fault="unstable_diffusion")
+    refined = Knobs(dt_scale=0.5, dx_scale=0.5)
+    clean = zoo.simulate_field(small, 2, refined)
+    broken = zoo.simulate_field(small, 2, refined, fault="unstable_diffusion")
+    assert 0 < clean["nutrient_mean"] < 1
+    blown = broken["nutrient_mean"]
+    assert not math.isfinite(blown) or abs(blown) > 1e100  # the checkerboard mode grows every step
+    assert zoo.simulate_field(small, 2, Knobs()) != zoo.simulate_field(small, 3, Knobs())
+    assert zoo.simulate_field(small, 2, Knobs(rng_streams="independent")) != zoo.simulate_field(small, 2, Knobs())
+
+
+def test_field_models_and_documents():
+    with pytest.raises(ValueError):
+        zoo.simulate_field({}, 1, Knobs(), fault="nope")
+    with pytest.raises(ValueError):
+        zoo.FieldRunner("nope")
+    assert repr(zoo.FieldRunner("unstable_diffusion")) == "FieldRunner('unstable_diffusion')"
+    doc = zoo.audit_document("unstable_diffusion", seeds=5)
+    assert doc["model"]["target"] == "abmfact.zoo:fault_unstable_diffusion" and doc["claims"][0]["id"] == "F1"
+    assert zoo.audit_document("field_clean")["model"]["target"] == "abmfact.zoo:field_clean"
+    assert zoo.EXPECTED_CHECK["unstable_diffusion"] == "convergence"
+    assert zoo.EXPECTED_ALSO == {"dt_unscaled": ("convergence",)}
+
+
+def test_expected_matrix_and_table():
+    from abmfact.checks import CHECK_NAMES
+    from abmfact.demo import DemoResult, expected
+
+    assert expected("dt_unscaled") == {"time_step", "convergence"} and expected("clean") == set()
+    flags = {m: {c: c in expected(m) for c in (*CHECK_NAMES, "convergence")} for m in zoo.MODELS}
+    res = DemoResult(flags, {})
+    assert res.problems() == [] and res.columns()[-1] == "convergence"
+    assert "CAUGHT" in res.table().splitlines()[zoo.FAULTS.index("dt_unscaled") + 2]
+    flags["dt_unscaled"]["convergence"] = False
+    flags["field_clean"]["grid"] = True
+    assert DemoResult(flags, {}).problems() == [
+        "dt_unscaled: missed by convergence",
+        "field_clean: false alarm from grid",
+    ]

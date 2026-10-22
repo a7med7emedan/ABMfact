@@ -14,9 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from abmfact.checks import CHECK_NAMES
-from abmfact.demo import DemoResult, run_demo
-from abmfact.zoo import EXPECTED_CHECK
+from abmfact.demo import DemoResult, expected, run_demo
 
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
@@ -193,14 +191,16 @@ HEADERS = {
     "grid": ["grid"],
     "time_step": ["time", "step"],
     "population_scale": ["population", "scale"],
+    "convergence": ["conver-", "gence"],
 }
 
 
 def matrix(demo: DemoResult, seeds: int, p: Palette) -> str:
+    columns = demo.columns()
     label_w, top, cell_h, pad = 178, 74, 52, 4
-    cell_w = (WIDTH - 32 - label_w) / len(CHECK_NAMES)
+    cell_w = (WIDTH - 32 - label_w) / len(columns)
     body: list[str] = []
-    for j, check in enumerate(CHECK_NAMES):
+    for j, check in enumerate(columns):
         cx = 16 + label_w + j * cell_w + cell_w / 2
         lines = HEADERS.get(check, [check.replace("_", " ")])
         for k, line in enumerate(lines):
@@ -208,25 +208,24 @@ def matrix(demo: DemoResult, seeds: int, p: Palette) -> str:
 
     for i, (model, row) in enumerate(demo.flags.items()):
         y = top + i * cell_h
-        colour = p.teal if model == "clean" else p.ink
+        is_clean = model in ("clean", "field_clean")
+        colour = p.teal if is_clean else p.ink
         body.append(
-            text(
-                16 + label_w - 16, y + cell_h / 2 + 5, model, 15, colour, 600 if model == "clean" else 400, "end", True
-            )
+            text(16 + label_w - 16, y + cell_h / 2 + 5, model, 15, colour, 600 if is_clean else 400, "end", True)
         )
-        expected = EXPECTED_CHECK.get(model)
-        for j, check in enumerate(CHECK_NAMES):
+        want = expected(model)
+        for j, check in enumerate(columns):
             x = 16 + label_w + j * cell_w
             rx, ry, w, h = x + pad / 2, y + pad / 2, cell_w - pad, cell_h - pad
             cx, cy = x + cell_w / 2, y + cell_h / 2 + 5
-            flagged = row[check]
-            if flagged and check == expected:
+            flagged = row.get(check, False)
+            if flagged and check in want:
                 body.append(f'<rect x="{rx:g}" y="{ry:g}" width="{w:g}" height="{h:g}" rx="6" fill="{p.amber}"/>')
                 body.append(text(cx, cy, "caught", 15, p.on_amber, 700, "middle"))
             elif flagged:
                 body.append(f'<rect x="{rx:g}" y="{ry:g}" width="{w:g}" height="{h:g}" rx="6" fill="{p.muted}"/>')
                 body.append(text(cx, cy, "false alarm", 15, p.on_accent, 700, "middle"))
-            elif check == expected:
+            elif check in want:
                 body.append(
                     f'<rect x="{rx:g}" y="{ry:g}" width="{w:g}" height="{h:g}" rx="6" fill="{p.cell}" '
                     f'stroke="{p.amber}" stroke-width="2" stroke-dasharray="6 4"/>'
@@ -238,12 +237,15 @@ def matrix(demo: DemoResult, seeds: int, p: Palette) -> str:
     foot = top + len(demo.flags) * cell_h + 34
     problems = demo.problems()
     note = (
-        "Every planted fault was caught by its own check and by no other."
+        "Every planted fault was caught by its own check and by no other,"
         if not problems
-        else "Deviations from the diagonal: " + "; ".join(problems) + "."
+        else "Deviations from the expected matrix: " + "; ".join(problems) + "."
     )
     body.append(text(16, foot, f"{seeds} seeds per condition. {note}", 15, p.muted))
-    return svg(foot + 16, "Planted-fault detection matrix", body)
+    if not problems:
+        overlap = "except dt_unscaled, also caught by convergence: both checks refine the time step."
+        body.append(text(16, foot + 22, overlap, 15, p.muted))
+    return svg(foot + 38, "Planted-fault detection matrix", body)
 
 
 def main(argv: list[str] | None = None) -> int:
