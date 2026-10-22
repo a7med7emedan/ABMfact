@@ -54,6 +54,11 @@ def _write_json(path: Path, obj: Any) -> None:
     os.replace(tmp, path)
 
 
+def write_run(record: RunRecord, folder: str | Path, formats: str = "auto") -> RunRecord:
+    """Write one run outside a store, in the same layout: ``record.json`` plus its output files."""
+    return RunStore.__new__(RunStore)._configure(formats).write_run(record, Path(folder))
+
+
 class RunStore:
     """Store and look up runs by request.
 
@@ -64,13 +69,17 @@ class RunStore:
     def __init__(self, root: str | Path, formats: str = "auto", index: str = "auto"):
         self.root = Path(root)
         (self.root / "runs").mkdir(parents=True, exist_ok=True)
+        self._configure(formats)
+        if index == "duckdb" and not _have("duckdb"):
+            raise RuntimeError("a DuckDB index needs: pip install 'abmfact[store]'")
+        self.index_kind = ("duckdb" if _have("duckdb") else "jsonl") if index == "auto" else index
+
+    def _configure(self, formats: str) -> RunStore:
         columnar = _have("pyarrow") and _have("zarr")
         if formats == "columnar" and not columnar:
             raise RuntimeError("columnar formats need: pip install 'abmfact[store]'")
         self.columnar = columnar if formats == "auto" else formats == "columnar"
-        if index == "duckdb" and not _have("duckdb"):
-            raise RuntimeError("a DuckDB index needs: pip install 'abmfact[store]'")
-        self.index_kind = ("duckdb" if _have("duckdb") else "jsonl") if index == "auto" else index
+        return self
 
     # -- locations ---------------------------------------------------------------------------------------
 
@@ -114,7 +123,13 @@ class RunStore:
         d = self.run_dir(record.run_id)
         if d.exists():
             shutil.rmtree(d)
-        d.mkdir(parents=True)
+        record = self.write_run(record, d)
+        self._index_add(record)
+        return record
+
+    def write_run(self, record: RunRecord, d: Path) -> RunRecord:
+        """Write one run's record and outputs into folder ``d`` (the layout of a store entry)."""
+        d.mkdir(parents=True, exist_ok=True)
         paths: dict[str, str] = {}
         out = record.outputs
         if out is not None:
@@ -127,7 +142,8 @@ class RunStore:
             if out.observables["time"].size:
                 paths["observables"] = self._write_observables(d, out)
         if record.log_path and Path(record.log_path).is_file():
-            shutil.copyfile(record.log_path, d / "log.txt")
+            if Path(record.log_path).resolve() != (d / "log.txt").resolve():
+                shutil.copyfile(record.log_path, d / "log.txt")
             paths["log"] = "log.txt"
         record = replace(
             record,
@@ -136,7 +152,6 @@ class RunStore:
             log_path=str(d / "log.txt") if "log" in paths else record.log_path,
         )
         _write_json(d / "record.json", record.to_dict())
-        self._index_add(record)
         return record
 
     # -- formats -----------------------------------------------------------------------------------------

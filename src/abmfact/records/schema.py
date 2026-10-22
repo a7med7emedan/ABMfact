@@ -66,6 +66,7 @@ class RunOutputs:
     scalars: dict[str, float | list[float]] = field(default_factory=dict)
     type_names: list[str] = field(default_factory=list)
     save_times: list[float] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def times(self) -> list[float]:
         """Saved times: the declared ones, or else every distinct time in the cells table and fields."""

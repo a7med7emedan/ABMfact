@@ -22,6 +22,7 @@ BUILTIN: dict[str, str] = {
     "mesa": "abmfact.engines.legacy:MesaEngine",
     "netlogo": "abmfact.engines.legacy:NetLogoEngine",
     "command": "abmfact.engines.legacy:CommandEngine",
+    "reference": "abmfact.engines.reference:ReferenceEngine",
 }
 
 

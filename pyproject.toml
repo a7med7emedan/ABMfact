@@ -58,6 +58,7 @@ python = "abmfact.engines.legacy:PythonEngine"
 mesa = "abmfact.engines.legacy:MesaEngine"
 netlogo = "abmfact.engines.legacy:NetLogoEngine"
 command = "abmfact.engines.legacy:CommandEngine"
+reference = "abmfact.engines.reference:ReferenceEngine"
 
 [dependency-groups]
 dev = [

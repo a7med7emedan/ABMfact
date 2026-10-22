@@ -4,7 +4,9 @@ schema_version: "0.1"
 name: spheroid
 description: >
   A 2D tumour cross-section in an oxygen field held at 38 mmHg on the domain edge. Cells consume
-  oxygen; low oxygen slows division and raises necrosis, and crowding stops division.
+  oxygen; low oxygen slows division and raises necrosis, and crowding stops division. Uptake is five
+  times PhysiCell's default so that a 2D cross-section, which is supplied from its rim only, develops the
+  hypoxic core a 3D spheroid of this size would have.
 space:
   dimensions: 2
   bounds: {x_min: -400, x_max: 400, y_min: -400, y_max: 400}
@@ -24,7 +26,7 @@ cell_types:
     death: {apoptosis_rate: 0.00005, necrosis_rate: 0.0028}
     mechanics: {adhesion_strength: 0.4, repulsion_strength: 10}
     secretion:
-      - {substrate: oxygen, uptake_rate: 10}
+      - {substrate: oxygen, uptake_rate: 50}
 rules:
   - {cell_type: tumour, signal: oxygen, direction: increases, behaviour: cycle entry,
      saturation_value: 0.0014, half_max: 21.5, hill_power: 4}
@@ -34,7 +36,7 @@ rules:
      saturation_value: 0, half_max: 3.75, hill_power: 8}
 initial_conditions:
   placements:
-    - {kind: disc, cell_type: tumour, count: 120, centre: [0, 0], radius: 100}
+    - {kind: disc, cell_type: tumour, count: 300, centre: [0, 0], radius: 150}
 observables:
   - {name: live, kind: live_count}
   - {name: dead, kind: dead_count}
@@ -42,7 +44,7 @@ observables:
   - {name: radius, kind: radius_of_gyration}
 experiment:
   max_time: 2880
-  dt_diffusion: 0.5
+  dt_diffusion: 0.1
   dt_mechanics: 0.1
   dt_phenotype: 6.0
   save_interval: 120

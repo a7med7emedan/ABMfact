@@ -1,4 +1,4 @@
-"""Command line: ``abmfact run | check | demo | init | replay | engines``."""
+"""Command line: ``abmfact run | check | demo | init | replay | engines | run-model``."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from .adapters import AdapterError
 from .audit import FLAGGED, AuditResult, run_audit
 from .claims import ClaimError
 from .config import ConfigError, load_audit, template
+from .engines.base import EngineError
 from .knobs import Knobs
 
 
@@ -142,6 +143,36 @@ def cmd_engines(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_run_model(args: argparse.Namespace) -> int:
+    from .engines import get_engine
+    from .records.store import RunStore, write_run
+
+    engine = get_engine(args.engine)
+    params = json.loads(args.params) if args.params else {}
+    knobs = Knobs.from_dict(json.loads(args.knobs)) if args.knobs else Knobs()
+    out = Path(args.out)
+    store = RunStore(args.store) if args.store else None
+    record = engine.run_once(args.model, params, args.seed, knobs, workdir=out / "work", store=store)
+    outputs = record.outputs
+    record = write_run(record, out)
+    if not args.quiet:
+        wall = f"{record.wall_time:.1f}s" if record.wall_time is not None else "cached"
+        print(f"  {engine.name}: {record.status} in {wall}, seed {args.seed}, run {record.run_id[:12]}")
+        for w in record.warnings:
+            print(f"  warning: {w}")
+        if outputs is not None:
+            times = outputs.times()
+            for name, series in outputs.scalars.items():
+                if name == "time" or not isinstance(series, list) or not series:
+                    continue
+                print(f"  {name:<20} {series[0]:>12.4g} at t={times[0]:g}  ->  {series[-1]:>12.4g} at t={times[-1]:g}")
+        print(f"  wrote {out}")
+    if record.status != "ok" and record.status != "cached":
+        print(f"  run failed: {record.error}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="abmfact",
@@ -175,6 +206,15 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--seed", type=int, required=True)
     rp.add_argument("--params", help="JSON object merged into the audit's params")
     rp.add_argument("--knobs", help='JSON object of knobs, e.g. {"update_order": "id"}')
+    rm = sub.add_parser("run-model", help="run one ABM-IR model (or native project) in an engine")
+    rm.add_argument("model", help="ABM-IR file, or a native project folder for engines that take one")
+    rm.add_argument("--engine", default="reference", help="engine name (see: abmfact engines)")
+    rm.add_argument("--out", default="abmfact-run", help="output directory (default: abmfact-run)")
+    rm.add_argument("--seed", type=int, default=0)
+    rm.add_argument("--params", help='JSON object of parameter overrides, e.g. {"experiment.max_time": 600}')
+    rm.add_argument("--knobs", help='JSON object of knobs, e.g. {"dt_scale": 0.5}')
+    rm.add_argument("--store", help="run store directory; an identical earlier run is reused")
+    rm.add_argument("-q", "--quiet", action="store_true")
     en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
     en.add_argument("--json", action="store_true", help="print JSON instead of a table")
     return p
@@ -193,10 +233,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_init(args)
         if args.command == "engines":
             return cmd_engines(args)
+        if args.command == "run-model":
+            return cmd_run_model(args)
         return cmd_replay(args)
-    except (ConfigError, ClaimError, AdapterError, json.JSONDecodeError, FileNotFoundError) as exc:
+    except (ConfigError, ClaimError, AdapterError, EngineError, json.JSONDecodeError, FileNotFoundError) as exc:
         print(f"abmfact: error: {exc}", file=sys.stderr)
         return 2
+    except ValueError as exc:
+        # ABM-IR errors; the ir package (and pydantic) is only imported when a command needs it.
+        ir_errors = sys.modules.get("abmfact.ir.errors")
+        if ir_errors is not None and isinstance(exc, ir_errors.IRError):
+            print(f"abmfact: error: {exc}", file=sys.stderr)
+            return 2
+        raise
 
 
 if __name__ == "__main__":  # pragma: no cover
