@@ -1,10 +1,11 @@
 # Tumour spheroid with an oxygen field: the core runs short of oxygen and turns necrotic.
+# Illustrative 2D teaching example, not a calibrated model.
 # Run:  abmfact run-model examples/ir/spheroid.yaml --engine reference --out results/spheroid
 schema_version: "0.1"
 name: spheroid
 description: >
-  A 2D tumour cross-section in an oxygen field held at 38 mmHg on the domain edge. Cells consume
-  oxygen; low oxygen slows division and raises necrosis, and crowding stops division. Uptake is five
+  Illustrative 2D teaching example, not a calibrated model. A 2D tumour cross-section in an oxygen
+  field held at 38 mmHg on the domain edge. Cells consume oxygen; low oxygen slows division and raises necrosis, and crowding stops division. Uptake is five
   times PhysiCell's default so that a 2D cross-section, which is supplied from its rim only, develops the
   hypoxic core a 3D spheroid of this size would have.
 space:
