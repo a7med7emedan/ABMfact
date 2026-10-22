@@ -7,6 +7,10 @@ and interval, SVG snapshots (off; they do not affect dynamics), and any paramete
 binary is built once per source hash (see :mod:`.build`) and the run record pins the PhysiCell version
 and, for container builds, the image digest.
 
+An ABM-IR model (fidelity tier T1) is exported onto PhysiCell's template project first (see
+:mod:`.translate`), once per model hash; ABM-IR parameter paths in the request change the model before
+export, and settings paths (``overall/max_time``, ``user_parameters.<name>``) change the exported XML.
+
 Outputs are read into the common schema. Observables are the ones passed as ``observables`` (ABM-IR
 observable specs), or by default: ``cells``, ``live``, ``dead``, ``live_<type>`` for each cell type and
 ``<substrate>_mean`` for each substrate.
@@ -67,6 +71,7 @@ class PhysiCellEngine(Engine):
         timeout: float | None = None,
         build_jobs: int = 4,
         reader: str = "auto",
+        base: str | Path | None = None,
     ):
         self.prefer = toolchain
         self.image = image
@@ -78,6 +83,7 @@ class PhysiCellEngine(Engine):
         self.timeout = timeout
         self.build_jobs = build_jobs
         self.reader = reader
+        self.base = Path(base) if base else None
         self._toolchain: Toolchain | None = None
 
     # -- discovery ---------------------------------------------------------------------------------------
@@ -104,11 +110,33 @@ class PhysiCellEngine(Engine):
         tc = self.toolchain
         return Availability(tc.ok, tc.detail, f"PhysiCell {VERSION}" if tc.ok else None)
 
-    def load(self, model: Any) -> Path:
+    def load(self, model: Any) -> Any:
+        """A project folder (tier T0), or an ABM-IR model or file (tier T1, exported before each run)."""
+        from ...ir import IRModel, load_model
+
+        if isinstance(model, IRModel):
+            return model
         path = Path(model)
+        if path.is_file() and path.suffix.lower() in (".yaml", ".yml", ".json"):
+            return load_model(path)
         if not is_project(path):
             raise EngineError(f"{path} is not a PhysiCell project (needs main.cpp, Makefile and config/)")
         return path.resolve()
+
+    def _export(self, model: Any, params: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
+        """Export an IR model, after applying its IR parameters; return the project and the XML parameters."""
+        from ...ir import apply_params, model_hash
+        from .translate import export_project
+
+        ir_params = {k: v for k, v in params.items() if "/" not in k and not k.startswith("user_parameters.")}
+        xml_params = {k: v for k, v in params.items() if k not in ir_params}
+        m = apply_params(model, ir_params)
+        out = self.cache_dir / "exports" / model_hash(m)[:16]
+        if not (out / ".exported").exists():
+            report = export_project(m, out, base=self.base)
+            (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")
+            (out / ".exported").write_text(m.name, encoding="utf-8")
+        return out, xml_params
 
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
         try:
@@ -132,12 +160,19 @@ class PhysiCellEngine(Engine):
     def prepare(
         self, model: Any, params: Mapping[str, Any], knobs: Knobs, seed: int, workdir: Path | None = None
     ) -> PreparedRun:
-        project = self.load(model)
+        loaded = self.load(model)
+        model_observables: list[dict[str, Any]] | None = None
+        if isinstance(loaded, Path):
+            project, xml_params = loaded, dict(params)
+        else:
+            project, xml_params = self._export(loaded, params)
+            model_observables = [o.model_dump(mode="json") for o in loaded.observables] or None
         settings = SettingsXML.read(project / SETTINGS)
         maboss = settings.find("cell_definitions/cell_definition/phenotype/intracellular[@type='maboss']") is not None
         identity, digest = self._identity()
         run_seed = self.seed_for(seed, knobs)
-        options = {"threads": self.threads, "save_interval": self.save_interval, "observables": self.observables}
+        observables = self.observables or model_observables
+        options = {"threads": self.threads, "save_interval": self.save_interval, "observables": observables}
         request = RunRequest(
             self.name,
             source_hash(project, self.toolchain, "") + ":" + _config_hash(project),
@@ -169,15 +204,23 @@ class PhysiCellEngine(Engine):
         if self.threads is not None:
             s.set_threads(self.threads)
         s.set_output("output", self.save_interval, svg=False)
-        for key, value in params.items():
+        for key, value in xml_params.items():
             s.set_param(key, value)
         s.write(work / SETTINGS)
         if self.toolchain.kind == "docker":
             argv = [f"/build/{BINARY}", SETTINGS.as_posix()]
-            context = {"mounts": {str(build): "/build"}, "toolchain": "docker"}
+            context: dict[str, Any] = {"mounts": {str(build): "/build"}, "toolchain": "docker"}
         else:
             argv = [str(build / BINARY), SETTINGS.as_posix()]
             context = {"toolchain": "native"}
+        context["observables"] = observables
+        steps = s.time_steps()
+        if steps["dt_diffusion"] > steps["dt_mechanics"] * (1 + 1e-9):
+            context["warnings"] = [
+                f"dt_diffusion ({steps['dt_diffusion']:g}) exceeds dt_mechanics ({steps['dt_mechanics']:g}): PhysiCell "
+                "runs mechanics at most once per diffusion step with a step fixed at dt_mechanics, so cells move "
+                "too slowly"
+            ]
         return PreparedRun(self.name, request, workdir=work, argv=argv, image=self.image, timeout=self.timeout,
                            context=context)  # fmt: skip
 
@@ -207,10 +250,14 @@ class PhysiCellEngine(Engine):
         except (FileNotFoundError, ValueError, KeyError) as exc:
             handle.error = f"could not read PhysiCell output: {exc}"
             return self.record(handle)
-        specs = self.observables or default_observables(SettingsXML.read(work / SETTINGS))
+        specs = handle.prepared.context.get("observables") or default_observables(SettingsXML.read(work / SETTINGS))
         compute_series([Observable.model_validate(o) for o in specs], outputs)
         handle.outputs = outputs
-        record = self.record(handle, output_paths={"output": str(work / "output")})
+        record = self.record(
+            handle,
+            output_paths={"output": str(work / "output")},
+            warnings=list(handle.prepared.context.get("warnings", [])),
+        )
         if handle.image_digest and record.request.image_digest is None:
             record.warnings.append(f"ran in image {handle.image_digest}")
         return record

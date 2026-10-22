@@ -1,4 +1,4 @@
-"""Command line: ``abmfact run | check | demo | init | replay | engines | run-model``."""
+"""Command line: ``abmfact run | check | demo | init | replay | engines | run-model | import | export``."""
 
 from __future__ import annotations
 
@@ -187,6 +187,44 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     return 0
 
 
+def _report(report: Any, path: Path, quiet: bool) -> None:
+    md = path.with_suffix(".fidelity.md") if path.suffix else path / "fidelity.md"
+    md.write_text(report.to_markdown(), encoding="utf-8")
+    md.with_suffix(".json").write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    if not quiet:
+        counts = ", ".join(f"{k} {v}" for k, v in report.counts().items())
+        print(f"  fidelity {report.tier}: {counts}")
+        for e in report.entries:
+            if e.status != "exact":
+                print(f"    {e.status:<12} {e.path}: {e.note}")
+        print(f"  wrote {md}")
+
+
+def cmd_import(args: argparse.Namespace) -> int:
+    from .engines.physicell.translate import import_project
+    from .ir import save_model
+
+    out = Path(args.output)
+    model, report = import_project(args.project, out_dir=out.parent)
+    save_model(model, out)
+    if not args.quiet:
+        print(f"  wrote {out}")
+    _report(report, out, args.quiet)
+    return 0
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    from .engines.physicell.translate import export_project
+    from .ir import load_model
+
+    out = Path(args.output)
+    report = export_project(load_model(args.model), out, base=args.base)
+    if not args.quiet:
+        print(f"  wrote {out}")
+    _report(report, out, args.quiet)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="abmfact",
@@ -230,6 +268,17 @@ def build_parser() -> argparse.ArgumentParser:
     rm.add_argument("--store", help="run store directory; an identical earlier run is reused")
     rm.add_argument("--option", action="append", metavar="KEY=VALUE", help="engine option, e.g. threads=1")
     rm.add_argument("-q", "--quiet", action="store_true")
+    im = sub.add_parser("import", help="translate a simulator's project into an ABM-IR model")
+    im.add_argument("source", choices=["physicell"], help="the simulator the project is for")
+    im.add_argument("project", help="project folder")
+    im.add_argument("-o", "--output", default="model.yaml", help="ABM-IR file to write (default: model.yaml)")
+    im.add_argument("-q", "--quiet", action="store_true")
+    ex = sub.add_parser("export", help="translate an ABM-IR model into a simulator's project")
+    ex.add_argument("model", help="ABM-IR file")
+    ex.add_argument("--to", required=True, choices=["physicell"], help="the simulator to write for")
+    ex.add_argument("-o", "--output", required=True, help="project folder to write")
+    ex.add_argument("--base", help="project whose C++ to use (default: PhysiCell's template project)")
+    ex.add_argument("-q", "--quiet", action="store_true")
     en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
     en.add_argument("--json", action="store_true", help="print JSON instead of a table")
     return p
@@ -250,14 +299,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_engines(args)
         if args.command == "run-model":
             return cmd_run_model(args)
+        if args.command == "import":
+            return cmd_import(args)
+        if args.command == "export":
+            return cmd_export(args)
         return cmd_replay(args)
     except (ConfigError, ClaimError, AdapterError, EngineError, json.JSONDecodeError, FileNotFoundError) as exc:
         print(f"abmfact: error: {exc}", file=sys.stderr)
         return 2
     except ValueError as exc:
-        # ABM-IR errors; the ir package (and pydantic) is only imported when a command needs it.
-        ir_errors = sys.modules.get("abmfact.ir.errors")
-        if ir_errors is not None and isinstance(exc, ir_errors.IRError):
+        # ABM-IR and PhysiCell settings errors; those modules are only imported when a command needs them.
+        known = [getattr(sys.modules.get(m), n, None) for m, n in (("abmfact.ir.errors", "IRError"),
+                 ("abmfact.engines.physicell.settings", "SettingsError"))]  # fmt: skip
+        if any(k is not None and isinstance(exc, k) for k in known):
             print(f"abmfact: error: {exc}", file=sys.stderr)
             return 2
         raise

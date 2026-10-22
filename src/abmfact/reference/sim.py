@@ -5,17 +5,22 @@ runs when its own step comes round. Within a tick the order is: timed events, di
 (rules, death, division, removal), mechanics. Every per-cell random number comes from a stream spawned
 from the run seed, assigned to cells in activation order, so the same seed always gives the same run
 and the activation order changes only which cell receives which number.
+
+Motility follows ``Cell::update_motility_vector`` in ``core/PhysiCell_cell.cpp`` of PhysiCell 1.14.2: a
+cell picks a new direction with probability ``dt / persistence_time`` per mechanics step (none before
+its first turn), mixing a random unit vector with its bias direction (the substrate gradient, for
+chemotaxis), each normalised as PhysiCell normalises them.
 """
 
 from __future__ import annotations
 
-import csv
 import math
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from ..ir import IRModel
+from ..ir.io import read_cells_csv
 from ..knobs import RNG_SALT, Knobs
 from ..records import APOPTOTIC, LIVE, NECROTIC, FieldFrame, RunOutputs, cells_table
 from ..records.observables import compute_observables
@@ -282,14 +287,8 @@ class Simulation:
         return pts, [p.cell_type] * n
 
     def _read_positions(self, path: str) -> tuple[np.ndarray, list[str]]:
-        """PhysiCell's cells.csv: ``x,y,z,type`` with or without a header; type is a name or an index."""
-        rows = list(csv.reader(self.model.resolve(path).read_text(encoding="utf-8").splitlines()))
-        rows = [r for r in rows if r and not r[0].startswith("//")]
-        if rows and not _is_number(rows[0][0]):
-            rows = rows[1:]
-        pts = np.array([[float(r[0]), float(r[1])] for r in rows]).reshape(-1, 2)
-        names = [self.types.names[int(r[3])] if _is_number(r[3]) else r[3].strip() for r in rows]
-        return pts, names
+        pts, names = read_cells_csv(self.model.resolve(path), self.types.names)
+        return np.asarray([(x, y) for x, y, _ in pts], dtype=float).reshape(-1, 2), names
 
     def _new_cells(self, pos: np.ndarray, type_idx: np.ndarray) -> _Cells:
         n = len(type_idx)
@@ -543,7 +542,7 @@ class Simulation:
         theta = 2 * math.pi * self._draw(self.rng_motility, order)
         speed = c.beh["migration speed"] * live
         persistence = np.maximum(c.beh["migration persistence time"], 1e-12)
-        turn = (speed > 0) & ((u_turn < self.dt_m / persistence) | ~np.any(c.motility != 0, axis=1))
+        turn = (speed > 0) & (u_turn < self.dt_m / persistence)
         if turn.any():
             rand = self._rotate(np.stack([np.cos(theta), np.sin(theta)], axis=1))
             bias_dir = np.zeros((n, 2))
@@ -555,12 +554,10 @@ class Simulation:
                 gx, gy = self._gradient(int(k))
                 ix, iy = self._voxel(c.pos[sel])
                 g = np.stack([gx[iy, ix], gy[iy, ix]], axis=1) * t.chemo_dir[c.type[sel]][:, None]
-                norm = np.linalg.norm(g, axis=1, keepdims=True)
-                bias_dir[sel] = np.divide(g, norm, out=np.zeros_like(g), where=norm > 0)
+                bias_dir[sel] = physicell_normalize(g)
             b = c.beh["migration bias"][:, None]
             d = (1.0 - b) * rand + b * bias_dir
-            norm = np.linalg.norm(d, axis=1, keepdims=True)
-            d = np.divide(d, norm, out=rand.copy(), where=norm > 0)
+            d = physicell_normalize(d)
             c.motility[turn] = (speed[:, None] * d)[turn]
         c.motility[~live] = 0.0
         v = pf.velocity + c.motility
@@ -613,12 +610,14 @@ class Simulation:
         return compute_observables(self.model, out)
 
 
-def _is_number(s: str) -> bool:
-    try:
-        float(s)
-    except ValueError:
-        return False
-    return True
+def physicell_normalize(v: np.ndarray) -> np.ndarray:
+    """Rows divided by ``sqrt(1e-32 + |v|^2)``, and set to zero where the norm is at most 1e-16.
+
+    This is ``normalize`` in ``BioFVM/BioFVM_vector.cpp`` of PhysiCell 1.14.2. A vanishing gradient gives
+    no bias, rather than a full-strength bias in whatever direction rounding happens to point.
+    """
+    norm = np.sqrt(1e-32 + (v * v).sum(axis=1, keepdims=True))
+    return np.where(norm > 1e-16, v / norm, 0.0)
 
 
 def simulate(model: IRModel, seed: int, knobs: Knobs | None = None, solver: str = "implicit") -> RunOutputs:

@@ -1,5 +1,5 @@
 # Files copied unchanged from PhysiCell stay byte-identical to the originals.
-exclude: ^tests/fixtures/physicell/
+exclude: ^(tests/fixtures/physicell/|src/abmfact/engines/physicell/template/)
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9

@@ -87,6 +87,31 @@ def model_hash(model: IRModel) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def read_cells_csv(path: str | Path, type_names: list[str]) -> tuple[list[tuple[float, float, float]], list[str]]:
+    """Initial cells from a PhysiCell-style ``cells.csv``: ``x,y,z,type`` with or without a header.
+
+    ``type`` is a cell type name or an index into ``type_names``; extra columns are ignored.
+    """
+    import csv
+
+    rows = [
+        r for r in csv.reader(Path(path).read_text(encoding="utf-8").splitlines()) if r and not r[0].startswith("//")
+    ]
+    if rows and not _is_number(rows[0][0]):
+        rows = rows[1:]
+    pts = [(float(r[0]), float(r[1]), float(r[2]) if len(r) > 2 and r[2].strip() else 0.0) for r in rows]
+    names = [type_names[int(float(r[3]))] if _is_number(r[3]) else r[3].strip() for r in rows]
+    return pts, names
+
+
+def _is_number(text: str) -> bool:
+    try:
+        float(text)
+    except ValueError:
+        return False
+    return True
+
+
 _TOKEN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)|\[([^\]]+)\]")
 
 
