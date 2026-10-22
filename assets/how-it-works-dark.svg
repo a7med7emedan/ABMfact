@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-labelledby="t">
+  <title id="t">How ABMfact audits a model</title>
+  <rect x="16" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="44" cy="46" r="13" fill="#5eead4"/>
+  <text x="44" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">1</text>
+  <text x="64" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Model + claims</text>
+  <text x="32" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">audit.yaml</text>
+  <line x1="32" y1="96" x2="168" y2="96" stroke="#30363d"/>
+  <text x="32" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">model: ...</text>
+  <text x="32" y="152" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">params: ...</text>
+  <text x="32" y="178" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#5eead4" text-anchor="start">claims:</text>
+  <text x="32" y="204" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">  - C1 ...</text>
+  <text x="32" y="230" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">  - C2 ...</text>
+  <text x="32" y="256" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">budget: ...</text>
+  <rect x="216" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="244" cy="46" r="13" fill="#5eead4"/>
+  <text x="244" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">2</text>
+  <text x="264" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Conditions</text>
+  <text x="232" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">baseline + 6 changes</text>
+  <line x1="232" y1="96" x2="368" y2="96" stroke="#30363d"/>
+  <rect x="232" y="106" width="92" height="30" rx="15" fill="#5eead4" stroke="#5eead4" stroke-width="2"/>
+  <text x="278" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#0d1117" text-anchor="middle">baseline</text>
+  <circle cx="238" cy="153" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="158" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">update order</text>
+  <circle cx="238" cy="178" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="183" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">agent order</text>
+  <circle cx="238" cy="203" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">rng streams</text>
+  <circle cx="238" cy="228" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="233" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">grid</text>
+  <circle cx="238" cy="253" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">time step</text>
+  <circle cx="238" cy="278" r="4" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="250" y="283" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#e6e9ee" text-anchor="start">population</text>
+  <rect x="416" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="444" cy="46" r="13" fill="#5eead4"/>
+  <text x="444" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">3</text>
+  <text x="464" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Seeds</text>
+  <text x="432" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">N per condition</text>
+  <line x1="432" y1="96" x2="568" y2="96" stroke="#30363d"/>
+  <circle cx="446" cy="116" r="7" fill="#2f6f68"/>
+  <circle cx="469" cy="116" r="7" fill="#5eead4"/>
+  <circle cx="492" cy="116" r="7" fill="#5eead4"/>
+  <circle cx="515" cy="116" r="7" fill="#5eead4"/>
+  <circle cx="538" cy="116" r="7" fill="#5eead4"/>
+  <circle cx="561" cy="116" r="7" fill="#2f6f68"/>
+  <circle cx="446" cy="139" r="7" fill="#5eead4"/>
+  <circle cx="469" cy="139" r="7" fill="#5eead4"/>
+  <circle cx="492" cy="139" r="7" fill="#5eead4"/>
+  <circle cx="515" cy="139" r="7" fill="#2f6f68"/>
+  <circle cx="538" cy="139" r="7" fill="#5eead4"/>
+  <circle cx="561" cy="139" r="7" fill="#5eead4"/>
+  <circle cx="446" cy="162" r="7" fill="#5eead4"/>
+  <circle cx="469" cy="162" r="7" fill="#2f6f68"/>
+  <circle cx="492" cy="162" r="7" fill="#5eead4"/>
+  <circle cx="515" cy="162" r="7" fill="#5eead4"/>
+  <circle cx="538" cy="162" r="7" fill="#5eead4"/>
+  <circle cx="561" cy="162" r="7" fill="#5eead4"/>
+  <circle cx="446" cy="185" r="7" fill="#2f6f68"/>
+  <circle cx="469" cy="185" r="7" fill="#5eead4"/>
+  <circle cx="492" cy="185" r="7" fill="#5eead4"/>
+  <circle cx="515" cy="185" r="7" fill="#5eead4"/>
+  <circle cx="538" cy="185" r="7" fill="#2f6f68"/>
+  <circle cx="561" cy="185" r="7" fill="#5eead4"/>
+  <circle cx="446" cy="208" r="7" fill="#5eead4"/>
+  <circle cx="469" cy="208" r="7" fill="#5eead4"/>
+  <circle cx="492" cy="208" r="7" fill="#2f6f68"/>
+  <circle cx="515" cy="208" r="7" fill="#5eead4"/>
+  <circle cx="538" cy="208" r="7" fill="#5eead4"/>
+  <circle cx="561" cy="208" r="7" fill="#2f6f68"/>
+  <text x="432" y="254" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">the same seeds</text>
+  <text x="432" y="276" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">in every condition</text>
+  <rect x="616" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="644" cy="46" r="13" fill="#5eead4"/>
+  <text x="644" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">4</text>
+  <text x="664" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Statistics</text>
+  <text x="632" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">intervals and tests</text>
+  <line x1="632" y1="96" x2="768" y2="96" stroke="#30363d"/>
+  <rect x="672" y="104" width="64" height="76" rx="4" fill="#2f6f68" opacity="0.45"/>
+  <path d="M690 120 H720" stroke="#5eead4" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="705" cy="120" r="4.5" fill="#5eead4"/>
+  <path d="M696 142 H730" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="713" cy="142" r="4.5" fill="#fbbf24"/>
+  <path d="M678 164 H744" stroke="#9aa4b2" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="711" cy="164" r="4.5" fill="#9aa4b2"/>
+  <path d="M638 188 H762" stroke="#30363d"/>
+  <text x="632" y="220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">one-sided tests</text>
+  <text x="632" y="242" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">equivalence within</text>
+  <text x="632" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">a tolerance</text>
+  <rect x="816" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="844" cy="46" r="13" fill="#5eead4"/>
+  <text x="844" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">5</text>
+  <text x="864" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Verdicts</text>
+  <text x="832" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">claim by check</text>
+  <line x1="832" y1="96" x2="968" y2="96" stroke="#30363d"/>
+  <rect x="832" y="106" width="140" height="30" rx="15" fill="#5eead4" stroke="#5eead4" stroke-width="2"/>
+  <text x="902" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#0d1117" text-anchor="middle">ROBUST</text>
+  <rect x="832" y="150" width="140" height="30" rx="15" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  <text x="902" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#fbbf24" text-anchor="middle">SHIFTED</text>
+  <rect x="832" y="194" width="140" height="30" rx="15" fill="#fbbf24" stroke="#fbbf24" stroke-width="2"/>
+  <text x="902" y="214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#0d1117" text-anchor="middle">FRAGILE</text>
+  <text x="832" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">each with a reason</text>
+  <text x="832" y="284" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">and a reproducer</text>
+  <rect x="1016" y="14" width="168" height="292" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="1044" cy="46" r="13" fill="#5eead4"/>
+  <text x="1044" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">6</text>
+  <text x="1064" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e6e9ee" text-anchor="start">Outputs</text>
+  <text x="1032" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#9aa4b2" text-anchor="start">for people and CI</text>
+  <line x1="1032" y1="96" x2="1168" y2="96" stroke="#30363d"/>
+  <path d="M1034 106 h16 l8 8 v24 h-24 z" fill="none" stroke="#5eead4" stroke-width="2" stroke-linejoin="round"/>
+  <text x="1068" y="128" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">report.html</text>
+  <path d="M1034 158 h16 l8 8 v24 h-24 z" fill="none" stroke="#5eead4" stroke-width="2" stroke-linejoin="round"/>
+  <text x="1068" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">results.json</text>
+  <path d="M1034 210 h16 l8 8 v24 h-24 z" fill="none" stroke="#5eead4" stroke-width="2" stroke-linejoin="round"/>
+  <text x="1068" y="232" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#e6e9ee" text-anchor="start">RO-Crate</text>
+  <path d="M190 160 H204" stroke="#9aa4b2" stroke-width="2"/><path d="M202 154 L210 160 L202 166" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M390 160 H404" stroke="#9aa4b2" stroke-width="2"/><path d="M402 154 L410 160 L402 166" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M590 160 H604" stroke="#9aa4b2" stroke-width="2"/><path d="M602 154 L610 160 L602 166" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M790 160 H804" stroke="#9aa4b2" stroke-width="2"/><path d="M802 154 L810 160 L802 166" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M990 160 H1004" stroke="#9aa4b2" stroke-width="2"/><path d="M1002 154 L1010 160 L1002 166" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

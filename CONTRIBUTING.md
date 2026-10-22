@@ -32,6 +32,15 @@ A new check needs three things, in the same pull request:
 
 A check without a planted fault that it catches, and that no other check catches, will not be merged.
 
+## Figures
+
+The README figures in `assets/` are generated, never drawn by hand. The detection matrix comes from a real
+run of the planted-fault zoo:
+
+```bash
+python scripts/make_figures.py      # about a minute with four workers
+```
+
 ## Commit messages
 
 One short imperative subject line, a blank line, then why the change is needed.
