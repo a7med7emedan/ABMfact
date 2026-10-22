@@ -1,7 +1,8 @@
 """Run the Gate 2 study as fixed in PROTOCOL.md.
 
     python studies/gate2/run_gate2.py timing      # one seed at the coarsest and finest levels, per project
-    python studies/gate2/run_gate2.py audit       # audits, convergence and the determinism diagnostic
+    python studies/gate2/run_gate2.py audit       # the audit checks and the determinism diagnostic
+    python studies/gate2/run_gate2.py convergence # three levels of time step and voxel size
     python studies/gate2/run_gate2.py summary     # print the verdict tables recorded in results/
 
 Set ABMFACT_GATE2_PHYSICELL to the PhysiCell 1.14.2 source tree and ABMFACT_GATE2_CACHE to a scratch
@@ -78,10 +79,15 @@ def _progress(label: str):
     return show
 
 
-def audit() -> None:
+def _horizons() -> None:
     timing_data = json.loads((RESULTS / "timing.json").read_text())
     for name in PROJECTS:
         os.environ[f"ABMFACT_GATE2_HORIZON_{name.upper()}"] = str(timing_data[name]["horizon_min"])
+
+
+def audit() -> None:
+    """The audit checks and, where determinism fails, the 1-thread diagnostic."""
+    _horizons()
     for name in PROJECTS:
         check_disk()
         out = RESULTS / name
@@ -91,16 +97,27 @@ def audit() -> None:
         result = run_audit(load_audit(audit_file), progress=_progress(f"{name} audit"))
         print()
         write_outputs(result, out, audit_file=audit_file)
-        check_disk()
-        conv = converge(load_audit(audit_file), progress=_progress(f"{name} convergence"))
-        print()
-        (out / "convergence.json").write_text(conv.to_json(), encoding="utf-8")
         diag = {}
         if any(v["check"] == "determinism" and v["verdict"] == "FRAGILE" for v in result.verdicts):
             diag = determinism_diagnostic(name, audit_file)
         (out / "determinism_diagnostic.json").write_text(json.dumps(diag, indent=2) + "\n", encoding="utf-8")
-        (out / "wall.json").write_text(json.dumps({"seconds": time.perf_counter() - t0}) + "\n", encoding="utf-8")
-        print(f"  {name} done in {(time.perf_counter() - t0) / 3600:.2f} h", flush=True)
+        (out / "audit_wall.json").write_text(json.dumps({"seconds": time.perf_counter() - t0}) + "\n", encoding="utf-8")
+        print(f"  {name} audit done in {(time.perf_counter() - t0) / 3600:.2f} h", flush=True)
+
+
+def convergence() -> None:
+    """Convergence over three levels of time step and voxel size."""
+    _horizons()
+    for name in PROJECTS:
+        check_disk()
+        out = RESULTS / name
+        out.mkdir(parents=True, exist_ok=True)
+        t0 = time.perf_counter()
+        conv = converge(load_audit(HERE / f"{name}.yaml"), progress=_progress(f"{name} convergence"))
+        print()
+        (out / "convergence.json").write_text(conv.to_json(), encoding="utf-8")
+        (out / "convergence_wall.json").write_text(json.dumps({"seconds": time.perf_counter() - t0}) + "\n")
+        print(f"  {name} convergence done in {(time.perf_counter() - t0) / 3600:.2f} h", flush=True)
 
 
 def determinism_diagnostic(name: str, audit_file: Path) -> dict:
@@ -144,7 +161,8 @@ def summary() -> None:
         for v in res["verdicts"]:
             extra = f" (seeds needed {v['seeds_needed']})" if "seeds_needed" in v else ""
             print(f"  {v['claim']} {v['check']:<14} {v['verdict']:<14} {v['reason']}{extra}")
-        conv = json.loads((out / "convergence.json").read_text())
+        conv_file = out / "convergence.json"
+        conv = json.loads(conv_file.read_text()) if conv_file.exists() else {"verdicts": []}
         for v in conv["verdicts"]:
             extra = f" (seeds needed {v['seeds_needed']})" if "seeds_needed" in v else ""
             print(f"  {v['claim']} convergence    {v['verdict']:<14} {v['reason']}{extra}")
@@ -157,4 +175,4 @@ if __name__ == "__main__":
     for var in ("ABMFACT_GATE2_PHYSICELL", "ABMFACT_GATE2_CACHE"):
         if var not in os.environ and sys.argv[1:2] != ["summary"]:
             raise SystemExit(f"set {var} (see the module docstring)")
-    {"timing": timing, "audit": audit, "summary": summary}[sys.argv[1]]()
+    {"timing": timing, "audit": audit, "convergence": convergence, "summary": summary}[sys.argv[1]]()
