@@ -32,11 +32,19 @@ All notable changes are recorded here. The format follows
 - The planted-fault zoo gains a field model and the `unstable_diffusion` fault, caught only by
   convergence; the acceptance test asserts the extended matrix with its one documented overlap.
 - The `dx_scale` knob (voxel size).
+- A warning on a claim and its verdicts when the default 10% tolerance meets a near-zero baseline mean
+  (below the standard error of the mean, or a mean below 0.01), suggesting an absolute tolerance.
 
 ### Changed
 
 - Version 0.2.0.dev0. pydantic is now a core dependency (ABM-IR only; `import abmfact` does not load it).
 - `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
+
+### Fixed
+
+- Determinism reruns always execute again: they bypass the run store and any cache that honours
+  `abmfact.records.cache`, so a cached first run can no longer make a nondeterministic model look
+  deterministic.
 
 ## [0.1.0] - 2026-10-18
 
