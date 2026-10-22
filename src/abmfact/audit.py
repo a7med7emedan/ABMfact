@@ -248,13 +248,17 @@ def run_audit(audit: Audit, progress: Callable[[int, int], None] | None = None) 
             k: (claim.tolerance if claim.tolerance is not None else st.default_tolerance(v))
             for k, v in base_vals.items()
         }
-        claims_out.append(
-            {
-                **claim.to_dict(),
-                "baseline": {"status": base_status, **base_detail},
-                "tolerance": tolerances,
-            }
-        )
+        warnings: list[str] = []
+        if claim.tolerance is None:
+            for k, vals in base_vals.items():
+                w = st.tolerance_warning(vals, tolerances[k])
+                if w and w not in warnings:
+                    warnings.append(w)
+        entry = {**claim.to_dict(), "baseline": {"status": base_status, **base_detail}, "tolerance": tolerances}
+        if warnings:
+            # Only present when there is something to say, so records without warnings keep their v0.1 shape.
+            entry["warnings"] = warnings
+        claims_out.append(entry)
         for chk in checks:
             verdicts.append(
                 _verdict(
@@ -271,6 +275,8 @@ def run_audit(audit: Audit, progress: Callable[[int, int], None] | None = None) 
                     len(seeds),
                 )
             )
+            if warnings and verdicts[-1]["verdict"] in ("ROBUST", "SHIFTED", "INCONCLUSIVE", "FRAGILE"):
+                verdicts[-1]["warnings"] = warnings
 
     flagged = sorted({v["check"] for v in verdicts if v["verdict"] in FLAGGED})
     summary = {name: sum(1 for v in verdicts if v["verdict"] == name) for name in VERDICTS}

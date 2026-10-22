@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
-from abmfact import parse_audit, run_audit
+from abmfact import PythonAdapter, parse_audit, run_audit
 from abmfact.audit import execute, point_key
 from abmfact.claims import parse_claims
 from abmfact.config import Audit, Budget
@@ -149,3 +150,28 @@ def test_nan_outputs_become_null():
     assert PythonAdapter(lambda p, s, k: {"x": 1}).run({}, 1, __import__("abmfact").Knobs()) == {"x": 1.0}
     with pytest.raises(TypeError):
         __import__("abmfact.audit", fromlist=["_json_default"])._json_default(object())
+
+
+def test_tolerance_warning_for_near_zero_baselines(tmp_path):
+    from abmfact import stats as st
+    from abmfact.report import render_html
+
+    rng = np.random.default_rng(0)
+    # Tiny mean, tiny noise: the 10% tolerance is a tiny absolute margin.
+    tiny = 0.003 + rng.normal(0, 3e-5, 20)
+    assert "near zero" in st.tolerance_warning(tiny, st.default_tolerance(tiny))
+    # Noisy mean: the 10% tolerance is below the standard error, whatever the units.
+    noisy = 5.0 + rng.normal(0, 10.0, 20)
+    assert "standard error" in st.tolerance_warning(noisy, st.default_tolerance(noisy))
+    assert st.tolerance_warning(10 + rng.normal(0, 1, 20), 1.0) is None
+
+    small = PythonAdapter(lambda p, s, k: {"x": 0.003 + 1e-4 * np.random.default_rng(s).normal()}, supports=None)
+    claim = {"id": "C1", "metric": "x", "test": "greater_than", "value": 0}
+    res = run_audit(Audit(small, {}, parse_claims([claim]), Budget(seeds=8, checks=("rng_streams",))))
+    assert "near zero" in res.data["claims"][0]["warnings"][0]
+    assert res.verdicts[0]["warnings"] == res.data["claims"][0]["warnings"]
+    assert "Tolerance warning" in render_html(res)
+    explicit = run_audit(
+        Audit(small, {}, parse_claims([{**claim, "tolerance": 0.01}]), Budget(seeds=8, checks=("rng_streams",)))
+    )
+    assert "warnings" not in explicit.data["claims"][0] and "warnings" not in explicit.verdicts[0]

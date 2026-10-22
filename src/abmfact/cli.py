@@ -51,6 +51,9 @@ def print_summary(result: AuditResult, stream: Any = None) -> None:
     stream.write(f"  {counts}\n")
     for f in result.data["diagnosis"]:
         stream.write(f"  likely cause ({f['check']}): {f['cause']}\n")
+    for c in result.data["claims"]:
+        for w in c.get("warnings", []):
+            stream.write(f"  warning ({c['id']}): {w}\n")
 
 
 def cmd_run(args: argparse.Namespace, fail_on_flag: bool) -> int:

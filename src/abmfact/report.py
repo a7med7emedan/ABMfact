@@ -198,6 +198,8 @@ def render_html(result: AuditResult) -> str:
                 h.append(f"<p class='muted'>At {_esc(json.dumps(shown))}</p>")
             h.append(f"<div class='card'>{_plot(cl, conds, pkey, flagged_labels)}</div>")
         details = [rows_by[(cl["id"], c)] for c in checks if (cl["id"], c) in rows_by]
+        for w in cl.get("warnings", []):
+            h.append(f"<p class='muted'><strong>Tolerance warning:</strong> {_esc(w)}.</p>")
         h.append(
             "<div class='card scroll' style='margin-top:10px'><table><thead><tr><th>Check</th><th>Verdict</th>"
             "<th>Why</th></tr></thead><tbody>"

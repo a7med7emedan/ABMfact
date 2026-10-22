@@ -28,6 +28,14 @@ At every parameter point:
    direction. Spread is secondary evidence, so the bar is high. It is not compared in the
    `population_scale` check.
 
+**Tolerance warning.** When a claim sets no `tolerance`, the default is 10% of the baseline mean, which
+can mislead in two cases, and the audit then attaches a warning to the claim and its verdicts (in
+`results.json`, `report.html` and the console). Either the default tolerance is smaller than the standard
+error of the baseline mean, so the seeds cannot resolve it; or the baseline mean is below 0.01 in
+absolute value, so 10% of it is a tiny absolute margin. The second test is in the metric's own units:
+most claim metrics are fractions or counts, where 0.01 is close to zero. The warning never changes a
+verdict; set an absolute `tolerance` on the claim to decide what size of change matters.
+
 ## Verdict rules, in order
 
 1. `SKIPPED` if the claim lists the check in `skip_checks`.

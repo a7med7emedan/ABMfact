@@ -181,6 +181,34 @@ def seeds_needed(n: int, half_width: float, gap: float) -> int:
     return int(min(MAX_SEEDS, max(n + 1, math.ceil(n * (half_width / gap) ** 2))))
 
 
+#: Below this absolute baseline mean (in the metric's own units) a relative tolerance is a tiny number.
+NEAR_ZERO = 0.01
+
+
+def tolerance_warning(baseline: np.ndarray, tol: float) -> str | None:
+    """Why a default relative tolerance may mislead for this baseline, or ``None``.
+
+    Two triggers: the tolerance is smaller than the standard error of the baseline mean, so the seeds
+    cannot resolve it; or the baseline mean is below :data:`NEAR_ZERO` in absolute value, so 10% of it is a
+    tiny absolute margin. The second is in the metric's units: most claim metrics are fractions or counts,
+    where 0.01 is close to zero.
+    """
+    x = np.asarray(baseline, dtype=float)
+    mean = float(np.mean(x))
+    se = float(np.std(x, ddof=1)) / math.sqrt(x.size) if x.size > 1 else 0.0
+    if 0 < tol < se:
+        return (
+            f"the default tolerance {tol:.3g} (10% of the baseline mean {mean:.3g}) is smaller than the standard "
+            f"error of that mean ({se:.3g}); set an absolute tolerance for this claim"
+        )
+    if abs(mean) < NEAR_ZERO:
+        return (
+            f"the baseline mean {mean:.3g} is near zero, so the default tolerance (10% of it) is only {tol:.3g}; "
+            "set an absolute tolerance for this claim"
+        )
+    return None
+
+
 def default_tolerance(baseline: np.ndarray, fraction: float = 0.10) -> float:
     m = abs(float(np.mean(baseline)))
     if m > 0:
