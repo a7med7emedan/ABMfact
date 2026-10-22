@@ -38,13 +38,11 @@ an artefact?" gets an answer with a seed attached.
 ## Quick start
 
 ```bash
-pip install "abmfact @ git+https://github.com/a7med7emedan/ABMfact"
+pip install abmfact            # add [mesa] or [netlogo] for those frameworks
 abmfact demo --jobs 4          # audit the planted-fault zoo (about a minute on four cores)
 abmfact init                   # write a commented audit.yaml for your model
 abmfact run audit.yaml --out results/
 ```
-
-For Mesa or NetLogo models, install `abmfact[mesa]` or `abmfact[netlogo]` the same way.
 
 `results/report.html` opens in any browser. `abmfact check audit.yaml` exits with status 1 when any claim
 is fragile, so it fits in continuous integration.
@@ -183,7 +181,7 @@ bugs are described in [docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob
 | Adapter | For | Notes |
 |---|---|---|
 | `python` | any `run(params, seed, knobs)` callable | the fastest path |
-| `mesa` | Mesa 3 model classes | knobs map to constructor keywords; needs the `mesa` extra |
+| `mesa` | Mesa 3 model classes | knobs map to constructor keywords; `pip install "abmfact[mesa]"` |
 | `netlogo` | `.nlogo` models through pynetlogo | knobs map to globals; needs a local NetLogo |
 | `command` | anything else: R, Julia, Java, C++ | reads JSON on stdin, prints JSON on stdout |
 
