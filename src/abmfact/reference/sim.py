@@ -62,7 +62,9 @@ def refusals(model: IRModel, knobs: Knobs) -> list[str]:
     b = model.space.bounds
     v = model.space.voxel
     square = math.isclose(b.x_max - b.x_min, b.y_max - b.y_min) and math.isclose(v.dx, v.dy)
-    if knobs.grid_rotation % 180 and not square:
+    if knobs.grid_rotation % 90:
+        out.append("grid_rotation must be a multiple of 90 degrees")
+    elif knobs.grid_rotation % 180 and not square:
         out.append("grid_rotation needs a square domain with square voxels")
     explicit = any(p.kind in ("positions", "positions_csv") for p in model.initial_conditions.placements)
     if knobs.pop_scale != 1.0 and explicit:
@@ -224,12 +226,24 @@ class Simulation:
         )
 
     def _to_internal(self, pos: np.ndarray) -> np.ndarray:
-        """World frame to simulation frame: rotate about the centre, then shift by whole voxels."""
+        """World frame to simulation frame: rotate about the centre, then shift by whole voxels.
+
+        Offsets are snapped to whole voxels and rotations come in 90-degree steps on square grids, so the
+        moved world lines up with the voxel grid exactly as before and every result is unchanged up to
+        floating-point rounding.
+        """
         p = pos - self.centre
         for _ in range(self.rot):
             p = np.stack([-p[:, 1], p[:, 0]], axis=1)
         p = p + self.centre + np.array([self.shift[0] * self.dx, self.shift[1] * self.dy])
         return self.domain.wrap(p)
+
+    def _rotate(self, v: np.ndarray) -> np.ndarray:
+        """Rotate world-frame directions into the simulation frame, so random directions are drawn in
+        the world and a rotated world receives the same physical directions."""
+        for _ in range(self.rot):
+            v = np.stack([-v[:, 1], v[:, 0]], axis=1)
+        return v
 
     def _to_world(self, pos: np.ndarray) -> np.ndarray:
         p = pos - np.array([self.shift[0] * self.dx, self.shift[1] * self.dy]) - self.centre
@@ -238,8 +252,9 @@ class Simulation:
         return self.domain.wrap(p + self.centre)
 
     def _field_to_world(self, f: np.ndarray) -> np.ndarray:
+        """Undo the grid knobs on a field indexed ``[iy, ix]``: shift back, then rotate clockwise."""
         f = np.roll(f, (-self.shift[1], -self.shift[0]), axis=(0, 1))
-        return np.rot90(f, -self.rot) if self.rot else f
+        return np.rot90(f, self.rot) if self.rot else f
 
     def _placement_positions(self, p, rng: np.random.Generator) -> tuple[np.ndarray, list[str]]:
         g = self.geo_scale
@@ -490,7 +505,7 @@ class Simulation:
         parents = order[div[order]]
         if parents.size:
             r = self.types.radius[c.type[parents]]
-            u = np.stack([np.cos(angle[parents]), np.sin(angle[parents])], axis=1) * (0.5 * r)[:, None]
+            u = self._rotate(np.stack([np.cos(angle[parents]), np.sin(angle[parents])], axis=1)) * (0.5 * r)[:, None]
             daughters = c.take(parents)
             daughters.pos = self.domain.wrap(daughters.pos + u)
             daughters.id = np.arange(self.next_id, self.next_id + parents.size)
@@ -530,7 +545,7 @@ class Simulation:
         persistence = np.maximum(c.beh["migration persistence time"], 1e-12)
         turn = (speed > 0) & ((u_turn < self.dt_m / persistence) | ~np.any(c.motility != 0, axis=1))
         if turn.any():
-            rand = np.stack([np.cos(theta), np.sin(theta)], axis=1)
+            rand = self._rotate(np.stack([np.cos(theta), np.sin(theta)], axis=1))
             bias_dir = np.zeros((n, 2))
             sub_idx = t.chemo_sub[c.type]
             for k in np.unique(sub_idx[turn]):

@@ -3,19 +3,22 @@
 The PDE is ``dc/dt = D (c_xx + c_yy) - lambda(x) c + g(x)``, where ``lambda`` is decay plus cell uptake
 and ``g`` is cell secretion. Each side of the domain is no-flux, held at a value (Dirichlet), or periodic.
 
-**Default scheme: backward-Euler locally one-dimensional (LOD) splitting.** One step of length ``dt``
-solves ``(I + dt lambda/2 - dt D d_xx) c* = c + dt g/2`` and then
-``(I + dt lambda/2 - dt D d_yy) c' = c* + dt g/2`` with the standard three-point stencil. Reaction terms
-sit inside the implicit solves, so uptake competes with diffusion within each step instead of being
-capped at one step's worth of substrate. Each line is a tridiagonal system; all lines of a sweep are
-solved together in one LAPACK banded solve, and periodic lines (cyclic systems) use the Sherman-Morrison
+**Default scheme: symmetrised backward-Euler locally one-dimensional (LOD) splitting.** A sweep along
+x solves ``(I + dt lambda/2 - dt D d_xx) c* = c + dt g/2`` with the standard three-point stencil, and a
+sweep along y does the same with ``d_yy``. One step of length ``dt`` takes both orders, x then y and y
+then x, and averages them, so neither axis is privileged: rotating the world by 90 degrees gives the same
+result, which a fixed sweep order would not (its splitting error depends on the order). Reaction terms sit
+inside the implicit solves, so uptake competes with diffusion within each step instead of being capped at
+one step's worth of substrate. Each line is a tridiagonal system; all lines of a sweep are solved
+together in one LAPACK banded solve, and periodic lines (cyclic systems) use the Sherman-Morrison
 correction. The scheme is first order in time and second order in space.
 
 *Stability:* unconditionally stable for every ``dt > 0``. Each sweep's matrix is a strictly diagonally
 dominant M-matrix (diagonal ``1 + 2r + dt lambda/2`` against off-diagonals ``-r``, ``r = D dt / h^2``),
-so it never amplifies an error mode and it keeps concentrations non-negative. Large ``dt`` costs
-accuracy, not stability: the splitting makes even the steady state first order in ``dt``. Dirichlet
-sides are the outer layer of voxels, held at their value (BioFVM's convention).
+so it never amplifies an error mode and it keeps concentrations non-negative; the average of the two
+orders is a convex combination and keeps both properties. Large ``dt`` costs accuracy, not stability:
+the splitting makes even the steady state first order in ``dt``. Dirichlet sides are the outer layer of
+voxels, held at their value (BioFVM's convention).
 
 **Explicit scheme (FTCS), for verification only.** :func:`ftcs_step` uses forward Euler with the same
 stencil. *Stability condition:* ``D dt (1/dx^2 + 1/dy^2) <= 1/2``, which for ``dx = dy`` is
@@ -141,7 +144,7 @@ def implicit_step(
     gain: np.ndarray | None = None,
     loss: np.ndarray | None = None,
 ) -> np.ndarray:
-    """One backward-Euler LOD step with reactions inside the sweeps (see the module docstring).
+    """One symmetrised backward-Euler LOD step with reactions inside the sweeps (see the module docstring).
 
     ``gain`` (amount per time) and ``loss`` (rate, per time) are per-voxel cell terms; ``decay`` is the
     substrate's own decay rate.
@@ -151,8 +154,15 @@ def implicit_step(
     half_gain = 0.5 * dt * (gain if gain is not None else 0.0)
     react = 0.5 * dt * lam
     mask, values = boundary.mask_and_values(c.shape)
-    c = _sweep(c + half_gain, D * dt / (dx * dx), react, 1, boundary.periodic, mask, values)
-    c = _sweep(c + half_gain, D * dt / (dy * dy), react, 0, boundary.periodic, mask, values)
+    rx, ry = D * dt / (dx * dx), D * dt / (dy * dy)
+
+    def sweep_x(u: np.ndarray) -> np.ndarray:
+        return _sweep(u + half_gain, rx, react, 1, boundary.periodic, mask, values)
+
+    def sweep_y(u: np.ndarray) -> np.ndarray:
+        return _sweep(u + half_gain, ry, react, 0, boundary.periodic, mask, values)
+
+    c = 0.5 * (sweep_y(sweep_x(c)) + sweep_x(sweep_y(c)))
     return np.where(mask, values, c) if mask.any() else c
 
 

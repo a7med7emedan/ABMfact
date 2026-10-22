@@ -99,15 +99,24 @@ def test_update_orders():
 
 
 def test_grid_knobs_move_the_world_but_not_the_results():
-    m = model()
+    # Cells that secrete as well as take up, so the field is far from uniform.
+    m = apply_params(
+        model(),
+        {"cell_types[a].secretion[0].secretion_rate": 0.5, "cell_types[a].motility.speed": 1.0,
+         "substrates[oxygen].diffusion_coefficient": 10.0},
+    )  # fmt: skip
     base = simulate(m, 5)
-    for knobs in (Knobs(grid_offset=(0.5, 0.5)), Knobs(grid_offset=(0.25, 0.0)), Knobs(grid_rotation=90)):
+    assert np.ptp(base.fields[-1].values) > 0.05
+    for knobs in (Knobs(grid_offset=(0.5, 0.5)), Knobs(grid_offset=(0.25, 0.0)), Knobs(grid_rotation=90),
+                  Knobs(grid_rotation=270, grid_offset=(0.5, 0.0))):  # fmt: skip
         moved = simulate(m, 5, knobs)
-        assert moved.scalars["n"] == base.scalars["n"]
-        # Rounding differs in the moved frame, so a few cells can land in a neighbouring voxel.
-        np.testing.assert_allclose(moved.scalars["o2"], base.scalars["o2"], rtol=0.02)
-        if knobs.grid_rotation == 0:
-            np.testing.assert_allclose(moved.cells["x"], base.cells["x"], atol=1e-3)
+        assert moved.scalars["n"] == base.scalars["n"], knobs
+        np.testing.assert_allclose(moved.scalars["o2"], base.scalars["o2"], rtol=1e-9, err_msg=str(knobs))
+        np.testing.assert_allclose(moved.cells["x"], base.cells["x"], atol=1e-9, err_msg=str(knobs))
+        np.testing.assert_allclose(moved.cells["y"], base.cells["y"], atol=1e-9, err_msg=str(knobs))
+        for f_moved, f_base in zip(moved.fields, base.fields, strict=True):
+            np.testing.assert_allclose(f_moved.values, f_base.values, rtol=1e-9, atol=1e-12, err_msg=str(knobs))
+    assert refusals(m, Knobs(grid_rotation=45)) == ["grid_rotation must be a multiple of 90 degrees"]
 
 
 def test_agent_order_population_and_resolution_knobs():
