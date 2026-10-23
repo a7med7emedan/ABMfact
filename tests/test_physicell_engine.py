@@ -17,7 +17,14 @@ import pytest
 from abmfact.engines import EngineError, get_engine
 from abmfact.engines.physicell import PhysiCellEngine, SettingsXML, read_output
 from abmfact.engines.physicell import build as build_mod
-from abmfact.engines.physicell.build import Toolchain, build_project, detect_toolchain, find_compiler, source_hash
+from abmfact.engines.physicell.build import (
+    Toolchain,
+    build_project,
+    detect_toolchain,
+    find_compiler,
+    native_sources_set,
+    source_hash,
+)
 from abmfact.engines.physicell.outputs import _state
 from abmfact.knobs import Knobs
 from abmfact.records import APOPTOTIC, LIVE, NECROTIC
@@ -204,6 +211,8 @@ def _toolchain_or_skip() -> Toolchain:
     tc = detect_toolchain()
     if not tc.ok:
         pytest.skip(f"PhysiCell cannot be built here: {tc.detail}")
+    if tc.kind == "native" and not native_sources_set():
+        pytest.skip("a native g++ with OpenMP was found, but PHYSICELL_SOURCE does not point at PhysiCell sources")
     return tc
 
 

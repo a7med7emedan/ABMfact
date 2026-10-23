@@ -57,6 +57,14 @@ make -j"${ABMFACT_JOBS:-4}" CFLAGS="$FLAGS" PROGRAM_NAME=abmfact-physicell \
 Runner = Callable[..., Any]
 
 
+def native_sources_set() -> bool:
+    """True when ``PHYSICELL_SOURCE`` points at a PhysiCell tree, so native builds work for any project."""
+    source = os.environ.get("PHYSICELL_SOURCE")
+    if not source:
+        return False
+    return all((Path(source) / d).is_dir() for d in CORE_DIRS[:3])
+
+
 @dataclass(frozen=True)
 class Toolchain:
     kind: str  # native, docker or none
@@ -107,7 +115,11 @@ def detect_toolchain(
     if prefer in ("auto", "native"):
         compiler = find_compiler(which, runner)
         if compiler:
-            return Toolchain("native", f"g++ with OpenMP: {compiler}", compiler=compiler)
+            source = os.environ.get("PHYSICELL_SOURCE")
+            where = f"sources in {source}" if source else "sources only from projects that are full PhysiCell trees"
+            return Toolchain(
+                "native", f"g++ with OpenMP: {compiler}; {where} (set PHYSICELL_SOURCE)", compiler=compiler
+            )
         missing.append("no GNU g++ with OpenMP (set PHYSICELL_CPP, e.g. Homebrew g++-14)")
     if prefer in ("auto", "docker"):
         from ...runtime.container import ContainerBackend

@@ -161,11 +161,11 @@ def test_native_runs_warn_when_diffusion_steps_exceed_mechanics(tmp_path, monkey
 
 @pytest.mark.physicell
 def test_ir_model_runs_in_physicell_like_in_the_reference_engine(tmp_path):
-    from abmfact.engines.physicell.build import detect_toolchain
+    from test_physicell_engine import _toolchain_or_skip
+
     from abmfact.reference import simulate
 
-    if not detect_toolchain().ok:
-        pytest.skip(f"PhysiCell cannot be built here: {detect_toolchain().detail}")
+    _toolchain_or_skip()
     model = load_model("examples/ir/chemotaxis.yaml")
     engine = PhysiCellEngine(cache_dir=tmp_path / "cache", threads=1)
     rec = engine.run_once(model, {"experiment.max_time": 240}, 0, Knobs(), workdir=tmp_path / "w")
@@ -174,3 +174,10 @@ def test_ir_model_runs_in_physicell_like_in_the_reference_engine(tmp_path):
     ref = simulate(load_model("examples/ir/chemotaxis.yaml"), 0).scalars["mean_x"][: len(pc)]
     # Both engines move the cells up the gradient at a similar speed (a T1 translation, not a docking test).
     assert pc[-1] - pc[0] > 200 and abs((pc[-1] - pc[0]) - (ref[-1] - ref[0])) < 0.3 * (ref[-1] - ref[0])
+
+
+def test_template_code_is_recognised_with_windows_line_endings(rules_sample):
+    for f in (rules_sample / "custom_modules").iterdir():
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+    model, _ = import_project(rules_sample)
+    assert "template" in model.native_extensions[0].description

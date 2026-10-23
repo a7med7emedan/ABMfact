@@ -1,0 +1,3 @@
+# Files copied from PhysiCell stay byte-identical to the originals on every platform.
+tests/fixtures/physicell/** -text
+src/abmfact/engines/physicell/template/** -text
