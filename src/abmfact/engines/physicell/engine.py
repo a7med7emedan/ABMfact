@@ -266,8 +266,10 @@ class PhysiCellEngine(Engine):
 def _config_hash(project: Path) -> str:
     import hashlib
 
+    from ...digest import content_bytes
+
     h = hashlib.sha256()
     for f in sorted(p for p in (project / "config").rglob("*") if p.is_file()):
         h.update(f.relative_to(project).as_posix().encode())
-        h.update(f.read_bytes())
+        h.update(content_bytes(f))
     return h.hexdigest()[:16]

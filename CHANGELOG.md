@@ -45,6 +45,8 @@ All notable changes are recorded here. The format follows
 - Determinism reruns always execute again: they bypass the run store and any cache that honours
   `abmfact.records.cache`, so a cached first run can no longer make a nondeterministic model look
   deterministic.
+- Model hashes, PhysiCell build keys and import provenance read text files with LF line endings, so the
+  same model has the same identity on a Windows (CRLF) checkout.
 
 ## [0.1.0] - 2026-10-18
 

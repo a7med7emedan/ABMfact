@@ -181,3 +181,18 @@ def test_template_code_is_recognised_with_windows_line_endings(rules_sample):
         f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
     model, _ = import_project(rules_sample)
     assert "template" in model.native_extensions[0].description
+
+
+def test_build_key_and_provenance_are_the_same_for_crlf_checkouts(rules_sample, tmp_path):
+    from abmfact.engines.physicell.build import Toolchain, source_hash
+
+    crlf = tmp_path / "crlf"
+    shutil.copytree(rules_sample, crlf)
+    for f in crlf.rglob("*"):
+        if f.is_file() and (f.suffix in (".cpp", ".h", ".xml", ".csv") or f.name == "Makefile"):
+            f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+    tc = Toolchain("native", "fake", compiler="/fake/g++")
+    assert source_hash(crlf, tc, "id") == source_hash(rules_sample, tc, "id")
+    a, _ = import_project(rules_sample)
+    b, _ = import_project(crlf)
+    assert a.provenance.derived_from.sha256 == b.provenance.derived_from.sha256

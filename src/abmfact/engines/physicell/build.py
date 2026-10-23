@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ...digest import content_bytes
 from ..base import EngineError
 
 IMAGE = "abmfact/physicell:1.14.2"
@@ -148,7 +149,7 @@ def source_hash(project: Path, toolchain: Toolchain, identity: str) -> str:
             files += sorted(p for p in (project / d).rglob("*") if p.is_file())
     for f in files:
         h.update(f.relative_to(project).as_posix().encode())
-        h.update(f.read_bytes())
+        h.update(content_bytes(f))
     h.update(BUILD_SCRIPT.encode())
     h.update(f"{toolchain.kind}|{identity}".encode())
     return h.hexdigest()

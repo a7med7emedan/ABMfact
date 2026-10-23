@@ -70,7 +70,10 @@ usual metric grammar, for example `last(cells)`.
 ## Run records and the store
 
 A `RunRequest` holds everything that decides a run: engine, engine version or image digest, model
-hash, parameters, seed, all knobs and what was collected. Its SHA-256 is the run's key. A `RunRecord`
+hash, parameters, seed, all knobs and what was collected. Its SHA-256 is the run's key. Model hashes and
+build keys read text files with LF line endings (`abmfact.digest`), so a Windows checkout with CRLF
+endings gives the same identity; hashes that certify the exact bytes on disk (stored outputs, RO-Crate
+records) do not normalise. A `RunRecord`
 adds the status, wall time, log, output paths and their hashes, warnings and the ABMfact version.
 
 `RunStore` keeps runs under `runs/<key[:2]>/<key>/` with an index for queries. The core writes NumPy,

@@ -224,3 +224,46 @@ def test_vocabulary_patterns():
         assert is_behaviour(b, subs, types), b
     assert not is_signal("glucose", subs, types)
     assert not is_behaviour("attack macrophage", subs, types)
+
+
+def _to_crlf(path):
+    path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+
+
+def test_hash_is_the_same_for_lf_and_crlf_copies(tmp_path):
+    d = doc(
+        intracellular=[{"cell_type": "tumour", "format": "maboss", "files": {"bnd": "net.bnd", "cfg": "net.cfg"}}],
+        initial_conditions={"placements": [{"kind": "positions_csv", "path": "cells.csv"}]},
+    )
+    hashes = []
+    for name in ("lf", "crlf"):
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / "net.bnd").write_text("Node A {\n  logic = A;\n}\n")
+        (folder / "net.cfg").write_text("$time_scale = 1;\n")
+        (folder / "cells.csv").write_text("x,y,z,type\n0,0,0,tumour\n")
+        (folder / "model.yaml").write_text(yaml.safe_dump(d))
+        if name == "crlf":
+            for f in folder.iterdir():
+                _to_crlf(f)
+            assert b"\r\n" in (folder / "model.yaml").read_bytes()
+        hashes.append(model_hash(load_model(folder / "model.yaml")))
+    assert hashes[0] == hashes[1]
+
+
+def test_digest_normalises_text_only(tmp_path):
+    from abmfact.digest import content_digest
+
+    text_lf, text_crlf = tmp_path / "a.csv", tmp_path / "b.csv"
+    text_lf.write_bytes(b"x,y\n1,2\n")
+    text_crlf.write_bytes(b"x,y\r\n1,2\r\n")
+    assert content_digest(text_lf) == content_digest(text_crlf)
+    make_lf, make_crlf = tmp_path / "m1" / "Makefile", tmp_path / "m2" / "Makefile"
+    for p, data in ((make_lf, b"all:\n\tcc\n"), (make_crlf, b"all:\r\n\tcc\r\n")):
+        p.parent.mkdir()
+        p.write_bytes(data)
+    assert content_digest(make_lf) == content_digest(make_crlf)
+    bin_a, bin_b = tmp_path / "a.mat", tmp_path / "b.mat"
+    bin_a.write_bytes(b"\x00\r\n\x01")
+    bin_b.write_bytes(b"\x00\n\x01")
+    assert content_digest(bin_a) != content_digest(bin_b)

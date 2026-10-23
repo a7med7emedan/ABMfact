@@ -9,7 +9,6 @@ BSD-3), or onto a project you give. Every field is reported as exact, approximat
 from __future__ import annotations
 
 import copy
-import hashlib
 import math
 import shutil
 import xml.etree.ElementTree as ET
@@ -19,6 +18,7 @@ from typing import Any
 import numpy as np
 
 from ... import __version__
+from ...digest import content_digest
 from ...ir import IRModel, model_from_dict
 from ...ir.io import read_cells_csv
 from ...records import FidelityReport
@@ -258,12 +258,8 @@ def _import_cell_type(cd: ET.Element, rep: FidelityReport, subs: list[str]) -> d
 
 
 def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _sha_text(path: Path) -> str:
-    """SHA-256 of a source file with line endings normalised, so a Windows checkout (CRLF) still matches."""
-    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    """SHA-256 of a file with text line endings normalised, so a Windows checkout (CRLF) gives the same."""
+    return content_digest(path)
 
 
 def import_project(project: str | Path, out_dir: str | Path | None = None) -> tuple[IRModel, FidelityReport]:
@@ -378,7 +374,7 @@ def import_project(project: str | Path, out_dir: str | Path | None = None) -> tu
     custom_dir = project / "custom_modules"
     if custom_dir.is_dir():
         files_c = sorted(p for p in custom_dir.iterdir() if p.is_file() and p.suffix in (".cpp", ".h", ".hpp"))
-        same = all(TEMPLATE_CUSTOM.get(p.name) == _sha_text(p) for p in files_c) and files_c
+        same = all(TEMPLATE_CUSTOM.get(p.name) == _sha(p) for p in files_c) and files_c
         params = s.user_parameters()
         desc = (
             "the PhysiCell 1.14.2 template's custom code: places cells at random from user parameters and "

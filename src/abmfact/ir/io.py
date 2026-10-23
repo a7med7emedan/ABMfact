@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from ..digest import content_digest
 from .errors import IRError, from_validation_error
 from .model import SCHEMA_VERSION, IRModel
 
@@ -68,12 +69,13 @@ def save_model(model: IRModel, path: str | Path) -> Path:
 
 def _file_digest(model: IRModel, rel: str) -> str | None:
     p = model.resolve(rel)
-    return hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None
+    return content_digest(p) if p.is_file() else None
 
 
 def model_hash(model: IRModel) -> str:
     """SHA-256 of what the model computes: every field except description and provenance, plus the
-    contents of the files it references (initial positions and intracellular models)."""
+    contents of the files it references (initial positions and intracellular models). Text files are hashed
+    with LF line endings, so a Windows checkout gives the same hash."""
     doc = model.model_dump(mode="json", exclude=set(UNHASHED))
     files: dict[str, str | None] = {}
     for p in model.initial_conditions.placements:
