@@ -239,14 +239,17 @@ def test_hash_is_the_same_for_lf_and_crlf_copies(tmp_path):
     for name in ("lf", "crlf"):
         folder = tmp_path / name
         folder.mkdir()
-        (folder / "net.bnd").write_text("Node A {\n  logic = A;\n}\n")
-        (folder / "net.cfg").write_text("$time_scale = 1;\n")
-        (folder / "cells.csv").write_text("x,y,z,type\n0,0,0,tumour\n")
-        (folder / "model.yaml").write_text(yaml.safe_dump(d))
+        # Exact bytes: write_text would already turn LF into CRLF on Windows.
+        (folder / "net.bnd").write_bytes(b"Node A {\n  logic = A;\n}\n")
+        (folder / "net.cfg").write_bytes(b"$time_scale = 1;\n")
+        (folder / "cells.csv").write_bytes(b"x,y,z,type\n0,0,0,tumour\n")
+        (folder / "model.yaml").write_bytes(yaml.safe_dump(d).encode())
         if name == "crlf":
             for f in folder.iterdir():
                 _to_crlf(f)
             assert b"\r\n" in (folder / "model.yaml").read_bytes()
+        else:
+            assert b"\r\n" not in (folder / "model.yaml").read_bytes()
         hashes.append(model_hash(load_model(folder / "model.yaml")))
     assert hashes[0] == hashes[1]
 
