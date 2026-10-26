@@ -16,7 +16,8 @@ written and committed before any audit of them was run, and they are not changed
 Every threshold comes from the model itself, never from a run: the starting cell count, the starting
 geometry, a rule's half-max, or a decay rate. Each audit file names the reference engine. The same model
 and claims can be run in any engine that can run the model; `abmfact recommend examples/ir/<model>.yaml`
-says which, and how faithfully.
+says which, and how faithfully. The Gate 3 study (`studies/gate3/`) compares all six across the reference,
+PhysiCell, CompuCell3D and Morpheus engines with `abmfact compare`.
 
 ```bash
 abmfact run examples/suite/immune.audit.yaml --out results/immune

@@ -20,15 +20,18 @@ size, then reports which of the model's stated conclusions survive.
 :alt: How ABMfact fits together, from a model through translation, an engine, a runtime and the run store to the checks.
 ```
 
-Today ABMfact runs PhysiCell and PhysiBoSS projects and its own reference engine natively, and Mesa,
-NetLogo, Python and any other program through adapters. CompuCell3D and Morpheus come next; the
+Today ABMfact runs PhysiCell and PhysiBoSS, CompuCell3D and Morpheus projects as they are, translates
+ABM-IR models to and from each of them, and has its own reference engine; Mesa, NetLogo, Python and any
+other program run through adapters. `abmfact recommend` ranks the engines for a model, and `abmfact
+compare` runs one model in several of them against a declared disagreement budget. The
 [architecture](architecture.md) page lists every engine and its status.
 
 This manual is built from one source as web pages and as a PDF:
 
 - [Getting started](getting-started.md): install, a first audit and a first biological model.
 - **User guide:** [concepts](concepts.md), [claims](claims.md), [checks](checks.md),
-  [adapters](adapters.md), [statistics](statistics.md) and [convergence](convergence.md).
+  [adapters](adapters.md), [statistics](statistics.md), [convergence](convergence.md) and
+  [comparing engines](compare.md).
 - **Models and engines:** the [architecture](architecture.md), the [ABM-IR reference](ir-reference.md),
   the [reference engine](engines/reference.md), [PhysiCell and PhysiBoSS](engines/physicell.md), [CompuCell3D](engines/compucell3d.md) and [Morpheus](engines/morpheus.md).
 - [Recipes](howto.md) for common tasks.
@@ -57,6 +60,7 @@ checks
 adapters
 statistics
 convergence
+compare
 ```
 
 ```{toctree}

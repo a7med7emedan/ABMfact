@@ -15,7 +15,9 @@ All notable changes are recorded here. The format follows
 - Translation between ABM-IR and Morpheus (tier T1) with a fidelity report, in stated units of micron per
   node and minutes per step: one MorpheusML file with cell states, Hill-type rules as Morpheus expressions,
   division, death, motility, fields with secretion and uptake, attack and timed boundary values. MorpheusML
-  models import to ABM-IR.
+  models import to ABM-IR. Chemotaxis follows the gradient's direction only, as in ABM-IR, through
+  `DirectedMotion`. In both cellular Potts translations, a field whose diffusion is capped for speed has its
+  secretion, uptake and decay slowed by the same factor, which keeps its steady profile.
 - The Morpheus engine: Morpheus 2.4.1 models run as they are, with two added loggers for cells and fields,
   natively with `MORPHEUS_BIN` or in the pinned image in `containers/morpheus/Dockerfile`.
 - Translation between ABM-IR and CompuCell3D (tier T1) with a fidelity report, in stated units of micron per

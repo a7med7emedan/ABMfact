@@ -27,18 +27,18 @@ unchanged.
 | Layer | What it does | Where |
 |---|---|---|
 | Inputs | native project folders, ABM-IR documents, audit files, the Python API and the CLI | `abmfact.ir`, `abmfact.config`, `abmfact.cli` |
-| Translate | importers and exporters between native formats and ABM-IR, each with a fidelity report | `abmfact.engines.physicell.translate` |
-| Modes | run one model, audit its claims, check convergence | `run-model`, `run`/`check`, `converge` |
+| Translate | importers and exporters between native formats and ABM-IR, each with a fidelity report | `abmfact.engines.*.translate` |
+| Modes | run one model, audit its claims, check convergence, rank the engines for a model, compare engines | `run-model`, `run`/`check`, `converge`, `recommend`, `compare` |
 | Runtime | where a run executes: this machine, a container, a Slurm job array | `abmfact.runtime` |
 | Engines | one adapter contract per simulator, plus the built-in reference engine | `abmfact.engines`, `abmfact.reference` |
 | Results | the common output schema, run records and a content-addressed store | `abmfact.records` |
-| Credibility | the seven audit checks, convergence and the planted-fault zoo | `abmfact.audit`, `abmfact.verify`, `abmfact.zoo` |
+| Credibility | the seven audit checks, convergence, comparison across engines and the planted-fault zoo | `abmfact.audit`, `abmfact.verify`, `abmfact.zoo` |
 
 Design rules from the platform plan that the code enforces:
 
 - **Wrap, never re-implement.** Each simulator's own engine does the physics. The reference engine is a
   small baseline for verification, not a competitor.
-- **Native first.** A PhysiCell project runs unchanged (fidelity tier T0). Translation (tier T1) is a
+- **Native first.** A PhysiCell, CompuCell3D or Morpheus project runs unchanged (fidelity tier T0). Translation (tier T1) is a
   second route, and it always says what it changed.
 - **Capabilities are declared.** An engine refuses, with a reason, what it cannot honour, and the audit
   then reports the check as `NOT_TESTABLE` instead of running something else.

@@ -46,6 +46,13 @@ verdict comes with an interval, a reason and a command that reproduces it.
 add an engine through an entry point; see
 [writing an engine plug-in](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engine-plugins.md).
 
+Two commands work across engines. `abmfact recommend model.yaml` ranks every engine for one model: whether
+it can run it, how faithfully its translation keeps the model, which checks become testable, and whether it
+is installed here. `abmfact compare` runs one model in several engines over the same seeds and reports, for
+each metric, whether each engine agrees with a baseline within a budget you declare beforehand. The
+[Gate 3 study](https://github.com/a7med7emedan/ABMfact/tree/main/studies/gate3) compares the six reference
+problems across four engines.
+
 ## Install
 
 ABMfact needs Python 3.11 to 3.13. Version 0.2 is not on PyPI yet, so install it from GitHub:
@@ -208,9 +215,8 @@ recipes, the command-line and Python API references, and a guide to writing an e
 
 These are plans, not features yet:
 
-- **Next:** CompuCell3D and Morpheus engines; a command that recommends which engine suits a given model,
-  from what each engine can run and how faithfully it translates; six reference problems run in every
-  engine; and comparison of the same model across simulators.
+- **Next:** more engines (Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py), and the
+  monotone claims of the reference problems compared across engines, which needs parameter sweeps in each.
 - **Later:** calibration, sensitivity analysis and surrogate models through existing tools as plug-ins;
   more engines; and a twin mode that re-audits a model each time new data recalibrates it.
 

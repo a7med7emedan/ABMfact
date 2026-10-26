@@ -40,6 +40,19 @@ PhysiCell runs a translation with five approximated parts and can test determini
 time step and convergence. A native PhysiCell project runs only in PhysiCell, as given. Engines that cannot
 run the model are listed with the reason.
 
+## Compare a model across engines
+
+`abmfact compare` runs one ABM-IR model in several engines over the same seeds and compares each metric with a
+baseline engine against a budget you declare:
+
+```bash
+abmfact compare examples/ir/immune.yaml --engines reference,morpheus \
+    --metric 'last(tumour_live)' --budget 0.25 --seeds 10 --jobs 4
+```
+
+A comparison file sets a budget per metric and can evaluate an audit's threshold claims in every engine;
+`studies/gate3/` has six. [Comparing engines](compare.md) explains the verdicts and how to choose a budget.
+
 ## Audit a model written in another language
 
 The `command` adapter runs any program that reads a JSON request on standard input and prints JSON
