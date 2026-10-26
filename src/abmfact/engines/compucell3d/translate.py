@@ -142,6 +142,7 @@ def export_project(
     rep.add("cell_types[*].mechanics", "approximated", note)
 
     fields = [x.name for x in model.substrates]
+    slowdown: dict[str, float] = {}
     if model.substrates:
         # The field secretor the generated steppable uses needs the Secretion plugin declared.
         ET.SubElement(root, "Plugin", Name="Secretion")
@@ -150,14 +151,19 @@ def export_project(
             df = ET.SubElement(solver, "DiffusionField", Name=sub.name)
             dd = ET.SubElement(df, "DiffusionData")
             ET.SubElement(dd, "FieldName").text = sub.name
+            # Fast diffusion is capped for speed. The field's reactions are slowed by the same factor, which keeps
+            # the steady profile (its decay length sqrt(D/k)) and slows only settling.
             d_sites = sub.diffusion_coefficient * m / (s * s)
-            if d_sites > MAX_DIFFUSION:
+            slow = max(1.0, d_sites / MAX_DIFFUSION)
+            if slow > 1:
                 rep.add(f"substrates[{sub.name}].diffusion_coefficient", "approximated",
-                        f"{d_sites:.4g} sites^2/MCS capped at {MAX_DIFFUSION:g} ({d_sites / MAX_DIFFUSION:.3g} times "
-                        "slower); a larger site_length keeps more of it")  # fmt: skip
+                        f"{d_sites:.4g} sites^2/MCS capped at {MAX_DIFFUSION:g} ({slow:.3g} times slower), and the "
+                        "field's secretion, uptake and decay slowed by the same factor, so its steady profile is kept "
+                        "and only its settling is slower; a larger site_length keeps more of the speed")  # fmt: skip
                 d_sites = MAX_DIFFUSION
+            slowdown[sub.name] = slow
             ET.SubElement(dd, "GlobalDiffusionConstant").text = repr(d_sites)
-            ET.SubElement(dd, "GlobalDecayConstant").text = repr(sub.decay_rate * m)
+            ET.SubElement(dd, "GlobalDecayConstant").text = repr(sub.decay_rate * m / slow)
             ET.SubElement(dd, "InitialConcentrationExpression").text = repr(float(sub.initial_value))
             bc = ET.SubElement(df, "BoundaryConditions")
             for axis, lo, hi in (("X", "x_min", "x_max"), ("Y", "y_min", "y_max")):
@@ -305,6 +311,7 @@ def export_project(
         "phenotype_every": max(1, round(model.experiment.dt_phenotype / m)),
         "motility_lambda": MOTILITY_LAMBDA,
         "fields": fields,
+        "field_slowdown": slowdown,
         "types": types,
         "placements": placements,
         "events": events,

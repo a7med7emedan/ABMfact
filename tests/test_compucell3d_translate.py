@@ -84,7 +84,12 @@ def test_diffusion_is_converted_and_capped_with_a_note(tmp_path):
     capped = float(root.findtext(".//DiffusionField[@Name='oxygen']/DiffusionData/GlobalDiffusionConstant"))
     assert capped == MAX_DIFFUSION
     note = {e.path: e.note for e in report.entries}["substrates[oxygen].diffusion_coefficient"]
-    assert "capped" in note and "site_length" in note
+    assert "capped" in note and "site_length" in note and "steady profile is kept" in note
+    slow = 100000 / 4 / MAX_DIFFUSION
+    decay = float(root.findtext(".//DiffusionField[@Name='oxygen']/DiffusionData/GlobalDecayConstant"))
+    assert decay == pytest.approx(0.1 / slow)
+    spec = json.loads((tmp_path / "spheroid" / "Simulation" / "abmfact_model.json").read_text())
+    assert spec["field_slowdown"] == {"oxygen": pytest.approx(slow)}
 
 
 def test_events_attacks_and_names(tmp_path):

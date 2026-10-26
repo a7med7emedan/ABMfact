@@ -83,7 +83,11 @@ def test_fields_pulses_and_attacks(tmp_path):
     sides = {b.get("boundary"): b.get("value") for b in root.iterfind("Global/Field/BoundaryValue")}
     assert sides == {"x": "1.0"}  # the other edges are no-flux, as the lattice's are
     assert {c.get("type") for c in root.iterfind("Space/Lattice/BoundaryConditions/Condition")} == {"noflux"}
-    assert root.find("CellTypes/CellType/Chemotaxis").get("field") == "attractant"
+    motion = root.find("CellTypes/CellType/DirectedMotion")  # direction only, as in ABM-IR
+    assert motion.get("direction") == "cell_grad_x_attractant, cell_grad_y_attractant, 0"
+    gradients = [r.find("Output").get("symbol-ref") for r in root.iterfind("Global/NeighborhoodReporter")]
+    assert gradients == ["grad_x_attractant", "grad_y_attractant"]
+    assert root.find("CellTypes/CellType/Chemotaxis") is None
     _, report, root = exported("drug_pulse", tmp_path)
     conditions = [e.findtext("Condition") for e in root.iterfind("Global/Event")]
     assert conditions == ["time >= 360.0", "time >= 720.0"]
@@ -93,6 +97,21 @@ def test_fields_pulses_and_attacks(tmp_path):
     p = 0.02 * 30.0
     assert f"{1.0 * p / (1 + p)!r}" in tumour.findtext("System/DiffEqn[@symbol-ref='damage']/Reaction")
     assert status(report)["cell_types[tumour].damage"] == "approximated"
+
+
+def test_capped_diffusion_slows_the_reactions_alike(tmp_path):
+    model, report, root = exported("spheroid", tmp_path)
+    eqn = root.find("Global/System/DiffEqn[@symbol-ref='oxygen']")
+    slow = 100000 / 4 / 200  # 2 micron nodes, capped at 200 nodes^2 per step
+    assert float(eqn.findtext("Diffusion")) == 200.0 and eqn.findtext("Reaction").endswith(f"/ {slow!r}")
+    # the decay length sqrt(D/k) is unchanged, so the steady profile is kept
+    k = model.cell_types[0].secretion[0].uptake_rate
+    assert math.sqrt(200.0 / (k / slow)) == pytest.approx(math.sqrt(100000 / 4 / k))
+    assert (
+        "steady profile is kept" in {e.path: e.note for e in report.entries}["substrates[oxygen].diffusion_coefficient"]
+    )
+    dt = float(root.find("Global/System").get("time-step"))
+    assert dt == pytest.approx(min(0.1, slow / k))  # reactions slowed, so the step can be longer
 
 
 def test_renamed_types_and_3d_models_are_reported(tmp_path):

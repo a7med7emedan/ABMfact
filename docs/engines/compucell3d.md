@@ -64,7 +64,7 @@ module that runs it. Projects are exported once per model and translator version
 | adhesion and affinities | contact energies `J(a,b) = 20 - 10 e / 0.4` (at least 2), medium 10, with `e` the geometric mean of strength times affinity | approximated |
 | repulsion | the volume constraint | approximated |
 | substrates | DiffusionSolverFE: coefficients in sites² per MCS, decay, initial and boundary values | exact, unless capped |
-| fast diffusion | above 200 sites² per MCS the coefficient is capped, with the ratio in the note; a larger `site_length` keeps more of it | approximated |
+| fast diffusion | above 200 sites² per MCS the coefficient is capped, and the field's secretion, uptake and decay are slowed by the same factor, which keeps its steady profile (the decay length √(D/k)) and slows only how fast it settles; the note gives the factor, and a larger `site_length` keeps more of the speed | approximated |
 | secretion and uptake | CompuCell3D's field secretor, at the cell's centre value | approximated |
 | live cycle, apoptosis, necrosis | the generated steppable; dead cells keep their size until their clearance time, then shrink away | exact cycle, approximated death |
 | rules | Hill-type rules combined as in PhysiCell 1.14.2 | exact |

@@ -238,8 +238,10 @@ class IRBehaviour(SteppableBasePy):
                 if cell.dict["abmfact_state"] != LIVE:
                     continue
                 b = cell.dict["beh"]
-                s, u = b.get(f"{name} secretion", 0.0), b.get(f"{name} uptake", 0.0)
-                target, export = b.get(f"{name} secretion target", 1.0), b.get(f"{name} export", 0.0)
+                # A field whose diffusion was capped has its reactions slowed by the same factor.
+                slow = SPEC.get("field_slowdown", {}).get(name, 1.0)
+                s, u = b.get(f"{name} secretion", 0.0) / slow, b.get(f"{name} uptake", 0.0) / slow
+                target, export = b.get(f"{name} secretion target", 1.0), b.get(f"{name} export", 0.0) / slow
                 if s > 0:
                     rho = self.field_at(name, cell)
                     amount = s * max(target - rho, 0.0) * cell.volume

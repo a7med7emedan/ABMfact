@@ -323,8 +323,11 @@ class MorpheusEngine(Engine):
             return self.record(handle)
         if ctx.get("ir_type_names"):
             outputs.type_names = list(ctx["ir_type_names"])
+        names = ctx.get("field_names") or {}
+        if names:  # a translated model: keep its substrates, not the translation's helper fields
+            outputs.fields = [f for f in outputs.fields if f.substrate in names]
         for frame in outputs.fields:
-            frame.substrate = ctx.get("field_names", {}).get(frame.substrate, frame.substrate)
+            frame.substrate = names.get(frame.substrate, frame.substrate)
         compute_series([Observable.model_validate(o) for o in ctx["observables"]], outputs)
         handle.outputs = outputs
         warnings = []

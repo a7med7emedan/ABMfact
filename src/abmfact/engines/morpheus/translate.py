@@ -11,10 +11,14 @@ code. Lengths are converted with ``node_length`` (micron per lattice node) and t
   of the ABM-IR rates. Fields are ``DiffEqn`` with secretion and uptake by the cells covering each node.
 * A drug pulse is a pair of ``Event`` that set the boundary value while the event lasts.
 
+Chemotaxis is ``DirectedMotion`` along the gradient's direction averaged over the cell, from two helper fields,
+as ABM-IR's chemotaxis follows the gradient's direction only. A field whose diffusion is capped for speed has its
+reactions slowed by the same factor, which keeps its steady profile.
+
 What has no exact counterpart is marked ``approximated`` with a note: contact energies, the volume constraint,
-motility and chemotaxis strengths, pressure (the fraction of the cell's boundary touching other cells), attack
-(damage from each touching effector at the steady share of time an effector spends attacking), and a boundary
-that is no-flux in ABM-IR but holds a value while an event lasts.
+motility and chemotaxis strengths, capped diffusion, pressure (the fraction of the cell's boundary touching other
+cells), attack (damage from each touching effector at the steady share of time an effector spends attacking), and a
+boundary that is no-flux in ABM-IR but holds a value while an event lasts.
 
 :func:`import_model` reads a MorpheusML model back: the lattice, cell types, target areas, contact energies,
 fields and circle or rectangle initialisers, with rates read where they are plain numbers. Everything else is
@@ -138,6 +142,17 @@ def export_model(
                     and r.behaviour in (f"{sub.name} secretion", f"{sub.name} uptake")]  # fmt: skip
             own = (sec.secretion_rate + sec.uptake_rate) if sec else 0.0
             k_max = max(k_max, sub.decay_rate + own + sum(sats))
+        # Morpheus substeps diffusion to stay stable, so fast diffusion is capped. The field's reactions are slowed
+        # by the same factor, which keeps the steady profile (its decay length sqrt(D/k)) and slows only settling.
+        d_nodes = sub.diffusion_coefficient * m / (s * s)
+        slow = max(1.0, d_nodes / MAX_DIFFUSION)
+        if slow > 1:
+            note = (f"{d_nodes:.4g} nodes^2/step capped at {MAX_DIFFUSION:g} ({slow:.3g} times slower), and the "
+                    "field's secretion, uptake and decay slowed by the same factor, so its steady profile is kept and "
+                    "only its settling is slower; a larger node_length keeps more of the speed")  # fmt: skip
+            rep.add(f"substrates[{sub.name}].diffusion_coefficient", "approximated", note)
+            d_nodes = MAX_DIFFUSION
+        k_max /= slow
         dt = (
             min(model.experiment.dt_diffusion / m, 1.0 / (k_max * m))
             if k_max > 0
@@ -145,16 +160,9 @@ def export_model(
         )
         system = _sub(glob, "System", solver="Euler [fixed, O(1)]", time_step=_num(dt))
         eqn = _sub(system, "DiffEqn", symbol_ref=name)
-        _sub(eqn, "Reaction").text = (f"sec_{name} * (tgt_{name} - {name}) - up_{name} * {name} + exp_{name} "
-                                      f"- {_num(sub.decay_rate * m)} * {name}")  # fmt: skip
-        d_nodes = sub.diffusion_coefficient * m / (s * s)
-        if d_nodes > MAX_DIFFUSION:
-            note = (
-                f"{d_nodes:.4g} nodes^2/step capped at {MAX_DIFFUSION:g} ({d_nodes / MAX_DIFFUSION:.3g} "
-                "times slower), as Morpheus substeps diffusion to stay stable; a larger node_length keeps more"
-            )
-            rep.add(f"substrates[{sub.name}].diffusion_coefficient", "approximated", note)
-            d_nodes = MAX_DIFFUSION
+        reaction = (f"sec_{name} * (tgt_{name} - {name}) - up_{name} * {name} + exp_{name} "
+                    f"- {_num(sub.decay_rate * m)} * {name}")  # fmt: skip
+        _sub(eqn, "Reaction").text = reaction if slow == 1 else f"({reaction}) / {_num(slow)}"
         _sub(eqn, "Diffusion").text = _num(d_nodes)
         rep.add(f"substrates[{sub.name}]", "exact", "diffusion, decay, initial and boundary values")
     for name, events in pulses.items():
@@ -193,6 +201,7 @@ def export_model(
     types_el = _sub(root, "CellTypes")
     attackers = {c.name: c for c in model.cell_types if any(r > 0 for r in c.interactions.attack_rates.values())}
     pressure_used = any(r.signal == "pressure" for r in model.rules)
+    gradients: set[str] = set()
     for ct, name in zip(model.cell_types, names, strict=True):
         el = _sub(types_el, "CellType", name=name, **{"class": "biological"})
         base_path = f"cell_types[{ct.name}]"
@@ -302,21 +311,23 @@ def export_model(
                     "temperature and the volume constraint")  # fmt: skip
         chemo = ct.motility.chemotaxis
         if chemo is not None and ct.motility.migration_bias > 0:
-            # Morpheus chemotaxis answers concentration differences, ABM-IR's the gradient's direction only. The
-            # strength is set so a gradient of the field's largest set value across the domain pushes as hard as
-            # the persistent motion does: MOTILITY_STRENGTH x speed per node, times the domain width in nodes over
-            # that value.
-            target = model.substrate(chemo.substrate)
-            levels = [target.initial_value, target.boundary.value or 0.0,
-                      *(v for v in target.boundary.sides.values() if v is not None),
-                      *(e.value or 0.0 for e in model.events if e.target == chemo.substrate)]  # fmt: skip
-            c_scale = max(levels) if max(levels) > 0 else 1.0
-            mu = MOTILITY_STRENGTH * max(nx, ny) / c_scale * chemo.direction
-            _sub(el, "Chemotaxis", field=symbol(chemo.substrate), strength=f"{live} * {_num(mu)} * speed * bias")
-            note = (f"Morpheus chemotaxis answers concentration differences; strength {MOTILITY_STRENGTH:g} x speed x "
-                    f"bias x {max(nx, ny)} nodes / {c_scale:g}, so only a gradient of that size moves cells at the "
-                    "ABM-IR speed")  # fmt: skip
+            # ABM-IR chemotaxis follows the gradient's direction only, as PhysiCell does. The cell's direction is the
+            # gradient averaged over its nodes, and DirectedMotion normalises it, so steep and shallow gradients
+            # push alike, at the persistent motion's strength.
+            fname = symbol(chemo.substrate)
+            for axis in ("x", "y"):
+                _sub(el, "Property", symbol=f"cell_grad_{axis}_{fname}", value="0")
+                mapper = _sub(el, "Mapper")
+                _sub(mapper, "Input", value=f"grad_{axis}_{fname}")
+                _sub(mapper, "Output", symbol_ref=f"cell_grad_{axis}_{fname}", mapping="average")
+            sign = "" if chemo.direction > 0 else "-"
+            _sub(el, "DirectedMotion", direction=f"{sign}cell_grad_x_{fname}, {sign}cell_grad_y_{fname}, 0",
+                 strength=f"{live} * {_num(MOTILITY_STRENGTH)} * speed * bias")  # fmt: skip
+            note = (f"DirectedMotion along the gradient's direction averaged over the cell, of strength "
+                    f"{MOTILITY_STRENGTH:g} x speed x bias as for persistent motion; the speed reached depends on the "
+                    "temperature and the volume constraint")  # fmt: skip
             rep.add(f"{base_path}.motility.chemotaxis", "approximated", note)
+            gradients.add(fname)
 
         incoming = [(a, a.interactions.attack_rates.get(ct.name, 0.0)) for a in attackers.values()]
         incoming = [(a, rate) for a, rate in incoming if rate > 0]
@@ -345,6 +356,17 @@ def export_model(
         if any(v > 0 for v in ct.transformations.values()):
             rep.add(f"{base_path}.transformations", "dropped", "transformations are not exported")
 
+    for fname in sorted(gradients):
+        # Central differences over the lattice neighbourhood, written to two fields each step; on a periodic
+        # lattice a neighbour across the edge is one node away, not the lattice width.
+        for axis, size in (("x", nx), ("y", ny)):
+            _sub(glob, "Field", symbol=f"grad_{axis}_{fname}", value="0")
+            d = f"(space.{axis} - local.space.{axis})"
+            if periodic:
+                d = f"if({d} > 1, {d} - {size}, if({d} < -1, {d} + {size}, {d}))"
+            reporter = _sub(glob, "NeighborhoodReporter")
+            _sub(reporter, "Input", value=f"{fname} * {d}", scaling="cell")
+            _sub(reporter, "Output", symbol_ref=f"grad_{axis}_{fname}", mapping="sum")
     medium = _sub(types_el, "CellType", name="medium", **{"class": "medium"})
     for fname in fields:
         for pre in ("sec_", "up_", "exp_", "tgt_"):
