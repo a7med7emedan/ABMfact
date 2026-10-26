@@ -1,9 +1,10 @@
-"""Draw the README figures: the audit pipeline and the planted-fault matrix.
+"""Draw the README figures: the platform, the audit pipeline and the planted-fault matrix.
 
 The matrix is drawn from a real run of ``abmfact.demo.run_demo``, never by hand. Run from the
 repository root::
 
-    python scripts/make_figures.py            # writes assets/how-it-works*.svg and assets/matrix*.svg
+    python scripts/make_figures.py            # writes assets/platform*.svg, how-it-works*.svg and matrix*.svg
+    python scripts/make_figures.py --no-matrix   # the two diagrams only, without the demo run
 """
 
 from __future__ import annotations
@@ -181,6 +182,90 @@ def how_it_works(p: Palette) -> str:
     return svg(TOP * 2 + BOX_H, "How ABMfact audits a model", body)
 
 
+# The platform -------------------------------------------------------------------------------------------------------
+
+
+def _lines(x: float, y0: float, items: list[tuple[str, str]], p: Palette, mono: bool = False) -> list[str]:
+    colour = {"ink": p.ink, "muted": p.muted, "teal": p.teal}
+    return [text(x, y0 + k * 26, s, 14 if mono else 15, colour[c], 400, mono=mono) for k, (s, c) in enumerate(items)]
+
+
+def platform(p: Palette) -> str:
+    body: list[str] = []
+    y0 = TOP + 112
+
+    x, b = _box(0, p, "Your model", "as it is, or ABM-IR")
+    body += b
+    body += _lines(
+        x + 16,
+        y0,
+        [
+            ("PhysiCell project", "ink"),
+            ("ABM-IR file", "ink"),
+            ("Python run()", "ink"),
+            ("Mesa, NetLogo", "ink"),
+            ("any program", "ink"),
+            ("(JSON in, JSON out)", "muted"),
+        ],
+        p,
+    )
+
+    x, b = _box(1, p, "ABM-IR", "one shared format")
+    body += b
+    body += _chip(x + 16, y0 - 20, 136, "exact", p.teal, p.teal, p.on_accent)
+    body += _chip(x + 16, y0 + 24, 136, "approximated", "none", p.amber, p.amber)
+    body += _chip(x + 16, y0 + 68, 136, "dropped", p.amber, p.amber, p.on_amber)
+    body += _lines(x + 16, y0 + 130, [("a fidelity report", "muted"), ("for every model", "muted")], p)
+
+    x, b = _box(2, p, "Engines", "one contract")
+    body += b
+    body += _lines(
+        x + 16,
+        y0,
+        [
+            ("reference", "ink"),
+            ("PhysiCell", "ink"),
+            ("PhysiBoSS", "ink"),
+            ("Mesa, NetLogo", "ink"),
+            ("command", "ink"),
+            ("next: CompuCell3D,", "muted"),
+            ("Morpheus", "muted"),
+        ],
+        p,
+    )
+
+    x, b = _box(3, p, "Runtime", "where it runs")
+    body += b
+    for k, name in enumerate(["this machine", "container", "Slurm array"]):
+        yy = y0 - 20 + k * 52
+        body.append(f'<rect x="{x + 18:g}" y="{yy:g}" width="26" height="26" rx="5" fill="none" stroke="{p.teal}" '
+                    f'stroke-width="2"/>')  # fmt: skip
+        body.append(text(x + 54, yy + 18, name, 15, p.ink))
+    body += _lines(x + 16, y0 + 138, [("pinned versions", "muted"), ("and image digests", "muted")], p)
+
+    x, b = _box(4, p, "Run store", "one record per run")
+    body += b
+    for k, name in enumerate(["record.json", "cells", "fields"]):
+        yy = y0 - 20 + k * 52
+        body.append(
+            f'<path d="M{x + 18:g} {yy:g} h16 l8 8 v24 h-24 z" fill="none" stroke="{p.teal}" stroke-width="2" '
+            f'stroke-linejoin="round"/>'
+        )
+        body.append(text(x + 52, yy + 22, name, 14, p.ink, 400, mono=True))
+    body += _lines(x + 16, y0 + 138, [("identical runs", "muted"), ("are reused", "muted")], p)
+
+    x, b = _box(5, p, "Checks", "finding or artefact?")
+    body += b
+    body += _chip(x + 16, y0 - 20, 140, "7 audit checks", p.teal, p.teal, p.on_accent)
+    body += _chip(x + 16, y0 + 24, 140, "convergence", "none", p.teal, p.teal)
+    body += _lines(
+        x + 16, y0 + 92, [("report.html", "ink"), ("results.json", "ink"), ("RO-Crate", "ink")], p, mono=True
+    )
+
+    body += [_arrow(i, p) for i in range(5)]
+    return svg(TOP * 2 + BOX_H, "How the ABMfact platform fits together", body)
+
+
 # The planted-fault matrix -------------------------------------------------------------------------------------------
 
 HEADERS = {
@@ -253,11 +338,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seeds", type=int, default=100)
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--out", type=Path, default=Path("assets"))
+    parser.add_argument("--no-matrix", action="store_true", help="draw the diagrams only, without the demo run")
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
 
     for suffix, palette in (("", LIGHT), ("-dark", DARK)):
+        (args.out / f"platform{suffix}.svg").write_text(platform(palette), encoding="utf-8")
         (args.out / f"how-it-works{suffix}.svg").write_text(how_it_works(palette), encoding="utf-8")
+    if args.no_matrix:
+        return 0
 
     demo = run_demo(seeds=args.seeds, jobs=args.jobs, progress=lambda m: print(f"  auditing {m} ...", file=sys.stderr))
     for suffix, palette in (("", LIGHT), ("-dark", DARK)):

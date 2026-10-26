@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-labelledby="t">
+  <title id="t">How the ABMfact platform fits together</title>
+  <rect x="16" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="44" cy="46" r="13" fill="#0f766e"/>
+  <text x="44" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="64" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">Your model</text>
+  <text x="32" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">as it is, or ABM-IR</text>
+  <line x1="32" y1="96" x2="168" y2="96" stroke="#d5dbe2"/>
+  <text x="32" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">PhysiCell project</text>
+  <text x="32" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">ABM-IR file</text>
+  <text x="32" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">Python run()</text>
+  <text x="32" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">Mesa, NetLogo</text>
+  <text x="32" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">any program</text>
+  <text x="32" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">(JSON in, JSON out)</text>
+  <rect x="216" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="244" cy="46" r="13" fill="#0f766e"/>
+  <text x="244" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="264" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">ABM-IR</text>
+  <text x="232" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">one shared format</text>
+  <line x1="232" y1="96" x2="368" y2="96" stroke="#d5dbe2"/>
+  <rect x="232" y="106" width="136" height="30" rx="15" fill="#0f766e" stroke="#0f766e" stroke-width="2"/>
+  <text x="300" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">exact</text>
+  <rect x="232" y="150" width="136" height="30" rx="15" fill="none" stroke="#d97706" stroke-width="2"/>
+  <text x="300" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#d97706" text-anchor="middle">approximated</text>
+  <rect x="232" y="194" width="136" height="30" rx="15" fill="#d97706" stroke="#d97706" stroke-width="2"/>
+  <text x="300" y="214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1d2430" text-anchor="middle">dropped</text>
+  <text x="232" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">a fidelity report</text>
+  <text x="232" y="282" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">for every model</text>
+  <rect x="416" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="444" cy="46" r="13" fill="#0f766e"/>
+  <text x="444" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="464" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">Engines</text>
+  <text x="432" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">one contract</text>
+  <line x1="432" y1="96" x2="568" y2="96" stroke="#d5dbe2"/>
+  <text x="432" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">reference</text>
+  <text x="432" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">PhysiCell</text>
+  <text x="432" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">PhysiBoSS</text>
+  <text x="432" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">Mesa, NetLogo</text>
+  <text x="432" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">command</text>
+  <text x="432" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">next: CompuCell3D,</text>
+  <text x="432" y="282" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">Morpheus</text>
+  <rect x="616" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="644" cy="46" r="13" fill="#0f766e"/>
+  <text x="644" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="664" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">Runtime</text>
+  <text x="632" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">where it runs</text>
+  <line x1="632" y1="96" x2="768" y2="96" stroke="#d5dbe2"/>
+  <rect x="634" y="106" width="26" height="26" rx="5" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <text x="670" y="124" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">this machine</text>
+  <rect x="634" y="158" width="26" height="26" rx="5" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <text x="670" y="176" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">container</text>
+  <rect x="634" y="210" width="26" height="26" rx="5" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <text x="670" y="228" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#1d2430" text-anchor="start">Slurm array</text>
+  <text x="632" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">pinned versions</text>
+  <text x="632" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">and image digests</text>
+  <rect x="816" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="844" cy="46" r="13" fill="#0f766e"/>
+  <text x="844" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="864" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">Run store</text>
+  <text x="832" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">one record per run</text>
+  <line x1="832" y1="96" x2="968" y2="96" stroke="#d5dbe2"/>
+  <path d="M834 106 h16 l8 8 v24 h-24 z" fill="none" stroke="#0f766e" stroke-width="2" stroke-linejoin="round"/>
+  <text x="868" y="128" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">record.json</text>
+  <path d="M834 158 h16 l8 8 v24 h-24 z" fill="none" stroke="#0f766e" stroke-width="2" stroke-linejoin="round"/>
+  <text x="868" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">cells</text>
+  <path d="M834 210 h16 l8 8 v24 h-24 z" fill="none" stroke="#0f766e" stroke-width="2" stroke-linejoin="round"/>
+  <text x="868" y="232" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">fields</text>
+  <text x="832" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">identical runs</text>
+  <text x="832" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">are reused</text>
+  <rect x="1016" y="14" width="168" height="292" rx="12" fill="#f6f8fa" stroke="#d5dbe2"/>
+  <circle cx="1044" cy="46" r="13" fill="#0f766e"/>
+  <text x="1044" y="51.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+  <text x="1064" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1d2430" text-anchor="start">Checks</text>
+  <text x="1032" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#5b6575" text-anchor="start">finding or artefact?</text>
+  <line x1="1032" y1="96" x2="1168" y2="96" stroke="#d5dbe2"/>
+  <rect x="1032" y="106" width="140" height="30" rx="15" fill="#0f766e" stroke="#0f766e" stroke-width="2"/>
+  <text x="1102" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">7 audit checks</text>
+  <rect x="1032" y="150" width="140" height="30" rx="15" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <text x="1102" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#0f766e" text-anchor="middle">convergence</text>
+  <text x="1032" y="218" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">report.html</text>
+  <text x="1032" y="244" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">results.json</text>
+  <text x="1032" y="270" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#1d2430" text-anchor="start">RO-Crate</text>
+  <path d="M190 160 H204" stroke="#5b6575" stroke-width="2"/><path d="M202 154 L210 160 L202 166" fill="none" stroke="#5b6575" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M390 160 H404" stroke="#5b6575" stroke-width="2"/><path d="M402 154 L410 160 L402 166" fill="none" stroke="#5b6575" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M590 160 H604" stroke="#5b6575" stroke-width="2"/><path d="M602 154 L610 160 L602 166" fill="none" stroke="#5b6575" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M790 160 H804" stroke="#5b6575" stroke-width="2"/><path d="M802 154 L810 160 L802 166" fill="none" stroke="#5b6575" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M990 160 H1004" stroke="#5b6575" stroke-width="2"/><path d="M1002 154 L1010 160 L1002 166" fill="none" stroke="#5b6575" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
