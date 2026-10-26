@@ -73,6 +73,8 @@ class AdapterEngine(Engine):
 
 
 class PythonEngine(AdapterEngine):
+    """Runs a v0.1 :class:`~abmfact.adapters.PythonAdapter`, a Python callable ``run(params, seed, knobs)``."""
+
     name = "python"
     description = "a Python callable run(params, seed, knobs)"
     adapter_type = PythonAdapter
@@ -80,12 +82,15 @@ class PythonEngine(AdapterEngine):
 
 
 class MesaEngine(AdapterEngine):
+    """Runs a v0.1 :class:`~abmfact.adapters.MesaAdapter`, a Mesa 3 model class."""
+
     name = "mesa"
     description = "a Mesa 3 model class"
     adapter_type = MesaAdapter
     native_formats = ("mesa model class",)
 
     def availability(self) -> Availability:
+        """Available when the ``mesa`` package is installed; the version is the installed Mesa version."""
         if importlib.util.find_spec("mesa") is None:
             return Availability(False, "needs: pip install 'abmfact[mesa]'")
         from importlib.metadata import version
@@ -94,12 +99,15 @@ class MesaEngine(AdapterEngine):
 
 
 class NetLogoEngine(AdapterEngine):
+    """Runs a v0.1 :class:`~abmfact.adapters.NetLogoAdapter`, a NetLogo model driven through pynetlogo."""
+
     name = "netlogo"
     description = "a NetLogo model through pynetlogo"
     adapter_type = NetLogoAdapter
     native_formats = (".nlogo",)
 
     def availability(self) -> Availability:
+        """Available when ``pynetlogo`` is installed and ``NETLOGO_HOME`` names an existing NetLogo folder."""
         if importlib.util.find_spec("pynetlogo") is None:
             return Availability(False, "needs: pip install 'abmfact[netlogo]' and a NetLogo install")
         home = os.environ.get("NETLOGO_HOME")
@@ -109,12 +117,15 @@ class NetLogoEngine(AdapterEngine):
 
 
 class CommandEngine(AdapterEngine):
+    """Runs a v0.1 :class:`~abmfact.adapters.CommandAdapter`, a program that reads JSON on stdin and prints JSON."""
+
     name = "command"
     description = "any program reading JSON on stdin and printing JSON"
     adapter_type = CommandAdapter
     native_formats = ("executable",)
 
     def availability(self) -> Availability:
+        """Always available: the model names its own executable, which is not checked here."""
         return Availability(True, "runs any executable as a subprocess")
 
 

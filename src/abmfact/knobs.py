@@ -43,15 +43,18 @@ class Knobs:
     dx_scale: float = 1.0
 
     def with_(self, **changes: Any) -> Knobs:
+        """Return a copy with the given fields changed."""
         return replace(self, **changes)
 
     def to_dict(self) -> dict[str, Any]:
+        """The knobs as a plain dict, with ``grid_offset`` as a list."""
         d = asdict(self)
         d["grid_offset"] = list(self.grid_offset)
         return d
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> Knobs:
+        """Build knobs from a dict, such as one written by :meth:`to_dict`."""
         d = dict(d)
         if "grid_offset" in d and d["grid_offset"] is not None:
             d["grid_offset"] = tuple(float(x) for x in d["grid_offset"])
@@ -83,6 +86,11 @@ class Support:
 
     @classmethod
     def from_mapping(cls, m: Mapping[str, Any] | None) -> Support:
+        """Build support from a model's ``supports`` mapping; an empty or missing mapping supports nothing.
+
+        ``update_order`` is a list whose first entry is the default, or a mapping with ``values`` and
+        ``default``. Unknown keys are kept in ``extra``.
+        """
         if not m:
             return cls()
         m = dict(m)
@@ -101,6 +109,7 @@ class Support:
         return cls(update_order=values, update_order_default=default, extra=m, **known)
 
     def to_dict(self) -> dict[str, Any]:
+        """The support as a plain dict for the audit record; ``dx_scale`` appears only when declared."""
         d: dict[str, Any] = {
             "update_order": {"values": list(self.update_order), "default": self.update_order_default},
             "agent_order": self.agent_order,

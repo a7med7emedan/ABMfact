@@ -200,6 +200,7 @@ def schema_dict() -> dict[str, Any]:
 
 
 def export_schema(path: str | Path) -> Path:
+    """Write the ABM-IR JSON Schema to ``path`` and return the path."""
     path = Path(path)
     path.write_text(json.dumps(schema_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path

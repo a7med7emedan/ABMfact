@@ -2,6 +2,7 @@
   "$defs": {
     "Bounds": {
       "additionalProperties": false,
+      "description": "The extent of the domain along each axis. Each minimum must be below its maximum.",
       "properties": {
         "x_max": {
           "title": "X Max",
@@ -41,6 +42,7 @@
     },
     "CellType": {
       "additionalProperties": false,
+      "description": "One cell type: its volume, cycle, death, mechanics, motility, secretion and interactions.\n\n``transformations`` maps other cell type names to the rate of turning into that type. ``custom`` holds\nnamed numeric custom data.",
       "properties": {
         "custom": {
           "additionalProperties": {
@@ -100,6 +102,7 @@
     },
     "Chemotaxis": {
       "additionalProperties": false,
+      "description": "Migration bias along one substrate's gradient: ``direction`` 1 moves up the gradient, -1 down it.",
       "properties": {
         "direction": {
           "default": 1,
@@ -179,6 +182,7 @@
     },
     "Death": {
       "additionalProperties": false,
+      "description": "Apoptosis and necrosis rates, and how long a dead cell remains before it is removed.",
       "properties": {
         "apoptosis_duration": {
           "default": 516.0,
@@ -210,6 +214,7 @@
     },
     "DerivedFrom": {
       "additionalProperties": false,
+      "description": "The engine project a model was imported from, with an optional SHA-256 digest of its source.",
       "properties": {
         "engine": {
           "title": "Engine",
@@ -241,6 +246,7 @@
     },
     "Experiment": {
       "additionalProperties": false,
+      "description": "The run length, the time steps and the save interval, in the model's time unit, as in PhysiCell.\n\n``dt_diffusion``, ``dt_mechanics`` and ``dt_phenotype`` are the steps of each process. ``threads`` is\nthe number of threads an engine may use.",
       "properties": {
         "dt_diffusion": {
           "default": 0.01,
@@ -286,6 +292,7 @@
     },
     "InitialConditions": {
       "additionalProperties": false,
+      "description": "The cells present at the start of a run, as a list of placements.",
       "properties": {
         "placements": {
           "items": {
@@ -300,6 +307,7 @@
     },
     "Interactions": {
       "additionalProperties": false,
+      "description": "Contact interactions with other cells, as in PhysiCell.\n\nAttack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is\nthe attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.",
       "properties": {
         "attack_rates": {
           "additionalProperties": {
@@ -444,6 +452,7 @@
     },
     "Motility": {
       "additionalProperties": false,
+      "description": "Cell migration, as in PhysiCell: speed, persistence time and migration bias.\n\n``migration_bias`` runs from 0 (a random direction) to 1 (the chemotaxis direction only).",
       "properties": {
         "chemotaxis": {
           "anyOf": [
@@ -481,6 +490,7 @@
     },
     "NativeExtension": {
       "additionalProperties": false,
+      "description": "Engine-specific code that the IR does not describe and never translates. ``affects`` names what it may change.",
       "properties": {
         "affects": {
           "items": {
@@ -524,6 +534,7 @@
     },
     "Observable": {
       "additionalProperties": false,
+      "description": "A named quantity measured at every saved time, such as a cell count or a substrate mean.\n\n``cell_type`` restricts a count or position to one type. The ``substrate_`` kinds need ``substrate``,\nand ``type_fraction`` needs ``cell_type``.",
       "properties": {
         "axis": {
           "default": "x",
@@ -747,6 +758,7 @@
     },
     "Provenance": {
       "additionalProperties": false,
+      "description": "Where a model came from: its source, DOI, authors, licence, origin project and the tool that made it.",
       "properties": {
         "authors": {
           "items": {
@@ -888,6 +900,7 @@
     },
     "Secretion": {
       "additionalProperties": false,
+      "description": "Exchange of one substrate between a cell and its voxel, as in PhysiCell.\n\nThe cell secretes towards the ``target`` density at ``secretion_rate``, takes up at ``uptake_rate``,\nand adds ``net_export_rate`` of substrate per time unit.",
       "properties": {
         "net_export_rate": {
           "default": 0.0,
@@ -927,6 +940,7 @@
     },
     "Space": {
       "additionalProperties": false,
+      "description": "The simulation domain: its dimension, bounds, substrate grid, and whether it is closed or periodic.",
       "properties": {
         "boundary": {
           "default": "closed",
@@ -962,6 +976,7 @@
     },
     "Substrate": {
       "additionalProperties": false,
+      "description": "A diffusing substance, with its diffusion coefficient, decay rate, initial value and boundary.",
       "properties": {
         "boundary": {
           "$ref": "#/$defs/SubstrateBoundary"
@@ -1111,6 +1126,7 @@
     },
     "Units": {
       "additionalProperties": false,
+      "description": "The units of length and time that the model's quantities are given in.",
       "properties": {
         "space": {
           "default": "micron",
@@ -1128,6 +1144,7 @@
     },
     "Voxel": {
       "additionalProperties": false,
+      "description": "The size of one voxel of the substrate grid. In a 2D model ``dz`` still sets the voxel volume.",
       "properties": {
         "dx": {
           "exclusiveMinimum": 0,

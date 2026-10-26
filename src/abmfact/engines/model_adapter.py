@@ -55,4 +55,5 @@ class EngineModelAdapter(Adapter):
         return record.outputs.scalars
 
     def describe(self) -> dict[str, Any]:
+        """The adapter description (type, name and declared support) plus the ``engine`` name."""
         return {**super().describe(), "engine": self.engine_name}

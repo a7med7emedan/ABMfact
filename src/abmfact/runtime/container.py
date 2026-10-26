@@ -74,6 +74,7 @@ class ContainerBackend(Backend):
 
     @property
     def is_oci(self) -> bool:
+        """Whether the runtime is Docker or Podman, which use OCI images rather than ``.sif`` files."""
         return self.runtime in ("docker", "podman")
 
     def availability(self) -> Availability:

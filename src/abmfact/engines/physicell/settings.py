@@ -36,6 +36,11 @@ class SettingsXML:
 
     @classmethod
     def read(cls, path: str | Path) -> SettingsXML:
+        """Parse a settings file, keeping its comments.
+
+        Raises:
+            SettingsError: The file is not valid XML or its root element is not ``<PhysiCell_settings>``.
+        """
         path = Path(path)
         parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))  # noqa: S314
         try:
@@ -47,6 +52,7 @@ class SettingsXML:
         return cls(root, path)
 
     def write(self, path: str | Path) -> Path:
+        """Write the document to ``path``, creating parent folders, and return the path."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         ET.ElementTree(self.root).write(path, encoding="unicode")
@@ -55,13 +61,16 @@ class SettingsXML:
     # -- generic access ----------------------------------------------------------------------------------
 
     def find(self, path: str) -> ET.Element | None:
+        """The first element at ``path``, or ``None``."""
         return self.root.find(path)
 
     def get(self, path: str, default: str | None = None) -> str | None:
+        """The stripped text at ``path``, or ``default`` when the element is missing or has no text."""
         el = self.root.find(path)
         return default if el is None or el.text is None else el.text.strip()
 
     def get_float(self, path: str) -> float:
+        """The number at ``path``; raises :class:`SettingsError` when it is missing or not a number."""
         text = self.get(path)
         if text is None:
             raise SettingsError(f"missing <{path}>")
@@ -71,10 +80,16 @@ class SettingsXML:
             raise SettingsError(f"<{path}> is {text!r}, not a number") from exc
 
     def get_bool(self, path: str, default: bool = False) -> bool:
+        """True when the text at ``path`` is ``true``, ``1`` or ``yes`` in any case; ``default`` when it is missing."""
         text = self.get(path)
         return default if text is None else text.strip().lower() in ("true", "1", "yes")
 
     def set(self, path: str, value: Any, create: bool = False) -> None:
+        """Set the text at ``path``; booleans are written ``true`` or ``false``.
+
+        A missing element raises :class:`SettingsError` unless ``create`` is true. Then it is added with any
+        missing parents, except that a path step with a predicate such as ``[@name='x']`` cannot be created.
+        """
         el = self.root.find(path)
         if el is None:
             if not create:
@@ -116,6 +131,7 @@ class SettingsXML:
     # -- run settings ------------------------------------------------------------------------------------
 
     def seed_paths(self) -> list[str]:
+        """The seed elements present, from ``options/random_seed`` and ``user_parameters/random_seed``."""
         return [p for p in SEED_PATHS if self.root.find(p) is not None]
 
     def set_seed(self, seed: int) -> list[str]:
@@ -134,16 +150,20 @@ class SettingsXML:
 
     @property
     def is_2d(self) -> bool:
+        """Whether ``domain/use_2D`` is true; false when it is missing."""
         return self.get_bool("domain/use_2D", default=False)
 
     def time_steps(self) -> dict[str, float]:
+        """The ``dt_diffusion``, ``dt_mechanics`` and ``dt_phenotype`` values from ``overall``, keyed by those names."""
         return {p.split("/")[-1]: self.get_float(p) for p in DT_PATHS}
 
     def scale_time_steps(self, factor: float) -> None:
+        """Multiply the three time steps by ``factor``."""
         for p in DT_PATHS:
             self.set(p, self.get_float(p) * factor)
 
     def voxel(self) -> dict[str, float]:
+        """The voxel size: ``dx``, ``dy`` and ``dz`` from ``domain``."""
         return {k: self.get_float(f"domain/{k}") for k in ("dx", "dy", "dz")}
 
     def scale_voxels(self, factor: float) -> None:
@@ -152,6 +172,7 @@ class SettingsXML:
             self.set(f"domain/{k}", self.get_float(f"domain/{k}") * factor)
 
     def set_threads(self, n: int) -> None:
+        """Set the OpenMP thread count, ``parallel/omp_num_threads``, adding the element if absent."""
         self.set("parallel/omp_num_threads", int(n), create=True)
 
     def set_output(self, folder: str = "output", interval: float | None = None, svg: bool = False) -> None:
@@ -165,9 +186,11 @@ class SettingsXML:
     # -- model content -----------------------------------------------------------------------------------
 
     def substrates(self) -> list[ET.Element]:
+        """The ``microenvironment_setup/variable`` elements, one per substrate."""
         return self.root.findall("microenvironment_setup/variable")
 
     def cell_definitions(self) -> list[ET.Element]:
+        """The ``cell_definitions/cell_definition`` elements, one per cell type."""
         return self.root.findall("cell_definitions/cell_definition")
 
     def ruleset(self) -> tuple[bool, Path | None]:
@@ -181,6 +204,7 @@ class SettingsXML:
         return enabled, (Path(folder) / name) if name else None
 
     def cell_positions(self) -> tuple[bool, Path | None]:
+        """Whether an initial cell positions CSV is enabled, and its path relative to the run folder."""
         cp = self.root.find("initial_conditions/cell_positions")
         if cp is None:
             return False, None

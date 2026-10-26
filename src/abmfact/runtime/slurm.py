@@ -23,6 +23,13 @@ Runner = Callable[..., Any]
 
 
 class SlurmBackend(Backend):
+    """Run prepared native commands as a Slurm job array, optionally inside a container.
+
+    The settings become ``#SBATCH`` lines: ``partition``, ``time``, ``mem``, ``cpus_per_task`` and
+    ``account``. ``max_parallel`` caps how many array tasks run at once, and ``directives`` adds raw
+    ``#SBATCH`` options.
+    """
+
     name = "slurm"
 
     def __init__(

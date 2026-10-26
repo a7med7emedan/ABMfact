@@ -416,6 +416,7 @@ class Simulation:
     # -- processes ---------------------------------------------------------------------------------------
 
     def events(self) -> None:
+        """Start every timed event whose time has come, and end those whose ``until`` has passed."""
         for k, ev in enumerate(self.model.events):
             started = self.event_state.get(k)
             if started is None and self.time >= ev.time - 1e-9:
@@ -444,6 +445,7 @@ class Simulation:
             self.pressure = np.concatenate([self.pressure, np.zeros(n)])
 
     def diffuse(self) -> None:
+        """Advance every substrate field by one diffusion step, with secretion, uptake and export by live cells."""
         if not self.subs:
             return
         c = self.cells
@@ -470,6 +472,7 @@ class Simulation:
                 self.fields[k] = f
 
     def phenotype(self) -> None:
+        """One phenotype step: apply the rules, draw deaths and divisions, and remove cleared dead cells."""
         c = self.cells
         if c.n == 0:
             return
@@ -522,6 +525,7 @@ class Simulation:
         self.contacts = np.zeros((0, 2), dtype=np.int64)
 
     def mechanics(self) -> None:
+        """One mechanics step: pair forces, motility turns, then the Adams-Bashforth position update."""
         c = self.cells
         n = c.n
         if n == 0:
@@ -585,6 +589,7 @@ class Simulation:
         times.append(self.time)
 
     def run(self) -> RunOutputs:
+        """Run to ``max_time`` and return the saved outputs, with observables computed and warnings attached."""
         rows: dict[str, list[np.ndarray]] = {k: [] for k in ("time", "id", "type", "x", "y", "volume", "state")}
         frames: list[FieldFrame] = []
         times: list[float] = []

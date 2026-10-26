@@ -12,6 +12,7 @@ from typing import Any
 from abmfact.ir import SCHEMA_VERSION, export_schema, schema_dict
 
 ROOT = Path(__file__).resolve().parent.parent
+REPO = "https://github.com/a7med7emedan/ABMfact"
 
 ORDER = [
     "IRModel", "Units", "Space", "Bounds", "Voxel", "Substrate", "SubstrateBoundary", "CellType", "Cycle", "Death",
@@ -68,7 +69,8 @@ def render(schema: dict[str, Any]) -> str:
         f"# ABM-IR {SCHEMA_VERSION} reference",
         "",
         "Generated from the pydantic models by `scripts/make_ir_reference.py`; the JSON Schema is",
-        f"[`schemas/abm-ir-{SCHEMA_VERSION}.json`](../schemas/abm-ir-{SCHEMA_VERSION}.json). Units follow the",
+        f"[`schemas/abm-ir-{SCHEMA_VERSION}.json`]({REPO}/blob/main/schemas/abm-ir-{SCHEMA_VERSION}.json).",
+        "Units follow the",
         "model's `units` (micron and minute by default). Unknown fields are rejected, and every name a model",
         "refers to (a substrate, a cell type, a rule's signal or behaviour) must exist in the model.",
         "",

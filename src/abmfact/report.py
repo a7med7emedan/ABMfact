@@ -66,6 +66,11 @@ def _fmt(x: float | None) -> str:
 
 
 def replay_command(audit_path: str | None, item: dict[str, Any]) -> str:
+    """Return the shell-quoted ``abmfact replay`` command that reproduces one run.
+
+    ``item`` is a reproducer entry with ``seed`` and optional ``params`` and ``knobs``. ``audit_path``
+    defaults to ``audit.yaml``.
+    """
     parts = ["abmfact", "replay", audit_path or "audit.yaml", "--seed", str(item["seed"])]
     if item.get("params"):
         parts += ["--params", json.dumps(item["params"], sort_keys=True)]
@@ -128,6 +133,7 @@ def _plot(claim: dict[str, Any], conds: dict[str, Any], pkey: str, flagged_label
 
 
 def render_html(result: AuditResult) -> str:
+    """Render the audit result as a self-contained HTML report."""
     d = result.data
     audit = d["audit"]
     claims = d["claims"]
@@ -249,6 +255,10 @@ def _sha256(path: Path) -> str:
 
 
 def write_rocrate(out: Path, files: dict[str, str], result: AuditResult) -> Path:
+    """Write ``ro-crate-metadata.json`` describing the audit files in ``out``, and return its path.
+
+    ``files`` maps each file name to ``input`` or ``output``. Each file is recorded with its size and SHA-256.
+    """
     d = result.data
     graph: list[dict[str, Any]] = [
         {
@@ -305,6 +315,11 @@ def write_rocrate(out: Path, files: dict[str, str], result: AuditResult) -> Path
 
 
 def write_outputs(result: AuditResult, out: str | Path, audit_file: str | Path | None = None) -> dict[str, Path]:
+    """Write ``results.json``, ``report.html`` and an RO-Crate to ``out``, creating it if needed.
+
+    When ``audit_file`` exists it is copied in as ``audit.yaml``. Returns the written paths, keyed by
+    ``audit``, ``results``, ``report`` and ``rocrate``.
+    """
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     written: dict[str, Path] = {}

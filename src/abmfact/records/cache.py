@@ -22,6 +22,7 @@ def cache_bypassed() -> bool:
 
 @contextmanager
 def bypass_cache() -> Iterator[None]:
+    """A context manager in which :func:`cache_bypassed` is true, so caches neither read nor write."""
     token = _BYPASS.set(True)
     try:
         yield

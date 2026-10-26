@@ -85,10 +85,12 @@ class RunStore:
     # -- locations ---------------------------------------------------------------------------------------
 
     def run_dir(self, key: str) -> Path:
+        """The folder of the run with this key: ``runs/<first two characters>/<key>`` under the root."""
         return self.root / "runs" / key[:2] / key
 
     @property
     def index_path(self) -> Path:
+        """The run index file under the root, ``index.duckdb`` or ``index.jsonl``."""
         return self.root / ("index.duckdb" if self.index_kind == "duckdb" else "index.jsonl")
 
     # -- reading -----------------------------------------------------------------------------------------
@@ -107,6 +109,7 @@ class RunStore:
         return replace(record, status="cached", outputs=self.load_outputs(record))
 
     def load_outputs(self, record: RunRecord) -> RunOutputs:
+        """Read a stored run's outputs back from its folder."""
         d = self.run_dir(record.run_id)
         meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
         out = RunOutputs(type_names=list(meta["type_names"]), save_times=list(meta["save_times"]))

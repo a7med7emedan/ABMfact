@@ -19,6 +19,14 @@ class Variant:
 
 @dataclass(frozen=True)
 class Check:
+    """One audit check: a change that a correct implementation must not care about.
+
+    Attributes:
+        name: The check's name, as used in audit files and results.
+        question: The question the check answers, in plain words.
+        compare_spread: Whether the spread over seeds is compared as well as the mean.
+    """
+
     name: str
     question: str
     compare_spread: bool = True
@@ -80,6 +88,10 @@ CHECKS_BY_NAME = {c.name: c for c in CHECKS}
 
 
 def select_checks(names: list[str] | None) -> list[Check]:
+    """Return the named checks in their standard order, or every check when ``names`` is empty or ``None``.
+
+    Raises ``ValueError`` for an unknown check name.
+    """
     if not names:
         return list(CHECKS)
     unknown = sorted(set(names) - set(CHECK_NAMES))

@@ -42,10 +42,16 @@ class DemoResult:
         return out
 
     def columns(self) -> list[str]:
+        """Matrix columns: every audit check, then any verification column present, such as ``convergence``."""
         present = {c for row in self.flags.values() for c in row}
         return [*CHECK_NAMES, *(c for c in EXTRA_COLUMNS if c in present)]
 
     def table(self) -> str:
+        """Render the detection matrix as plain text.
+
+        A cell reads ``CAUGHT`` or ``MISSED`` for an expected flag, ``FALSE`` for a false alarm, and a dot
+        when the check correctly stayed quiet.
+        """
         names = self.columns()
         short = {c: c.replace("_", " ") for c in names}
         width = max(len(m) for m in self.flags) + 2

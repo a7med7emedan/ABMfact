@@ -40,6 +40,10 @@ def _overrides(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def print_summary(result: AuditResult, stream: Any = None) -> None:
+    """Print the verdicts that need attention, the verdict counts, likely causes and claim warnings.
+
+    ``ROBUST``, ``NOT_TESTABLE`` and ``SKIPPED`` rows are left out. ``stream`` defaults to standard output.
+    """
     stream = stream or sys.stdout
     rows = result.verdicts
     width = max([len(r["check"]) for r in rows] + [5])
@@ -57,6 +61,7 @@ def print_summary(result: AuditResult, stream: Any = None) -> None:
 
 
 def cmd_run(args: argparse.Namespace, fail_on_flag: bool) -> int:
+    """Run ``abmfact run``, or ``abmfact check`` with ``fail_on_flag``; exit 1 if ``check`` flags a claim, else 0."""
     from .report import write_outputs
 
     audit = load_audit(args.audit, _overrides(args))
@@ -75,6 +80,7 @@ def cmd_run(args: argparse.Namespace, fail_on_flag: bool) -> int:
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
+    """Run ``abmfact demo``; exit code 1 when the detection matrix is not as expected, else 0."""
     from .demo import run_demo
 
     def note(model: str) -> None:
@@ -96,6 +102,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
+    """Run ``abmfact init``; exit code 2 when the output file exists without ``--force``, else 0."""
     text = template(args.adapter)
     if args.output == "-":
         sys.stdout.write(text)
@@ -110,6 +117,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_replay(args: argparse.Namespace) -> int:
+    """Run ``abmfact replay`` and print the run's outputs as JSON; exit code 0."""
     audit = load_audit(args.audit)
     params = dict(audit.params)
     if args.params:
@@ -122,6 +130,7 @@ def cmd_replay(args: argparse.Namespace) -> int:
 
 
 def cmd_engines(args: argparse.Namespace) -> int:
+    """Run ``abmfact engines`` and list each engine's availability and capabilities; exit code 0."""
     from .engines import list_engines
 
     rows: list[dict[str, Any]] = []
@@ -166,6 +175,7 @@ def _options(pairs: list[str] | None) -> dict[str, Any]:
 
 
 def cmd_run_model(args: argparse.Namespace) -> int:
+    """Run ``abmfact run-model``; exit code 1 when the run failed, else 0."""
     from .engines import get_engine
     from .records.store import RunStore, write_run
 
@@ -209,6 +219,7 @@ def _report(report: Any, path: Path, quiet: bool) -> None:
 
 
 def cmd_import(args: argparse.Namespace) -> int:
+    """Run ``abmfact import`` and write the ABM-IR model with its fidelity report; exit code 0."""
     from .engines.physicell.translate import import_project
     from .ir import save_model
 
@@ -222,6 +233,7 @@ def cmd_import(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
+    """Run ``abmfact export`` and write the project with its fidelity report; exit code 0."""
     from .engines.physicell.translate import export_project
     from .ir import load_model
 
@@ -234,6 +246,7 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_converge(args: argparse.Namespace) -> int:
+    """Run ``abmfact converge``; exit code 1 when any claim has not converged, else 0."""
     from .verify.convergence import ConvergenceError, ConvergenceSettings, converge
 
     audit = load_audit(args.audit, _overrides(args))
@@ -267,6 +280,7 @@ def cmd_converge(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser with every subcommand and its options."""
     p = argparse.ArgumentParser(
         prog="abmfact",
         description="Is it a finding or an artefact? Audit an agent-based model's conclusions.",
@@ -330,6 +344,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Parse ``argv`` and run the chosen subcommand.
+
+    Returns the exit code: 0 on success, 1 when a command reports a problem, and 2 for an input or configuration error.
+    """
     args = build_parser().parse_args(argv)
     try:
         if args.command == "run":

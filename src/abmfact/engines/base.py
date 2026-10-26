@@ -43,6 +43,7 @@ class Capabilities:
     update_orders: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
+        """The capabilities as a JSON-ready dict, with tuples as lists and ``ir_features`` sorted."""
         d = asdict(self)
         d["ir_features"] = sorted(self.ir_features)
         for k in ("dimensions", "intracellular", "knobs", "native_formats", "update_orders"):
@@ -52,6 +53,14 @@ class Capabilities:
 
 @dataclass(frozen=True)
 class Availability:
+    """Whether an engine can run on this machine now, as reported by :meth:`Engine.availability`.
+
+    Attributes:
+        ok: True when the engine can prepare and run models here.
+        detail: A short human-readable explanation, for example what is installed or what is missing.
+        version: The version of the simulator found, when the engine knows it; otherwise ``None``.
+    """
+
     ok: bool
     detail: str
     version: str | None = None
@@ -101,9 +110,26 @@ class Engine(ABC):
     description: ClassVar[str] = ""
 
     @abstractmethod
-    def capabilities(self) -> Capabilities: ...
+    def capabilities(self) -> Capabilities:
+        """Declare what this engine can do, for every model it runs.
+
+        It takes no model, so it describes the engine as a whole; :meth:`refuse` reports the limits for a
+        particular model. The default :meth:`refuse` and :meth:`support_for` read ``knobs`` and
+        ``update_orders`` from it.
+
+        Returns:
+            The engine's :class:`Capabilities`.
+        """
 
     def availability(self) -> Availability:
+        """Report whether the engine can run on this machine, for example whether its simulator is installed.
+
+        The default reports a built-in engine that is always available. Override it when the engine needs
+        an external program, library or container, and report what is missing in the result rather than raise.
+
+        Returns:
+            An :class:`Availability` with ``ok``, a short ``detail`` and, when known, the ``version``.
+        """
         return Availability(True, "built in")
 
     def load(self, model: Any) -> Any:
@@ -151,15 +177,61 @@ class Engine(ABC):
     @abstractmethod
     def prepare(
         self, model: Any, params: Mapping[str, Any], knobs: Knobs, seed: int, workdir: Path | None = None
-    ) -> PreparedRun: ...
+    ) -> PreparedRun:
+        """Set up one run without starting it.
+
+        The engine builds the :class:`~abmfact.records.RunRequest` that identifies the run, applies the
+        parameters, knobs and seed, and returns either an in-process ``call`` or a native ``argv`` with its
+        ``workdir``. The request must include everything that decides the result, because records are
+        cached by its key.
+
+        Args:
+            model: The model as the user gave it or as returned by :meth:`load`; built-in engines accept both.
+            params: Parameter values to set for this run; their names follow the engine's own conventions.
+            knobs: The knob settings; :meth:`run_once` checks them with :meth:`refuse` before calling this.
+            seed: The seed requested by the user. An engine that does not manage its own random streams
+                passes it through :meth:`seed_for` before use, and records the requested seed.
+            workdir: A folder the engine may use for this run's files, or ``None`` to choose its own.
+
+        Returns:
+            A :class:`PreparedRun` that a backend can start.
+
+        Raises:
+            EngineError: The model cannot be run as requested.
+        """
 
     def run(self, prepared: PreparedRun, backend: Backend | None = None) -> RunHandle:
+        """Start a prepared run on a backend, by default the local one.
+
+        Local and container backends finish the run before returning. A failed native run is reported in
+        the handle's ``status`` and ``error`` rather than raised. Override this when the engine must choose
+        the backend itself.
+
+        Args:
+            prepared: The run returned by :meth:`prepare`.
+            backend: The backend to submit to, or ``None`` for a :class:`~abmfact.runtime.local.LocalBackend`.
+
+        Returns:
+            A :class:`RunHandle` for the started or finished run.
+        """
         from ..runtime.local import LocalBackend
 
         return (backend or LocalBackend()).submit(prepared)
 
     @abstractmethod
-    def collect(self, handle: RunHandle) -> RunRecord: ...
+    def collect(self, handle: RunHandle) -> RunRecord:
+        """Turn a finished run into a run record.
+
+        The engine reads its outputs into the common schema when the handle does not already hold them,
+        and adds output paths and warnings. :meth:`record` builds the record and sets ``status`` from the
+        handle. A failed run should give a record with ``status="failed"`` rather than raise.
+
+        Args:
+            handle: The finished run returned by :meth:`run`.
+
+        Returns:
+            The :class:`~abmfact.records.RunRecord` for the run.
+        """
 
     def run_once(
         self,

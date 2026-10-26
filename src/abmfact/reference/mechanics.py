@@ -2,10 +2,10 @@
 
 Cells are discs moving by overdamped dynamics: velocity is the sum of pairwise forces plus a motility
 term, and positions advance by second-order Adams-Bashforth, ``x += dt (1.5 v - 0.5 v_prev)``. For
-cells ``i, j`` at distance ``d`` the pair speed along the unit vector from ``j`` to ``i`` is
+cells ``i, j`` at distance ``d`` the pair speed along the unit vector from ``j`` to ``i`` is::
 
-    c_r (1 - d/R)^2  for d < R          (repulsion, R = r_i + r_j, c_r = sqrt(c_r,i c_r,j))
-  - c_a (1 - d/S)^2  for d < S          (adhesion, S = s_i r_i + s_j r_j, c_a = sqrt(a_i a_j))
+      c_r (1 - d/R)^2  for d < R          (repulsion, R = r_i + r_j, c_r = sqrt(c_r,i c_r,j))
+    - c_a (1 - d/S)^2  for d < S          (adhesion, S = s_i r_i + s_j r_j, c_a = sqrt(a_i a_j))
 
 where ``s`` is the relative maximum adhesion distance and ``a_i`` the adhesion strength times the
 affinity for the other cell's type. Simple pressure is ``sum (1 - d/R)^2 / 0.027288820670331``. These
@@ -26,12 +26,21 @@ SIMPLE_PRESSURE_SCALE = 0.027288820670331
 
 @dataclass
 class Domain:
+    """A rectangular 2D domain, closed or periodic.
+
+    Attributes:
+        lo: The lower corner, ``(x, y)``.
+        hi: The upper corner, ``(x, y)``.
+        periodic: Whether positions wrap around; otherwise they are held at the edge.
+    """
+
     lo: np.ndarray
     hi: np.ndarray
     periodic: bool
 
     @property
     def size(self) -> np.ndarray:
+        """The side lengths, ``hi - lo``."""
         return self.hi - self.lo
 
     def wrap(self, pos: np.ndarray) -> np.ndarray:
@@ -63,6 +72,14 @@ def pairs_within(pos: np.ndarray, cutoff: float, domain: Domain) -> np.ndarray:
 
 @dataclass
 class PairForces:
+    """What :func:`pair_forces` returns.
+
+    Attributes:
+        velocity: The ``(n, 2)`` velocity of each cell from the pair potentials.
+        pressure: The simple pressure on each cell.
+        neighbours: The ``(m, 2)`` pairs within the adhesion distance.
+    """
+
     velocity: np.ndarray
     pressure: np.ndarray
     neighbours: np.ndarray  # (m, 2) pairs within the adhesion distance

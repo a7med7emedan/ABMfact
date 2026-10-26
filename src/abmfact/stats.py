@@ -14,6 +14,12 @@ SPREAD_RATIO = 2.0
 
 @dataclass(frozen=True)
 class Interval:
+    """An estimate with its interval, sample size and spread.
+
+    ``sd`` is the sample standard deviation for a mean interval, and the standard error for difference and
+    slope intervals.
+    """
+
     estimate: float
     low: float
     high: float
@@ -22,9 +28,11 @@ class Interval:
 
     @property
     def half_width(self) -> float:
+        """Half the width of the interval."""
         return (self.high - self.low) / 2.0
 
     def to_dict(self) -> dict[str, float | int]:
+        """The interval as a plain dict."""
         return {"estimate": self.estimate, "low": self.low, "high": self.high, "n": self.n, "sd": self.sd}
 
 
@@ -160,6 +168,10 @@ class Spread:
 
 
 def spread(a: np.ndarray, b: np.ndarray) -> Spread:
+    """Compare the spread of ``b`` with that of ``a``.
+
+    The p-value is 1 when either sample has fewer than three values or neither varies. Both ratios are ``b / a``.
+    """
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
     sa = float(a.std(ddof=1)) if a.size > 1 else 0.0
@@ -210,6 +222,10 @@ def tolerance_warning(baseline: np.ndarray, tol: float) -> str | None:
 
 
 def default_tolerance(baseline: np.ndarray, fraction: float = 0.10) -> float:
+    """Default equivalence margin: ``fraction`` of the absolute baseline mean.
+
+    When the mean is zero it falls back to ``fraction`` of the standard deviation, then to ``1e-9``.
+    """
     m = abs(float(np.mean(baseline)))
     if m > 0:
         return fraction * m

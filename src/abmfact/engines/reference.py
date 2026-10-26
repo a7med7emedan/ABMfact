@@ -19,6 +19,7 @@ FEATURES = frozenset(
 
 
 def as_model(model: Any) -> IRModel:
+    """An ABM-IR model unchanged, or one loaded from a file path; anything else raises :class:`EngineError`."""
     if isinstance(model, IRModel):
         return model
     if isinstance(model, str | Path):
@@ -27,6 +28,12 @@ def as_model(model: Any) -> IRModel:
 
 
 class ReferenceEngine(Engine):
+    """The built-in 2D NumPy engine that runs ABM-IR models in process.
+
+    ``solver`` selects the diffusion solver, ``"implicit"`` (the default) or ``"explicit"``, and is recorded
+    in each run request's ``outputs_spec``.
+    """
+
     name = "reference"
     description = "the built-in 2D NumPy reference engine"
 

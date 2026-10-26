@@ -10,10 +10,17 @@ if TYPE_CHECKING:
 
 
 class Backend(ABC):
+    """Base class for the places a prepared run can execute.
+
+    Attributes:
+        name: The short backend name recorded on each ``RunHandle``.
+    """
+
     name: str = "backend"
 
     @abstractmethod
-    def availability(self) -> Availability: ...
+    def availability(self) -> Availability:
+        """Report whether this backend can run here now, with a reason and, where known, a version."""
 
     @abstractmethod
     def submit(self, prepared: PreparedRun) -> RunHandle:

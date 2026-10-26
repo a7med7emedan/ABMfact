@@ -51,6 +51,11 @@ class Adapter:
     support: Support = Support()
 
     def run(self, params: Mapping[str, Any], seed: int, knobs: Knobs) -> Outputs:
+        """Run the model once and return its outputs as floats and lists of floats.
+
+        When ``knobs`` asks for independent streams and the model does not manage its own, the seed is
+        remapped with :func:`~abmfact.knobs.derived_seed` first.
+        """
         if knobs.rng_streams == "independent" and not self.support.rng_streams:
             seed = derived_seed(seed)
             knobs = knobs.with_(rng_streams="default")
@@ -60,6 +65,7 @@ class Adapter:
         raise NotImplementedError
 
     def describe(self) -> dict[str, Any]:
+        """Return the adapter class, model name and declared support, for the audit record."""
         return {"adapter": type(self).__name__, "name": self.name, "support": self.support.to_dict()}
 
 

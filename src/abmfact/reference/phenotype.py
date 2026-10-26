@@ -62,6 +62,7 @@ SUBSTRATE_BEHAVIOUR_FORMS = ("{} secretion", "{} secretion target", "{} uptake",
 
 
 def signal_supported(name: str, model: IRModel) -> bool:
+    """Whether the reference engine can compute the signal ``name`` for this model's substrates and cell types."""
     if name in FIXED_SIGNALS:
         return True
     subs = [s.name for s in model.substrates]
@@ -72,6 +73,7 @@ def signal_supported(name: str, model: IRModel) -> bool:
 
 
 def behaviour_supported(name: str, model: IRModel) -> bool:
+    """Whether the reference engine can set the behaviour ``name`` for this model's substrates."""
     if name in FIXED_BEHAVIOURS:
         return True
     subs = [s.name for s in model.substrates]
@@ -109,6 +111,15 @@ def base_value(ct: CellType, behaviour: str) -> float:
 
 @dataclass
 class Term:
+    """One rule's signal and Hill parameters within a :class:`Ruleset`.
+
+    Attributes:
+        signal: The signal name.
+        half_max: The signal value at which the Hill response is one half.
+        hill_power: The Hill exponent.
+        apply_to_dead: Whether the rule also acts on dead cells.
+    """
+
     signal: str
     half_max: float
     hill_power: float
@@ -128,6 +139,7 @@ class Ruleset:
 
     @property
     def signals(self) -> list[str]:
+        """The signal of every rule, the ``increases`` rules first."""
         return [t.signal for t in self.up + self.down]
 
     def evaluate(self, signals: Mapping[str, np.ndarray], dead: np.ndarray, current: np.ndarray) -> np.ndarray:

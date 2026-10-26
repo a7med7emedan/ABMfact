@@ -20,6 +20,7 @@ TEXT_NAMES = frozenset({"Makefile", "makefile", "GNUmakefile"})
 
 
 def is_text(path: Path) -> bool:
+    """True when the file is treated as text, by its suffix or by its name (such as ``Makefile``)."""
     return path.suffix.lower() in TEXT_SUFFIXES or path.name in TEXT_NAMES
 
 

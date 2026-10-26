@@ -8,6 +8,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Rule:
+    """A diagnosis rule: the likely cause and the fix to try first when ``check`` is flagged.
+
+    The rule is passed over when any check in ``unless`` is also flagged, so a later rule can apply.
+    """
+
     check: str
     unless: tuple[str, ...]
     cause: str

@@ -29,11 +29,15 @@ class _Base(BaseModel):
 
 
 class Units(_Base):
+    """The units of length and time that the model's quantities are given in."""
+
     space: str = "micron"
     time: str = "min"
 
 
 class Bounds(_Base):
+    """The extent of the domain along each axis. Each minimum must be below its maximum."""
+
     x_min: float
     x_max: float
     y_min: float
@@ -50,12 +54,16 @@ class Bounds(_Base):
 
 
 class Voxel(_Base):
+    """The size of one voxel of the substrate grid. In a 2D model ``dz`` still sets the voxel volume."""
+
     dx: Pos
     dy: Pos
     dz: Pos = 20.0
 
 
 class Space(_Base):
+    """The simulation domain: its dimension, bounds, substrate grid, and whether it is closed or periodic."""
+
     dimensions: Literal[2, 3] = 2
     bounds: Bounds
     voxel: Voxel
@@ -77,6 +85,8 @@ class SubstrateBoundary(_Base):
 
 
 class Substrate(_Base):
+    """A diffusing substance, with its diffusion coefficient, decay rate, initial value and boundary."""
+
     name: Name
     units: str = "dimensionless"
     diffusion_coefficient: NonNeg
@@ -121,6 +131,8 @@ class Cycle(_Base):
 
 
 class Death(_Base):
+    """Apoptosis and necrosis rates, and how long a dead cell remains before it is removed."""
+
     apoptosis_rate: NonNeg = 0.0
     necrosis_rate: NonNeg = 0.0
     apoptosis_duration: Pos = 516.0
@@ -137,11 +149,18 @@ class Mechanics(_Base):
 
 
 class Chemotaxis(_Base):
+    """Migration bias along one substrate's gradient: ``direction`` 1 moves up the gradient, -1 down it."""
+
     substrate: Name
     direction: Literal[1, -1] = 1
 
 
 class Motility(_Base):
+    """Cell migration, as in PhysiCell: speed, persistence time and migration bias.
+
+    ``migration_bias`` runs from 0 (a random direction) to 1 (the chemotaxis direction only).
+    """
+
     speed: NonNeg = 0.0
     persistence_time: Pos = 1.0
     migration_bias: Annotated[float, Field(ge=0, le=1)] = 0.0
@@ -149,6 +168,12 @@ class Motility(_Base):
 
 
 class Secretion(_Base):
+    """Exchange of one substrate between a cell and its voxel, as in PhysiCell.
+
+    The cell secretes towards the ``target`` density at ``secretion_rate``, takes up at ``uptake_rate``,
+    and adds ``net_export_rate`` of substrate per time unit.
+    """
+
     substrate: Name
     secretion_rate: NonNeg = 0.0
     target: NonNeg = 1.0
@@ -157,6 +182,12 @@ class Secretion(_Base):
 
 
 class Interactions(_Base):
+    """Contact interactions with other cells, as in PhysiCell.
+
+    Attack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is
+    the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.
+    """
+
     attack_rates: dict[str, NonNeg] = Field(default_factory=dict)
     damage_rate: NonNeg = 0.0
     phagocytosis_rates: dict[str, NonNeg] = Field(default_factory=dict)
@@ -165,11 +196,18 @@ class Interactions(_Base):
 
     @property
     def active(self) -> bool:
+        """Whether any attack, phagocytosis, fusion or dead phagocytosis rate is above zero."""
         rates = [*self.attack_rates.values(), *self.phagocytosis_rates.values(), *self.fusion_rates.values()]
         return any(r > 0 for r in rates) or self.dead_phagocytosis_rate > 0
 
 
 class CellType(_Base):
+    """One cell type: its volume, cycle, death, mechanics, motility, secretion and interactions.
+
+    ``transformations`` maps other cell type names to the rate of turning into that type. ``custom`` holds
+    named numeric custom data.
+    """
+
     name: Name
     volume: Pos = 2494.0
     cycle: Cycle = Field(default_factory=Cycle)
@@ -251,6 +289,8 @@ class Placement(_Base):
 
 
 class InitialConditions(_Base):
+    """The cells present at the start of a run, as a list of placements."""
+
     placements: list[Placement] = Field(default_factory=list)
 
 
@@ -271,6 +311,12 @@ class TimedEvent(_Base):
 
 
 class Observable(_Base):
+    """A named quantity measured at every saved time, such as a cell count or a substrate mean.
+
+    ``cell_type`` restricts a count or position to one type. The ``substrate_`` kinds need ``substrate``,
+    and ``type_fraction`` needs ``cell_type``.
+    """
+
     name: Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")]
     kind: Literal[
         "cell_count",
@@ -297,6 +343,12 @@ class Observable(_Base):
 
 
 class Experiment(_Base):
+    """The run length, the time steps and the save interval, in the model's time unit, as in PhysiCell.
+
+    ``dt_diffusion``, ``dt_mechanics`` and ``dt_phenotype`` are the steps of each process. ``threads`` is
+    the number of threads an engine may use.
+    """
+
     max_time: Pos
     dt_diffusion: Pos = 0.01
     dt_mechanics: Pos = 0.1
@@ -306,12 +358,16 @@ class Experiment(_Base):
 
 
 class DerivedFrom(_Base):
+    """The engine project a model was imported from, with an optional SHA-256 digest of its source."""
+
     engine: str
     path: str
     sha256: str | None = None
 
 
 class Provenance(_Base):
+    """Where a model came from: its source, DOI, authors, licence, origin project and the tool that made it."""
+
     source: str | None = None
     doi: str | None = None
     authors: list[str] = Field(default_factory=list)
@@ -322,6 +378,8 @@ class Provenance(_Base):
 
 
 class NativeExtension(_Base):
+    """Engine-specific code that the IR does not describe and never translates. ``affects`` names what it may change."""
+
     engine: str
     kind: Literal["custom_cpp", "custom_function", "other"]
     files: list[str] = Field(default_factory=list)
@@ -353,6 +411,7 @@ class IRModel(_Base):
 
     @property
     def source_dir(self) -> Path | None:
+        """The folder relative file paths are resolved against (the IR file's folder), or ``None``."""
         return self._source_dir
 
     def resolve(self, path: str) -> Path:
@@ -363,12 +422,14 @@ class IRModel(_Base):
         return self._source_dir / p
 
     def cell_type(self, name: str) -> CellType:
+        """The cell type called ``name``. Raises ``KeyError`` when the model has none."""
         for ct in self.cell_types:
             if ct.name == name:
                 return ct
         raise KeyError(name)
 
     def substrate(self, name: str) -> Substrate:
+        """The substrate called ``name``. Raises ``KeyError`` when the model has none."""
         for s in self.substrates:
             if s.name == name:
                 return s

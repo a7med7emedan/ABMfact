@@ -68,6 +68,16 @@ def native_sources_set() -> bool:
 
 @dataclass(frozen=True)
 class Toolchain:
+    """A way to build and run PhysiCell on this machine, as found by :func:`detect_toolchain`.
+
+    Attributes:
+        kind: ``"native"``, ``"docker"`` or ``"none"`` when no route works.
+        detail: What was found, or what is missing when ``kind`` is ``"none"``.
+        compiler: The path of the GNU ``g++`` for a native build.
+        image: The container image for a docker build.
+        runtime: ``"docker"`` or ``"podman"`` for a docker build.
+    """
+
     kind: str  # native, docker or none
     detail: str
     compiler: str | None = None
@@ -76,6 +86,7 @@ class Toolchain:
 
     @property
     def ok(self) -> bool:
+        """True unless ``kind`` is ``"none"``."""
         return self.kind != "none"
 
 
@@ -137,6 +148,7 @@ def detect_toolchain(
 
 
 def is_project(path: Path) -> bool:
+    """True when ``path`` holds ``main.cpp``, ``Makefile`` and a ``config/`` folder."""
     return all((path / f).is_file() for f in PROJECT_FILES) and (path / "config").is_dir()
 
 

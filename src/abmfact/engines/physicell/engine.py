@@ -38,6 +38,12 @@ SETTINGS = Path("config") / "PhysiCell_settings.xml"
 
 
 def default_observables(settings: SettingsXML) -> list[dict[str, Any]]:
+    """The default observables for a settings file, as ABM-IR observable specs.
+
+    They are ``cells``, ``live``, ``dead``, ``live_<type>`` for each cell definition and ``<substrate>_mean``
+    for each substrate. Names are lower case, with each run of non-word characters replaced by ``_``.
+    """
+
     def slug(name: str) -> str:
         return re.sub(r"\W+", "_", name).strip("_").lower() or "x"
 
@@ -56,6 +62,22 @@ def default_observables(settings: SettingsXML) -> list[dict[str, Any]]:
 
 
 class PhysiCellEngine(Engine):
+    """Runs PhysiCell 1.14.2 and PhysiBoSS projects as they are (tier T0), or ABM-IR models exported to one (tier T1).
+
+    Args:
+        toolchain: ``"auto"`` (native, then docker), ``"native"`` or ``"docker"``.
+        image: The container image for docker builds and runs.
+        cache_dir: The folder for builds, exports and runs; default ``~/.cache/abmfact/physicell``.
+        source: A PhysiCell source tree for native builds; otherwise ``PHYSICELL_SOURCE`` or the project itself.
+        threads: The OpenMP thread count to write into each run's settings; ``None`` keeps the project's value.
+        save_interval: The full-data save interval to write into the settings; ``None`` keeps the project's value.
+        observables: ABM-IR observable specs to compute; ``None`` uses the model's own or :func:`default_observables`.
+        timeout: The time limit for each run, in seconds; ``None`` for no limit.
+        build_jobs: The number of parallel ``make`` jobs for a build.
+        reader: The output reader, ``"auto"``, ``"pcdl"`` or ``"minimal"``.
+        base: The project whose C++ code ABM-IR models are exported onto; default PhysiCell's template.
+    """
+
     name = "physicell"
     description = "PhysiCell 1.14.2 and PhysiBoSS projects, built natively or in a container"
 
@@ -90,6 +112,7 @@ class PhysiCellEngine(Engine):
 
     @property
     def toolchain(self) -> Toolchain:
+        """The build route on this machine, detected on first use from the ``toolchain`` preference."""
         if self._toolchain is None:
             self._toolchain = detect_toolchain(self.prefer, self.image)
         return self._toolchain
@@ -107,6 +130,7 @@ class PhysiCellEngine(Engine):
         )
 
     def availability(self) -> Availability:
+        """Available when a native or docker toolchain is found; ``detail`` then names it, else what is missing."""
         tc = self.toolchain
         return Availability(tc.ok, tc.detail, f"PhysiCell {VERSION}" if tc.ok else None)
 
@@ -160,6 +184,25 @@ class PhysiCellEngine(Engine):
     def prepare(
         self, model: Any, params: Mapping[str, Any], knobs: Knobs, seed: int, workdir: Path | None = None
     ) -> PreparedRun:
+        """Build the project if needed and write a fresh run folder with this run's settings.
+
+        An ABM-IR model is first exported under ``cache_dir/exports``, once per model hash, and the binary is
+        built under ``cache_dir/builds``, once per source hash. The run folder is ``workdir`` plus the first
+        16 characters of the request key, replaced if it exists, or else a new folder under ``cache_dir/runs``.
+
+        The run folder receives a copy of the project's ``config/`` folder and an empty ``output/`` folder.
+        Its ``config/PhysiCell_settings.xml`` is then edited: the seed, the time steps times ``dt_scale``, the
+        voxel size times ``dx_scale``, the threads and save interval when set, the output folder, SVG snapshots
+        off, and the parameters.
+
+        For a project folder every parameter is a settings path or ``user_parameters.<name>``. For an ABM-IR
+        model, keys containing ``/`` or starting with ``user_parameters.`` edit the XML. Other keys change the
+        model before export.
+
+        Returns:
+            A run whose ``argv`` starts the binary on the settings file, natively or in the container. Its
+            context carries a warning when ``dt_diffusion`` exceeds ``dt_mechanics``.
+        """
         loaded = self.load(model)
         model_observables: list[dict[str, Any]] | None = None
         if isinstance(loaded, Path):
@@ -230,6 +273,10 @@ class PhysiCellEngine(Engine):
         return d
 
     def run(self, prepared: PreparedRun, backend: Any = None) -> RunHandle:
+        """Start a prepared run; a docker build runs in a container backend, replacing any other ``backend`` given.
+
+        Without a ``backend``, a native build runs on a local backend with the engine's ``timeout``.
+        """
         from ...runtime.container import ContainerBackend
         from ...runtime.local import LocalBackend
 
@@ -238,6 +285,11 @@ class PhysiCellEngine(Engine):
         return (backend or LocalBackend(timeout=self.timeout)).submit(prepared)
 
     def collect(self, handle: RunHandle) -> RunRecord:
+        """Read the run's ``output/`` folder into the common schema and compute the observables.
+
+        Output that cannot be read gives a failed record. The record lists the output folder and the warnings
+        from :meth:`prepare`.
+        """
         from ...ir import Observable
         from ...records.observables import compute_series
 

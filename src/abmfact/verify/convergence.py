@@ -57,6 +57,16 @@ class ConvergenceError(ValueError):
 
 @dataclass(frozen=True)
 class ConvergenceSettings:
+    """How a convergence study refines the model and estimates the GCI.
+
+    Attributes:
+        levels: The number of refinement levels; only 3 is accepted.
+        ratio: The refinement ratio ``r`` between levels, greater than 1.
+        refine: What to refine: ``dt``, optionally with ``dx``.
+        safety_factor: The GCI safety factor ``Fs``.
+        deterministic: Whether the model is meant to give the same value for every seed.
+    """
+
     levels: int = 3
     ratio: float = 2.0
     refine: tuple[str, ...] = ("dt", "dx")
@@ -65,6 +75,11 @@ class ConvergenceSettings:
 
     @classmethod
     def from_mapping(cls, m: Mapping[str, Any] | None) -> ConvergenceSettings:
+        """Settings from a mapping such as an audit's ``convergence`` section, using the defaults for missing keys.
+
+        Raises:
+            ConvergenceError: A key is unknown or a value is out of range.
+        """
         m = dict(m or {})
         unknown = sorted(set(m) - set(cls.__dataclass_fields__))
         if unknown:
@@ -98,6 +113,7 @@ class GCIEstimate:
     gci_fine: float | None
 
     def to_dict(self) -> dict[str, Any]:
+        """The estimate as a plain dictionary."""
         return asdict(self)
 
 
@@ -123,20 +139,30 @@ def gci(f1: float, f2: float, f3: float, r: float = 2.0, safety_factor: float = 
 
 @dataclass
 class ConvergenceResult:
+    """The outcome of :func:`converge`.
+
+    Attributes:
+        data: The full result: tool and environment, audit, settings, levels, a verdict per claim and a summary.
+    """
+
     data: dict[str, Any]
 
     @property
     def verdicts(self) -> list[dict[str, Any]]:
+        """One row per claim, with its verdict, reason and per-point detail."""
         return list(self.data["verdicts"])
 
     @property
     def any_not_converged(self) -> bool:
+        """Whether any claim has the verdict ``NOT_CONVERGED``."""
         return any(v["verdict"] == "NOT_CONVERGED" for v in self.data["verdicts"])
 
     def by_claim(self) -> dict[str, str]:
+        """Each claim's id mapped to its verdict."""
         return {v["claim"]: v["verdict"] for v in self.data["verdicts"]}
 
     def to_json(self, include_timestamp: bool = True) -> str:
+        """The result as indented JSON with sorted keys; ``include_timestamp=False`` drops ``created``."""
         d = dict(self.data)
         if not include_timestamp:
             d.pop("created", None)
@@ -144,6 +170,7 @@ class ConvergenceResult:
 
 
 def level_knobs(k: int, settings: ConvergenceSettings, refine_dx: bool) -> Knobs:
+    """Knobs for level ``k``: ``dt_scale`` is ``ratio**-k``, and so is ``dx_scale`` when ``refine_dx`` is set."""
     scale = settings.ratio ** (-k)
     return Knobs(dt_scale=scale, dx_scale=scale if refine_dx else 1.0)
 

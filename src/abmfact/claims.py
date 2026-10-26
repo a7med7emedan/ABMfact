@@ -34,6 +34,7 @@ class Metric:
 
     @classmethod
     def parse(cls, expr: str) -> Metric:
+        """Parse a metric expression, raising :class:`ClaimError` when it is malformed or uses an unknown function."""
         if not isinstance(expr, str):
             raise ClaimError(f"metric must be a string, got {type(expr).__name__}")
         if m := _RE_PLAIN.match(expr):
@@ -48,6 +49,12 @@ class Metric:
         raise ClaimError(f"cannot parse metric {expr!r}; use name, name[i] or f(name)")
 
     def evaluate(self, outputs: Mapping[str, Any]) -> float:
+        """Compute the metric from one run's outputs.
+
+        A plain name must refer to a scalar output. ``std`` is the sample standard deviation, and 0 for a
+        single value. Raises :class:`ClaimError` when the output is missing or empty, or the index is out of
+        range.
+        """
         if self.name not in outputs:
             raise ClaimError(f"metric {self.expr!r} needs output {self.name!r}; model returned {sorted(outputs)}")
         value = outputs[self.name]
@@ -85,6 +92,21 @@ class Metric:
 
 @dataclass(frozen=True)
 class Claim:
+    """One conclusion of a model, written as a test on a metric.
+
+    Attributes:
+        id: Short identifier, unique within the audit.
+        statement: The conclusion in plain words.
+        metric: The parsed metric the test applies to.
+        test: One of ``greater_than``, ``less_than``, ``between``, ``monotone_increasing`` or
+            ``monotone_decreasing``.
+        value: The threshold, or a ``(low, high)`` pair for ``between``; ``None`` for monotone tests.
+        over: The parameter a monotone claim varies.
+        where: Values of each parameter to evaluate the claim at; their combinations form the grid.
+        tolerance: Absolute equivalence margin; ``None`` uses :func:`~abmfact.stats.default_tolerance`.
+        skip_checks: Checks to skip, each mapped to the reason.
+    """
+
     id: str
     statement: str
     metric: Metric
@@ -97,6 +119,7 @@ class Claim:
 
     @property
     def is_monotone(self) -> bool:
+        """True for the ``monotone_increasing`` and ``monotone_decreasing`` tests."""
         return self.test.startswith("monotone")
 
     def points(self, base: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -112,6 +135,7 @@ class Claim:
         return out
 
     def to_dict(self) -> dict[str, Any]:
+        """The claim as a plain dict for ``results.json``; optional fields appear only when set."""
         d: dict[str, Any] = {
             "id": self.id,
             "statement": self.statement,
@@ -132,6 +156,18 @@ class Claim:
 
 
 def parse_claim(raw: Mapping[str, Any], known_checks: Sequence[str] = ()) -> Claim:
+    """Parse and validate one claim from an audit file.
+
+    Args:
+        raw: The claim mapping as read from YAML.
+        known_checks: Check names allowed in ``skip_checks``; when empty, those names are not checked.
+
+    Returns:
+        The parsed :class:`Claim`.
+
+    Raises:
+        ClaimError: When a required key is missing or a field is not valid for the test.
+    """
     if not isinstance(raw, Mapping):
         raise ClaimError("each claim must be a mapping")
     for key in ("id", "metric", "test"):
@@ -185,6 +221,7 @@ def parse_claim(raw: Mapping[str, Any], known_checks: Sequence[str] = ()) -> Cla
 
 
 def parse_claims(raw: Sequence[Mapping[str, Any]], known_checks: Sequence[str] = ()) -> list[Claim]:
+    """Parse a list of claims with :func:`parse_claim`, rejecting an empty list and duplicate ids."""
     if not raw:
         raise ClaimError("an audit needs at least one claim")
     claims = [parse_claim(c, known_checks) for c in raw]

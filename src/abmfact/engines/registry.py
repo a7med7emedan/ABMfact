@@ -44,10 +44,20 @@ def engine_targets() -> dict[str, str]:
 
 
 def list_engines() -> dict[str, type[Engine]]:
+    """Every known engine name and its class, sorted by name; each class is imported.
+
+    Raises:
+        EngineError: A registered target is not an :class:`Engine` subclass.
+    """
     return {name: _load(target) for name, target in sorted(engine_targets().items())}
 
 
 def get_engine(name: str, **options: Any) -> Engine:
+    """An instance of the engine called ``name``, built with ``options`` as keyword arguments.
+
+    Raises:
+        EngineError: No engine has that name, or its target is not an :class:`Engine` subclass.
+    """
     targets = engine_targets()
     if name not in targets:
         raise EngineError(f"unknown engine {name!r}; available: {', '.join(sorted(targets))}")

@@ -15,6 +15,7 @@ STATUSES = ("ok", "failed", "cached")
 
 
 def canonical(obj: Any) -> str:
+    """Compact JSON of ``obj`` with sorted keys, for hashing. NaN is rejected and other objects become strings."""
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False, default=str)
 
 
@@ -35,6 +36,7 @@ class RunRequest:
     outputs_spec: str = "default"
 
     def to_dict(self) -> dict[str, Any]:
+        """The request as a plain dictionary, the form that is hashed and stored."""
         return {
             "engine": self.engine,
             "engine_version": self.engine_version,
@@ -48,6 +50,7 @@ class RunRequest:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> RunRequest:
+        """Rebuild a request from the output of :meth:`to_dict`."""
         return cls(**d)
 
     def key(self) -> str:
@@ -56,6 +59,7 @@ class RunRequest:
 
 
 def now() -> str:
+    """The current UTC time as an ISO 8601 string, to the second."""
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -78,9 +82,11 @@ class RunRecord:
 
     @property
     def run_id(self) -> str:
+        """The run's identifier, which is the key of its request."""
         return self.request.key()
 
     def to_dict(self) -> dict[str, Any]:
+        """The record as a plain dictionary with its version and run id, leaving out the in-memory outputs."""
         return {
             "record_version": RECORD_VERSION,
             "run_id": self.run_id,
@@ -99,6 +105,7 @@ class RunRecord:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> RunRecord:
+        """Rebuild a record from the output of :meth:`to_dict`, without outputs."""
         d = dict(d)
         d.pop("record_version", None)
         d.pop("run_id", None)

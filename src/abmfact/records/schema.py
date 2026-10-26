@@ -23,6 +23,7 @@ _CELL_DTYPES = {"id": np.int64, "type": np.int64, "state": np.int8}
 
 
 def empty_cells() -> dict[str, np.ndarray]:
+    """A cells table with every column and no rows."""
     return {c: np.zeros(0, dtype=_CELL_DTYPES.get(c, np.float64)) for c in CELL_COLUMNS}
 
 
@@ -76,15 +77,18 @@ class RunOutputs:
         return sorted(float(t) for t in ts)
 
     def cells_at(self, time: float) -> dict[str, np.ndarray]:
+        """The rows of the cells table saved at ``time``, matched with ``numpy.isclose``."""
         mask = np.isclose(self.cells["time"], time)
         return {c: v[mask] for c, v in self.cells.items()}
 
     def field_at(self, substrate: str, time: float) -> FieldFrame | None:
+        """The frame of ``substrate`` saved at ``time``, or ``None`` when there is none."""
         for f in self.fields:
             if f.substrate == substrate and np.isclose(f.time, time):
                 return f
         return None
 
     def observable(self, name: str) -> tuple[np.ndarray, np.ndarray]:
+        """The times and values of one observable, from the tidy observables table."""
         mask = self.observables["name"] == name
         return self.observables["time"][mask], self.observables["value"][mask]

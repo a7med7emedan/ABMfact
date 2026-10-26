@@ -1,7 +1,8 @@
 # ABM-IR 0.1 reference
 
 Generated from the pydantic models by `scripts/make_ir_reference.py`; the JSON Schema is
-[`schemas/abm-ir-0.1.json`](../schemas/abm-ir-0.1.json). Units follow the
+[`schemas/abm-ir-0.1.json`](https://github.com/a7med7emedan/ABMfact/blob/main/schemas/abm-ir-0.1.json).
+Units follow the
 model's `units` (micron and minute by default). Unknown fields are rejected, and every name a model
 refers to (a substrate, a cell type, a rule's signal or behaviour) must exist in the model.
 
@@ -29,12 +30,16 @@ An ABM-IR document.
 
 ## Units
 
+The units of length and time that the model's quantities are given in.
+
 | Field | Type | Default |
 |---|---|---|
 | `space` | string | `micron` |
 | `time` | string | `min` |
 
 ## Space
+
+The simulation domain: its dimension, bounds, substrate grid, and whether it is closed or periodic.
 
 | Field | Type | Default |
 |---|---|---|
@@ -44,6 +49,8 @@ An ABM-IR document.
 | `boundary` | `closed` \| `periodic` | `closed` |
 
 ## Bounds
+
+The extent of the domain along each axis. Each minimum must be below its maximum.
 
 | Field | Type | Default |
 |---|---|---|
@@ -56,6 +63,8 @@ An ABM-IR document.
 
 ## Voxel
 
+The size of one voxel of the substrate grid. In a 2D model ``dz`` still sets the voxel volume.
+
 | Field | Type | Default |
 |---|---|---|
 | `dx` | number (> 0) | required |
@@ -63,6 +72,8 @@ An ABM-IR document.
 | `dz` | number (> 0) | `20.0` |
 
 ## Substrate
+
+A diffusing substance, with its diffusion coefficient, decay rate, initial value and boundary.
 
 | Field | Type | Default |
 |---|---|---|
@@ -84,6 +95,8 @@ An ABM-IR document.
 | `sides` | map of number (>= 0) or null | empty |
 
 ## CellType
+
+One cell type: its volume, cycle, death, mechanics, motility, secretion and interactions. ``transformations`` maps other cell type names to the rate of turning into that type. ``custom`` holds named numeric custom data.
 
 | Field | Type | Default |
 |---|---|---|
@@ -110,6 +123,8 @@ A cell cycle. ``live`` has one phase whose exit rate is the division rate. Give 
 
 ## Death
 
+Apoptosis and necrosis rates, and how long a dead cell remains before it is removed.
+
 | Field | Type | Default |
 |---|---|---|
 | `apoptosis_rate` | number (>= 0) | `0.0` |
@@ -130,6 +145,8 @@ Centre-based mechanics. ``max_adhesion_distance`` is relative to the cell radius
 
 ## Motility
 
+Cell migration, as in PhysiCell: speed, persistence time and migration bias. ``migration_bias`` runs from 0 (a random direction) to 1 (the chemotaxis direction only).
+
 | Field | Type | Default |
 |---|---|---|
 | `speed` | number (>= 0) | `0.0` |
@@ -139,12 +156,16 @@ Centre-based mechanics. ``max_adhesion_distance`` is relative to the cell radius
 
 ## Chemotaxis
 
+Migration bias along one substrate's gradient: ``direction`` 1 moves up the gradient, -1 down it.
+
 | Field | Type | Default |
 |---|---|---|
 | `substrate` | string (non-empty) | required |
 | `direction` | `1` \| `-1` | `1` |
 
 ## Secretion
+
+Exchange of one substrate between a cell and its voxel, as in PhysiCell. The cell secretes towards the ``target`` density at ``secretion_rate``, takes up at ``uptake_rate``, and adds ``net_export_rate`` of substrate per time unit.
 
 | Field | Type | Default |
 |---|---|---|
@@ -155,6 +176,8 @@ Centre-based mechanics. ``max_adhesion_distance`` is relative to the cell radius
 | `net_export_rate` | number | `0.0` |
 
 ## Interactions
+
+Contact interactions with other cells, as in PhysiCell. Attack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.
 
 | Field | Type | Default |
 |---|---|---|
@@ -195,6 +218,8 @@ A reference to an intracellular model file. Paths are relative to the IR file.
 
 ## InitialConditions
 
+The cells present at the start of a run, as a list of placements.
+
 | Field | Type | Default |
 |---|---|---|
 | `placements` | list of [Placement](#placement) | empty list |
@@ -229,6 +254,8 @@ A change at a set time, held until ``until`` when given (then reverted), for exa
 
 ## Observable
 
+A named quantity measured at every saved time, such as a cell count or a substrate mean. ``cell_type`` restricts a count or position to one type. The ``substrate_`` kinds need ``substrate``, and ``type_fraction`` needs ``cell_type``.
+
 | Field | Type | Default |
 |---|---|---|
 | `name` | string | required |
@@ -238,6 +265,8 @@ A change at a set time, held until ``until`` when given (then reverted), for exa
 | `axis` | `x` \| `y` \| `z` | `x` |
 
 ## Experiment
+
+The run length, the time steps and the save interval, in the model's time unit, as in PhysiCell. ``dt_diffusion``, ``dt_mechanics`` and ``dt_phenotype`` are the steps of each process. ``threads`` is the number of threads an engine may use.
 
 | Field | Type | Default |
 |---|---|---|
@@ -249,6 +278,8 @@ A change at a set time, held until ``until`` when given (then reverted), for exa
 | `threads` | integer (>= 1) | `1` |
 
 ## Provenance
+
+Where a model came from: its source, DOI, authors, licence, origin project and the tool that made it.
 
 | Field | Type | Default |
 |---|---|---|
@@ -262,6 +293,8 @@ A change at a set time, held until ``until`` when given (then reverted), for exa
 
 ## DerivedFrom
 
+The engine project a model was imported from, with an optional SHA-256 digest of its source.
+
 | Field | Type | Default |
 |---|---|---|
 | `engine` | string | required |
@@ -269,6 +302,8 @@ A change at a set time, held until ``until`` when given (then reverted), for exa
 | `sha256` | string or null | none |
 
 ## NativeExtension
+
+Engine-specific code that the IR does not describe and never translates. ``affects`` names what it may change.
 
 | Field | Type | Default |
 |---|---|---|

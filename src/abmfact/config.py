@@ -21,6 +21,17 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class Budget:
+    """How much an audit runs: seeds, workers, significance level and which checks.
+
+    Attributes:
+        seeds: Seeds per condition and parameter point.
+        seed_start: The first seed; seeds run upwards from here.
+        jobs: Worker processes.
+        alpha: One-sided significance level; intervals cover ``1 - 2*alpha``.
+        determinism_reruns: How many seeds the determinism check reruns.
+        checks: Checks to run; empty runs every check.
+    """
+
     seeds: int = 100
     seed_start: int = 0
     jobs: int = 1
@@ -30,6 +41,11 @@ class Budget:
 
     @classmethod
     def from_mapping(cls, m: Mapping[str, Any] | None) -> Budget:
+        """Build a budget from the ``budget`` section of an audit file, validating every field.
+
+        Raises :class:`ConfigError` for unknown keys, fewer than 3 seeds, ``alpha`` outside 0 to 0.5, fewer
+        than 1 job or unknown checks.
+        """
         m = dict(m or {})
         unknown = sorted(set(m) - set(cls.__dataclass_fields__))
         if unknown:
@@ -54,6 +70,7 @@ class Budget:
         return b
 
     def to_dict(self) -> dict[str, Any]:
+        """The budget as a plain dict for the audit record."""
         return {
             "seeds": self.seeds,
             "seed_start": self.seed_start,
@@ -66,6 +83,20 @@ class Budget:
 
 @dataclass
 class Audit:
+    """A parsed audit file: the model adapter, base parameters, claims and budget.
+
+    Attributes:
+        adapter: The adapter that runs the model.
+        params: Base parameters passed to every run.
+        claims: The claims to audit.
+        budget: Seeds, workers, significance level and checks.
+        model_cfg: The ``model`` section as written.
+        source: Path of the audit file, when it was loaded from one.
+        sha256: SHA-256 of the audit file's bytes.
+        title: Title shown in the report.
+        convergence: The ``convergence`` section, with settings for the convergence check.
+    """
+
     adapter: Adapter
     params: dict[str, Any]
     claims: list[Claim]
@@ -78,6 +109,11 @@ class Audit:
 
 
 def parse_audit(doc: Mapping[str, Any], base_dir: Path | None = None) -> Audit:
+    """Build an :class:`Audit` from a parsed YAML document.
+
+    ``base_dir`` is where relative model paths and modules are looked up, defaulting to the current directory.
+    Raises :class:`ConfigError` when the document is not a valid audit.
+    """
     if not isinstance(doc, Mapping):
         raise ConfigError("the audit file must be a YAML mapping")
     unknown = sorted(set(doc) - {"title", "model", "params", "claims", "budget", "convergence"})
@@ -103,6 +139,11 @@ def parse_audit(doc: Mapping[str, Any], base_dir: Path | None = None) -> Audit:
 
 
 def load_audit(path: str | Path, overrides: Mapping[str, Any] | None = None) -> Audit:
+    """Read and parse an audit file, recording its path and SHA-256.
+
+    ``overrides`` replaces budget fields, ignoring ``None`` values. Raises :class:`ConfigError` when the file
+    is not valid YAML or not a valid audit.
+    """
     path = Path(path)
     raw = path.read_bytes()
     try:
@@ -194,6 +235,11 @@ MODEL_BLOCKS = {
 
 
 def template(adapter: str = "python") -> str:
+    """Return a commented audit file template for one adapter.
+
+    ``adapter`` is ``python``, ``mesa``, ``netlogo``, ``command`` or ``engine``; any other name raises
+    :class:`ConfigError`.
+    """
     if adapter not in MODEL_BLOCKS:
         raise ConfigError(f"unknown adapter {adapter!r}; expected one of {sorted(MODEL_BLOCKS)}")
     return TEMPLATE.format(adapter=adapter, model_block=MODEL_BLOCKS[adapter])

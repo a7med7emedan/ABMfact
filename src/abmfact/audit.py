@@ -34,11 +34,17 @@ RERUN = "determinism:rerun"
 
 
 def point_key(params: dict[str, Any]) -> str:
+    """Return a canonical JSON key for a parameter point, with keys sorted."""
     return json.dumps(params, sort_keys=True, default=str)
 
 
 @dataclass
 class Condition:
+    """One audit condition: a label, the check it belongs to, its knobs and the seeds it runs.
+
+    ``check`` is ``None`` for the baseline. ``shuffle_ids`` asks for a per-seed agent relabelling.
+    """
+
     label: str
     check: str | None
     knobs: Knobs
@@ -46,6 +52,7 @@ class Condition:
     seeds: list[int] = field(default_factory=list)
 
     def knobs_for(self, seed: int) -> Knobs:
+        """Knobs for one seed, with the relabelling permutation seed added when ``shuffle_ids`` is set."""
         if self.shuffle_ids:
             return self.knobs.with_(agent_perm_seed=perm_seed(seed))
         return self.knobs
@@ -148,10 +155,13 @@ def _is_degenerate(v: np.ndarray) -> bool:
 
 @dataclass
 class AuditResult:
+    """The outcome of :func:`run_audit`: the full ``results.json`` document, held in ``data``."""
+
     data: dict[str, Any]
 
     @property
     def verdicts(self) -> list[dict[str, Any]]:
+        """Every verdict row, one per claim and check."""
         return list(self.data["verdicts"])
 
     def matrix(self) -> dict[str, dict[str, str]]:
@@ -162,13 +172,19 @@ class AuditResult:
         return out
 
     def flagged_checks(self) -> list[str]:
+        """Sorted names of the checks that judged at least one claim ``FRAGILE`` or ``SHIFTED``."""
         return sorted({v["check"] for v in self.data["verdicts"] if v["verdict"] in FLAGGED})
 
     @property
     def any_flagged(self) -> bool:
+        """True when any verdict is ``FRAGILE`` or ``SHIFTED``."""
         return any(v["verdict"] in FLAGGED for v in self.data["verdicts"])
 
     def to_json(self, include_timestamp: bool = True) -> str:
+        """Serialise the result as indented JSON with sorted keys and a trailing newline.
+
+        With ``include_timestamp`` false the ``created`` field is dropped, so repeated audits give identical text.
+        """
         d = dict(self.data)
         if not include_timestamp:
             d.pop("created", None)
@@ -193,6 +209,15 @@ def _clean(o: Any) -> Any:
 
 
 def run_audit(audit: Audit, progress: Callable[[int, int], None] | None = None) -> AuditResult:
+    """Run every condition of an audit and return a verdict for each claim under each check.
+
+    Args:
+        audit: The parsed audit file.
+        progress: Optional callback, called with the number of runs done and the total.
+
+    Returns:
+        The :class:`AuditResult` with claims, conditions, verdicts, summary and diagnosis.
+    """
     b = audit.budget
     alpha = b.alpha
     adapter = audit.adapter
