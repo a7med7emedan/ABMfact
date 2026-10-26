@@ -17,7 +17,7 @@ leave every run unchanged.
 ## The faults
 
 Each fault model differs from the clean model in one place, marked `# FAULT` in
-[`src/abmfact/zoo.py`](../src/abmfact/zoo.py).
+[`src/abmfact/zoo.py`](https://github.com/a7med7emedan/ABMfact/blob/main/src/abmfact/zoo.py).
 
 | Model | Bug | Caught by |
 |---|---|---|
@@ -75,5 +75,5 @@ this is a true detection by two checks, not a false alarm; `abmfact.zoo.EXPECTED
 clean models are never flagged. `abmfact demo` prints the same matrix (add `--no-convergence` for the
 seven audit checks alone).
 
-The claims are in `abmfact.zoo.CLAIMS` and in [examples/zoo/audit.yaml](../examples/zoo/audit.yaml).
+The claims are in `abmfact.zoo.CLAIMS` and in [examples/zoo/audit.yaml](https://github.com/a7med7emedan/ABMfact/blob/main/examples/zoo/audit.yaml).
 Point that file at any `fault_*` model to see a single audit.

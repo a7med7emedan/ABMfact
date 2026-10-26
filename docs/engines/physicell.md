@@ -12,7 +12,7 @@ PhysiCell needs a GNU `g++` with OpenMP. The engine tries, in order:
 1. **native**: `PHYSICELL_CPP`, then `g++-15` down to `g++-11`, then `g++`, using the first that is GNU
    (not Apple clang) and compiles `-fopenmp`. The PhysiCell sources come from the project itself (a full
    PhysiCell tree) or from `PHYSICELL_SOURCE`.
-2. **docker**: the image built from [`containers/physicell/Dockerfile`](../../containers/physicell/Dockerfile),
+2. **docker**: the image built from [`containers/physicell/Dockerfile`](https://github.com/a7med7emedan/ABMfact/blob/main/containers/physicell/Dockerfile),
    pinned to PhysiCell 1.14.2 and to a Debian base image digest:
 
    ```bash

@@ -32,6 +32,32 @@ A new check needs three things, in the same pull request:
 
 A check without a planted fault that it catches, and that no other check catches, will not be merged.
 
+## Documentation
+
+The manual in `docs/` builds with Sphinx as HTML and as a PDF. Every public module, class and function
+needs a docstring; `tests/test_docstrings.py` checks this. The ABM-IR and command-line references are
+generated, never edited by hand:
+
+```bash
+python scripts/make_ir_reference.py     # after changing src/abmfact/ir/model.py
+python scripts/make_cli_reference.py    # after changing the command-line options
+```
+
+To build the manual:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -W -b html docs docs/_build/html       # open docs/_build/html/index.html
+sphinx-build -W -b doctest docs docs/_build/doctest # run the examples in the manual
+```
+
+The PDF needs a TeX installation with XeLaTeX, latexmk, xindy and `rsvg-convert`. Continuous integration
+builds it on every pull request and keeps it as an artefact of the run:
+
+```bash
+sphinx-build -W -b latex docs docs/_build/latex && make -C docs/_build/latex
+```
+
 ## Figures
 
 The README figures in `assets/` are generated, never drawn by hand. The detection matrix comes from a real
@@ -47,4 +73,4 @@ One short imperative subject line, a blank line, then why the change is needed.
 
 ## Conduct
 
-Everyone taking part agrees to the [code of conduct](CODE_OF_CONDUCT.md).
+Everyone taking part agrees to the [code of conduct](https://github.com/a7med7emedan/ABMfact/blob/main/CODE_OF_CONDUCT.md).

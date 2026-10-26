@@ -15,3 +15,4 @@ abmfact-results/
 results/
 .DS_Store
 .env
+docs/_build/

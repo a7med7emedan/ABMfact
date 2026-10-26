@@ -1,5 +1,14 @@
 # ABMfact documentation
 
+These pages are also the source of the manual, built with Sphinx as HTML and as a PDF typeset with
+LaTeX. See [CONTRIBUTING.md](../CONTRIBUTING.md) to build it locally.
+
+- [Getting started](getting-started.md): install, a first audit and a first biological model.
+- [Recipes](howto.md): short answers to common tasks.
+- [Command-line reference](cli-reference.md): every command and option, generated from the parser.
+- [Writing an engine plug-in](engine-plugins.md): the engine contract, with a worked example.
+- [Citing ABMfact](citation.md).
+
 Auditing a model's conclusions (v0.1):
 
 - [Concepts](concepts.md): models, knobs, conditions, claims and verdicts.

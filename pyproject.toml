@@ -41,6 +41,7 @@ mesa = ["mesa>=3.1", "networkx>=3.0"]
 netlogo = ["pynetlogo>=0.5"]
 store = ["pyarrow>=15", "duckdb>=1.0", "zarr>=3.0", "xarray>=2024.1"]
 physicell = ["pcdl>=3.3"]
+docs = ["sphinx>=7.3", "myst-parser>=3.0", "furo>=2024.1", "sphinxcontrib-svg2pdfconverter>=1.2"]
 all = ["abmfact[mesa,store,physicell]"]
 
 [project.urls]

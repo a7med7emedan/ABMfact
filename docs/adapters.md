@@ -36,7 +36,7 @@ model:
 ```
 
 The seed is passed as `rng=` (change it with `seed_kwarg`). When `dt_scale` is mapped, `steps` is divided
-by it. A runnable example is in [examples/mesa_sir](../examples/mesa_sir).
+by it. A runnable example is in [examples/mesa_sir](https://github.com/a7med7emedan/ABMfact/tree/main/examples/mesa_sir).
 
 ## NetLogo
 
@@ -72,7 +72,7 @@ model:
 The program receives `{"params": {...}, "seed": 17, "knobs": {...}}` as JSON on standard input and must
 print one JSON object of outputs. A non-zero exit, a timeout or invalid JSON becomes a clear error.
 `{python}` in `argv` stands for the interpreter running ABMfact. A runnable example is in
-[examples/command](../examples/command).
+[examples/command](https://github.com/a7med7emedan/ABMfact/tree/main/examples/command).
 
 ## Engine (ABM-IR models and native projects)
 
@@ -90,7 +90,7 @@ usual grammar, for example `last(cells)`. Parameters are ABM-IR paths such as `r
 `cell_types[tumour].cycle.rates[0]`; for a native PhysiCell project they are settings paths such as
 `overall/max_time` or `user_parameters.number_of_cells`. The engine decides which knobs the model
 supports by refusing what it cannot honour, so a check it cannot run is `NOT_TESTABLE`. A runnable
-example is [examples/ir/audit_monolayer.yaml](../examples/ir/audit_monolayer.yaml); see the
+example is [examples/ir/audit_monolayer.yaml](https://github.com/a7med7emedan/ABMfact/blob/main/examples/ir/audit_monolayer.yaml); see the
 [architecture](architecture.md) and the engine pages.
 
 ## Parallel runs

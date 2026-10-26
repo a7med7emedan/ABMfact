@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+import re
+from pathlib import Path
 
 import abmfact
 
@@ -53,3 +55,9 @@ def undocumented() -> list[str]:
 def test_public_api_is_documented():
     assert undocumented() == []
 
+
+def test_every_module_is_in_the_api_reference():
+    pages = Path(__file__).parent.parent / "docs" / "api"
+    text = "".join(p.read_text(encoding="utf-8") for p in pages.glob("*.md"))
+    documented = set(re.findall(r"^\.\. automodule:: (\S+)$", text, flags=re.M))
+    assert sorted(set(_modules()) - documented) == []

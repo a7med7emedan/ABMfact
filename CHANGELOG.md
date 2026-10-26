@@ -34,6 +34,11 @@ All notable changes are recorded here. The format follows
 - The `dx_scale` knob (voxel size).
 - A warning on a claim and its verdicts when the default 10% tolerance meets a near-zero baseline mean
   (below the standard error of the mean, or a mean below 0.01), suggesting an absolute tolerance.
+- The manual: Sphinx HTML and a PDF typeset with LaTeX, from the Markdown pages in `docs/`, with getting
+  started, recipes, a developer guide for engine plug-ins, a citation page, a command-line reference
+  generated from the parser, and an API reference generated from the docstrings. Its examples run as
+  doctests. CI builds the HTML with warnings as errors, the PDF and the doctests, and a test requires a
+  docstring on every public module, class and function. A `[docs]` extra holds the build tools.
 
 ### Changed
 
