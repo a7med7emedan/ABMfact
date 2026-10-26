@@ -107,32 +107,40 @@ class MorpheusModel:
             raise EngineError(f"no element {path!r} in {self.path.name}")
         el.set("value", repr(float(value)) if isinstance(value, float) else str(value))
 
-    def add_output_loggers(self, every: float) -> tuple[int, int]:
+    def add_output_loggers(self, every: float, cell_symbols: tuple[str, ...] = ()) -> tuple[int, int]:
         """Add ABMfact's cell and field loggers, saving every ``every`` time units.
+
+        ``cell_symbols`` are logged for each cell after the standard ones, such as the ``state`` property of a
+        translated model.
 
         Returns:
             The 1-based positions of the two loggers among the model's loggers, which name their files
-            (``logger_<n>.csv`` and ``logger_<n>_<time>.csv``); the second is 0 when the model has no fields.
+            (``logger_<n>.csv`` and ``logger_<n>_<time>.csv``). The first is 0 when the model has no cell types,
+            as Morpheus refuses cell symbols then; the second is 0 when the model has no fields.
         """
         analysis = self.root.find("Analysis")
         if analysis is None:
             analysis = ET.SubElement(self.root, "Analysis")
-        before = len(analysis.findall("Logger"))
-        cells = ET.SubElement(analysis, "Logger", {"time-step": repr(float(every)), "name": "abmfact cells"})
-        inp = ET.SubElement(cells, "Input")
-        symbols = CELL_SYMBOLS if self.dimensions() == 3 else tuple(s for s in CELL_SYMBOLS if s != "cell.center.z")
-        for s in symbols:
-            ET.SubElement(inp, "Symbol", {"symbol-ref": s})
-        ET.SubElement(ET.SubElement(cells, "Output"), "TextOutput", {"file-format": "csv"})
+        position = len(analysis.findall("Logger"))
+        cell_logger = 0
+        if self.biological_types():
+            cells = ET.SubElement(analysis, "Logger", {"time-step": repr(float(every)), "name": "abmfact cells"})
+            inp = ET.SubElement(cells, "Input")
+            symbols = CELL_SYMBOLS if self.dimensions() == 3 else tuple(s for s in CELL_SYMBOLS if s != "cell.center.z")
+            for s in (*symbols, *cell_symbols):
+                ET.SubElement(inp, "Symbol", {"symbol-ref": s})
+            ET.SubElement(ET.SubElement(cells, "Output"), "TextOutput", {"file-format": "csv"})
+            position += 1
+            cell_logger = position
         if not self.fields():
-            return before + 1, 0
+            return cell_logger, 0
         fields = ET.SubElement(analysis, "Logger", {"time-step": repr(float(every)), "name": "abmfact fields"})
         inp = ET.SubElement(fields, "Input")
         for f in self.fields():
             ET.SubElement(inp, "Symbol", {"symbol-ref": f})
         ET.SubElement(ET.SubElement(fields, "Output"), "TextOutput",
                       {"file-format": "csv", "file-separation": "time"})  # fmt: skip
-        return before + 1, before + 2
+        return cell_logger, position + 1
 
     def write(self, path: str | Path | None = None) -> Path:
         """Write the model to ``path``, by default where it was read from."""

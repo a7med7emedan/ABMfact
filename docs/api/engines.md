@@ -139,3 +139,9 @@ The engine contract, the registry, and the engines that ship with ABMfact.
 ```{eval-rst}
 .. automodule:: abmfact.engines.morpheus.outputs
 ```
+
+## `abmfact.engines.morpheus.translate`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.morpheus.translate
+```

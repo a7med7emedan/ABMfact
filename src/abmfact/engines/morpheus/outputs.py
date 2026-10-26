@@ -1,14 +1,16 @@
 """Read what ABMfact's two loggers write during a Morpheus run into the common output schema.
 
-The cell logger writes one tab-separated file, ``logger_<n>.csv``, with a row per cell per save: ``time``,
+The cell logger writes one tab-separated file, ``logger_<n>.csv`` (``logger.csv`` when it is the model's only
+logger), with a row per cell per save: ``time``,
 ``cell.id`` (added by Morpheus), then the logged ``cell.id``, ``cell.type`` (an index into the model's cell
 types), ``cell.center.x``, ``cell.center.y`` (and ``cell.center.z`` in 3D) and ``cell.volume`` in lattice
 nodes. The field logger writes one file per save, ``logger_<m>_<time>.csv``, with ``time``, ``space.x``,
 ``space.y`` (and ``space.z``) and one column per field.
 
 Lengths are converted with ``node_length`` (micron per node) and times with ``time_minutes`` (minutes per
-Morpheus time unit); both default to 1, which keeps the model's own units. Every cell is reported live:
-Morpheus cells have no apoptotic or necrotic state of their own.
+Morpheus time unit); both default to 1, which keeps the model's own units. Morpheus cells have no apoptotic
+or necrotic state of their own, so every cell is reported live unless the logger has a ``state`` column, which
+models translated from ABM-IR keep (0 live, 1 apoptotic, 2 necrotic).
 """
 
 from __future__ import annotations
@@ -44,18 +46,24 @@ def read_output(
     Args:
         folder: The run's output folder.
         type_names: The model's cell types in declaration order, including the medium.
-        loggers: The 1-based positions of ABMfact's cell and field loggers.
+        loggers: The 1-based positions of ABMfact's cell and field loggers; 0 for a logger not added.
         node_length: Micron per lattice node.
         time_minutes: Minutes per Morpheus time unit.
         origin: The position of the lattice's first corner, so translated models report their own frame.
         dimensions: 2 or 3, for converting volumes.
     """
     folder = Path(folder)
-    cell_file = folder / f"logger_{loggers[0]}.csv"
+    # Morpheus numbers its loggers' files only when the model has several loggers.
+    alone = (loggers == (1, 0) and not (folder / "logger_1.csv").exists()) or (
+        loggers == (0, 1) and not any(folder.glob("logger_1_*.csv"))
+    )
+    cell_rows = []
+    if loggers[0]:
+        cell_rows = _rows(folder / ("logger.csv" if alone else f"logger_{loggers[0]}.csv"))
     names = list(type_names)
     cols: dict[str, list[float]] = defaultdict(list)
     times: set[float] = set()
-    for row in _rows(cell_file):
+    for row in cell_rows:
         t = float(row["time"]) * time_minutes
         times.add(t)
         idx = int(float(row["cell.type"]))
@@ -68,12 +76,13 @@ def read_output(
             v = row.get(f"cell.center.{axis}")
             cols[axis].append(origin[k] + (float(v) if v not in (None, "") else 0.0) * node_length)
         cols["volume"].append(float(row["cell.volume"]) * node_length**dimensions)
-        cols["state"].append(LIVE)
+        cols["state"].append(int(float(row["state"])) if row.get("state") not in (None, "") else LIVE)
     columns = {k: np.asarray(cols.get(k, []), dtype=float) for k in ("time", "id", "type", "x", "y", "z", "volume")}
     columns["state"] = np.asarray(cols.get("state", []), dtype=np.int8)
     cells = cells_table(columns)
     frames: list[FieldFrame] = []
-    for path in sorted(folder.glob(f"logger_{loggers[1]}_*.csv")) if loggers[1] else []:
+    pattern = "logger_*.csv" if alone else f"logger_{loggers[1]}_*.csv"
+    for path in sorted(folder.glob(pattern)) if loggers[1] else []:
         rows = _rows(path)
         if not rows:
             continue

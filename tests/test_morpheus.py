@@ -49,6 +49,19 @@ def test_editing_and_loggers(tmp_path):
     assert c.add_output_loggers(5) == (1, 2)  # no logger of its own; one field
 
 
+def test_a_model_without_cells_gets_only_the_field_logger(tmp_path):
+    m = MorpheusModel.read(CHEMOTAXIS)
+    for ct in m.root.findall("CellTypes/CellType"):
+        if ct.get("class") != "medium":
+            m.root.find("CellTypes").remove(ct)
+    assert m.biological_types() == [] and m.add_output_loggers(5) == (0, 1)  # Morpheus refuses cell symbols here
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "logger_00005.csv").write_text('"time"\t"space.x"\t"space.y"\t"U"\n5\t0\t0\t2\n5\t1\t0\t3\n')
+    o = read_output(out, ["medium"], (0, 1))
+    assert len(o.cells["time"]) == 0 and o.field_at("U", 5.0).values.tolist() == [[2.0, 3.0]]
+
+
 def test_bad_models_are_reported(tmp_path):
     with pytest.raises(EngineError, match="not a Morpheus model file"):
         MorpheusModel.read(tmp_path / "missing.xml")
@@ -67,7 +80,7 @@ def test_engine_is_registered_and_declares_what_it_honours():
     assert engine.refuse(SORTING, Knobs()) == []
     assert any("dt_scale" in r for r in engine.refuse(SORTING, Knobs(dt_scale=0.5)))
     assert engine.refuse(SORTING, Knobs(rng_streams="independent")) == []
-    assert "translate" in engine.refuse("examples/ir/monolayer.yaml", Knobs())[0]
+    assert engine.refuse("examples/ir/monolayer.yaml", Knobs()) == []  # translated, tier T1
     assert "not a MorpheusML" in engine.refuse(FIX / "README.md", Knobs())[0]
 
 
