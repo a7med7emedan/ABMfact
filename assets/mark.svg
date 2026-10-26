@@ -1,22 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t">
   <title id="t">ABMfact mark</title>
   <rect width="64" height="64" rx="14" fill="#f4f8f7"/>
-  <circle cx="11" cy="11" r="4.6" fill="#99c9c3"/>
-  <circle cx="25" cy="11" r="4.6" fill="#0f766e"/>
-  <circle cx="39" cy="11" r="4.6" fill="#0f766e"/>
-  <circle cx="53" cy="11" r="4.6" fill="#99c9c3"/>
-  <circle cx="11" cy="25" r="4.6" fill="#0f766e"/>
-  <circle cx="25" cy="25" r="4.6" fill="#0f766e"/>
-  <circle cx="53" cy="25" r="4.6" fill="#0f766e"/>
-  <circle cx="11" cy="39" r="4.6" fill="#0f766e"/>
-  <circle cx="25" cy="39" r="4.6" fill="#99c9c3"/>
-  <circle cx="39" cy="39" r="4.6" fill="#0f766e"/>
-  <circle cx="53" cy="39" r="4.6" fill="#0f766e"/>
-  <circle cx="11" cy="53" r="4.6" fill="#99c9c3"/>
-  <circle cx="25" cy="53" r="4.6" fill="#0f766e"/>
-  <circle cx="39" cy="53" r="4.6" fill="#0f766e"/>
-  <circle cx="53" cy="53" r="4.6" fill="#99c9c3"/>
-  <circle cx="39" cy="25" r="3.4" fill="none" stroke="#d97706" stroke-width="1.8" stroke-dasharray="2.2 1.6"/>
-  <circle cx="39" cy="25" r="7.6" fill="none" stroke="#d97706" stroke-width="2.4"/>
-  <line x1="44.6" y1="30.6" x2="50.5" y2="36.5" stroke="#d97706" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="7" cy="9" r="2.8" fill="#0f766e"/>
+  <circle cx="7" cy="18" r="2.8" fill="#0f766e"/>
+  <circle cx="7" cy="27" r="2.8" fill="#99c9c3"/>
+  <circle cx="7" cy="36" r="2.8" fill="#0f766e"/>
+  <circle cx="7" cy="45" r="2.8" fill="#0f766e"/>
+  <circle cx="7" cy="54" r="2.8" fill="#99c9c3"/>
+  <circle cx="16" cy="9" r="2.8" fill="#0f766e"/>
+  <circle cx="16" cy="18" r="2.8" fill="#99c9c3"/>
+  <circle cx="16" cy="27" r="2.8" fill="#0f766e"/>
+  <circle cx="16" cy="36" r="2.8" fill="#0f766e"/>
+  <circle cx="16" cy="45" r="2.8" fill="#99c9c3"/>
+  <circle cx="16" cy="54" r="2.8" fill="#0f766e"/>
+  <circle cx="27" cy="9" r="3.6" fill="#0f766e"/>
+  <circle cx="37" cy="12" r="3.0" fill="#99c9c3"/>
+  <circle cx="25" cy="19" r="2.8" fill="#99c9c3"/>
+  <circle cx="24" cy="41" r="3.8" fill="#0f766e"/>
+  <circle cx="35" cy="44" r="2.8" fill="#99c9c3"/>
+  <circle cx="27" cy="52" r="3.0" fill="#0f766e"/>
+  <circle cx="38" cy="55" r="3.6" fill="#0f766e"/>
+  <polygon points="44.80,3.99 51.52,3.99 53.20,9.03 50.68,14.91 44.80,14.07" fill="#0f766e" stroke="#0f766e" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="52.67,4.47 61.07,4.47 61.07,18.75 56.03,20.43 51.83,15.39 54.35,9.51" fill="#99c9c3" stroke="#99c9c3" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="44.91,16.49 50.79,17.33 54.99,22.37 54.15,29.09 48.27,31.61 44.91,29.09" fill="#99c9c3" stroke="#99c9c3" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="56.38,23.28 61.42,21.60 61.42,36.72 57.22,38.40 55.54,30.00" fill="#0f766e" stroke="#0f766e" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="44.96,31.17 48.32,33.69 54.20,31.17 55.88,39.57 51.68,44.61 44.96,43.77" fill="#0f766e" stroke="#0f766e" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="57.13,41.18 61.33,39.50 61.33,54.62 56.29,55.46 52.93,46.22" fill="#99c9c3" stroke="#99c9c3" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="44.96,46.44 51.68,47.28 55.04,56.52 53.36,59.88 44.96,59.88" fill="#99c9c3" stroke="#99c9c3" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="56.40,57.28 61.44,56.44 61.44,60.64 54.72,60.64" fill="#0f766e" stroke="#0f766e" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="31" cy="30" r="3.4" fill="none" stroke="#d97706" stroke-width="1.8" stroke-dasharray="2.2 1.6"/>
+  <circle cx="31" cy="30" r="7.6" fill="none" stroke="#d97706" stroke-width="2.4"/>
+  <line x1="36.6" y1="35.6" x2="42.5" y2="41.5" stroke="#d97706" stroke-width="3.4" stroke-linecap="round"/>
 </svg>
