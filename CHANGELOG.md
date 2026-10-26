@@ -8,6 +8,8 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- Six reference problems in `examples/suite/`: monolayer, spheroid, differential adhesion, chemotaxis, drug
+  pulse and immune attack, each an ABM-IR model with two qualitative claims committed before any audit.
 - Attack and damage in the reference engine, following PhysiCell 1.14.2: effectors attack live neighbours,
   damage accumulates and is repaired, and rules read it as the `damage` signal. ABM-IR gains
   `attack_duration`, `immunogenicities` and a cell type's `integrity` (damage and repair rates), and the

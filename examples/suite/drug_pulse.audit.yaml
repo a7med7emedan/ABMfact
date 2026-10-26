@@ -1,0 +1,21 @@
+# Reference problem 5: a six-hour drug pulse kills cells it reaches, then clears.
+title: "Reference problem 5: drug pulse"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/drug_pulse.yaml
+claims:
+  - id: D1
+    statement: "a stronger pulse leaves fewer live cells"
+    metric: last(live)
+    test: monotone_decreasing
+    over: events[0].value
+    where: {"events[0].value": [0.0, 1.0]}
+    skip_checks:
+      population_scale: "the cell count is extensive and doubles with the domain"
+  - id: D2
+    statement: "the drug has cleared by the end of the day"
+    metric: last(drug_mean)
+    test: less_than
+    value: 0.05                    # decay at 0.01 per minute leaves under 0.1% of the pulse after 12 hours
+budget: {seeds: 20, jobs: 4}

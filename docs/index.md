@@ -33,7 +33,7 @@ This manual is built from one source as web pages and as a PDF:
   the [reference engine](engines/reference.md), and [PhysiCell and PhysiBoSS](engines/physicell.md).
 - [Recipes](howto.md) for common tasks.
 - **Reference:** the [command line](cli-reference.md) and the [Python API](api/index.md).
-- **Validation:** [the planted-fault zoo](zoo.md).
+- **Validation:** [the planted-fault zoo](zoo.md) and [the reference problems](suite.md).
 - **Developer guide:** [writing an engine plug-in](engine-plugins.md) and [contributing](contributing.md).
 - [Changelog](changelog.md) and [citation](citation.md).
 ````
@@ -93,6 +93,7 @@ api/index
 :maxdepth: 2
 
 zoo
+suite
 ```
 
 ```{toctree}

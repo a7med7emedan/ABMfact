@@ -183,7 +183,8 @@ def apply_params(model: IRModel, params: Mapping[str, Any]) -> IRModel:
 
 
 def _is_open_mapping(parts: list[str | int]) -> bool:
-    open_maps = {"custom", "adhesion_affinities", "attack_rates", "phagocytosis_rates", "fusion_rates"}
+    open_maps = {"custom", "adhesion_affinities", "attack_rates", "immunogenicities", "phagocytosis_rates"}
+    open_maps |= {"fusion_rates"}
     open_maps |= {"transformations", "sides", "inputs", "outputs", "settings", "files"}
     return len(parts) >= 2 and parts[-2] in open_maps
 

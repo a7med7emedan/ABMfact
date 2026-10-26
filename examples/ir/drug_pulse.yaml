@@ -1,0 +1,48 @@
+# A drug pulse: the drug is held at the domain edge for six hours, kills cells it reaches, then clears.
+# Run:  abmfact run-model examples/ir/drug_pulse.yaml --engine reference --out results/drug_pulse
+schema_version: "0.1"
+name: drug_pulse
+description: >
+  A slowly dividing colony. From hour 6 to hour 12 the drug is held at 1 on every edge of the domain; it
+  diffuses in, decays, and raises apoptosis where it is present. After the pulse the edges are closed
+  again and the drug decays away.
+space:
+  dimensions: 2
+  bounds: {x_min: -250, x_max: 250, y_min: -250, y_max: 250}
+  voxel: {dx: 25, dy: 25}
+  boundary: closed
+substrates:
+  - name: drug
+    diffusion_coefficient: 1000
+    decay_rate: 0.01
+    initial_value: 0
+    boundary: {kind: no_flux}
+cell_types:
+  - name: tumour
+    volume: 2494
+    cycle: {model: live, rates: [0.0007]}
+    death: {apoptosis_rate: 0.00001}
+    mechanics: {adhesion_strength: 0.4, repulsion_strength: 10}
+rules:
+  - {cell_type: tumour, signal: drug, direction: increases, behaviour: apoptosis,
+     saturation_value: 0.002, half_max: 0.3, hill_power: 2}
+  - {cell_type: tumour, signal: pressure, direction: decreases, behaviour: cycle entry,
+     saturation_value: 0, half_max: 0.5, hill_power: 4}
+events:
+  - {time: 360, action: set_substrate_boundary, target: drug, value: 1.0, until: 720}
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: tumour, count: 120, centre: [0, 0], radius: 120}
+observables:
+  - {name: live, kind: live_count}
+  - {name: dead, kind: dead_count}
+  - {name: drug_mean, kind: substrate_mean, substrate: drug}
+experiment:
+  max_time: 1440
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 60
+provenance:
+  source: ABMfact reference problem
+  licence: Apache-2.0

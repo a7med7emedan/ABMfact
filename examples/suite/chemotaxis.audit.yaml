@@ -1,0 +1,19 @@
+# Reference problem 4: motile cells climb a chemoattractant gradient.
+title: "Reference problem 4: chemotaxis"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/chemotaxis.yaml
+claims:
+  - id: X1
+    statement: "the cells move up the gradient from where they start"
+    metric: last(mean_x)
+    test: greater_than
+    value: -400                    # the centre of the starting rectangle
+  - id: X2
+    statement: "a stronger chemotactic bias takes the cells further up the gradient"
+    metric: last(mean_x)
+    test: monotone_increasing
+    over: cell_types[leukocyte].motility.migration_bias
+    where: {"cell_types[leukocyte].motility.migration_bias": [0.2, 0.6]}
+budget: {seeds: 20, jobs: 4}

@@ -1,0 +1,20 @@
+# Reference problem 2: a tumour cross-section in an oxygen field develops a necrotic core.
+title: "Reference problem 2: spheroid with oxygen and a necrotic core"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/spheroid.yaml
+claims:
+  - id: P1
+    statement: "the core runs short of oxygen"
+    metric: last(oxygen_min)
+    test: less_than
+    value: 3.75                    # the necrosis rule's half-max in the model
+  - id: P2
+    statement: "a necrotic core forms"
+    metric: max(dead)
+    test: greater_than
+    value: 0
+    skip_checks:
+      population_scale: "the dead count is extensive and grows with the domain"
+budget: {seeds: 20, jobs: 4}

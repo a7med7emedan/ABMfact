@@ -1,0 +1,21 @@
+# Reference problem 3: differential adhesion holds adhesive cells together while others disperse.
+title: "Reference problem 3: differential adhesion"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/sorting.yaml
+claims:
+  - id: S1
+    statement: "stronger dark-dark adhesion keeps the dark cells more compact"
+    metric: last(dark_spread)
+    test: monotone_decreasing
+    over: cell_types[dark].mechanics.adhesion_affinities.dark
+    where: {"cell_types[dark].mechanics.adhesion_affinities.dark": [0.1, 1.0]}
+  - id: S2
+    statement: "the light cells disperse beyond their starting spread"
+    metric: last(light_spread)
+    test: greater_than
+    value: 106                     # a uniform disc of radius 150 has a radius of gyration of 150 / sqrt(2)
+    skip_checks:
+      population_scale: "the starting disc grows with the domain"
+budget: {seeds: 20, jobs: 4}

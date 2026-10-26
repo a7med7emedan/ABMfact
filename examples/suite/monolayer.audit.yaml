@@ -1,0 +1,25 @@
+# Reference problem 1: monolayer growth with contact inhibition.
+title: "Reference problem 1: monolayer with contact inhibition"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/monolayer.yaml
+params:
+  experiment.max_time: 1440
+claims:
+  - id: M1
+    statement: "the colony more than doubles in a day"
+    metric: last(cells)
+    test: greater_than
+    value: 80                      # twice the 40 starting cells
+    skip_checks:
+      population_scale: "the cell count is extensive and doubles with the domain"
+  - id: M2
+    statement: "weaker contact inhibition gives a larger colony"
+    metric: last(cells)
+    test: monotone_increasing
+    over: rules[0].half_max
+    where: {"rules[0].half_max": [0.25, 0.5]}
+    skip_checks:
+      population_scale: "the cell count is extensive and doubles with the domain"
+budget: {seeds: 20, jobs: 4}

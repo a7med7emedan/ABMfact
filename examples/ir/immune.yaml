@@ -1,0 +1,48 @@
+# Immune attack: motile effector cells attack the tumour cells they touch, and damage triggers apoptosis.
+# Run:  abmfact run-model examples/ir/immune.yaml --engine reference --out results/immune
+schema_version: "0.1"
+name: immune
+description: >
+  A small tumour colony with effector cells scattered around it. Effectors wander, start attacks on
+  tumour cells they touch, and add damage while an attack lasts. Tumour cells repair damage slowly, and
+  damage raises their apoptosis rate, as in the PhysiCell 1.14.2 immune_function sample.
+space:
+  dimensions: 2
+  bounds: {x_min: -250, x_max: 250, y_min: -250, y_max: 250}
+  voxel: {dx: 25, dy: 25}
+  boundary: closed
+cell_types:
+  - name: tumour
+    volume: 2494
+    cycle: {model: live, rates: [0.0007]}
+    death: {apoptosis_rate: 0.00001}
+    integrity: {damage_repair_rate: 0.01}
+    mechanics: {adhesion_strength: 0.4, repulsion_strength: 10}
+  - name: effector
+    volume: 1000
+    cycle: {model: live, rates: [0.0]}
+    mechanics: {adhesion_strength: 0.0, repulsion_strength: 10, max_adhesion_distance: 1.25}
+    motility: {speed: 1.0, persistence_time: 10}
+    interactions: {attack_rates: {tumour: 0.02}, damage_rate: 1.0, attack_duration: 30}
+rules:
+  - {cell_type: tumour, signal: damage, direction: increases, behaviour: apoptosis,
+     saturation_value: 0.05, half_max: 15, hill_power: 4}
+  - {cell_type: tumour, signal: pressure, direction: decreases, behaviour: cycle entry,
+     saturation_value: 0, half_max: 0.5, hill_power: 4}
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: tumour, count: 100, centre: [0, 0], radius: 100}
+    - {kind: disc, cell_type: effector, count: 40, centre: [0, 0], radius: 200}
+observables:
+  - {name: tumour_live, kind: live_count, cell_type: tumour}
+  - {name: tumour_dead, kind: dead_count, cell_type: tumour}
+  - {name: effectors, kind: live_count, cell_type: effector}
+experiment:
+  max_time: 1440
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 60
+provenance:
+  source: ABMfact reference problem, after the PhysiCell 1.14.2 immune_function sample
+  licence: Apache-2.0

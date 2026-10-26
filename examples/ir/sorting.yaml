@@ -1,0 +1,49 @@
+# Differential adhesion: two cell types start mixed; the adhesive type holds together while the other disperses.
+# Run:  abmfact run-model examples/ir/sorting.yaml --engine reference --out results/sorting
+schema_version: "0.1"
+name: sorting
+description: >
+  Two cell types start randomly mixed in a disc. Dark cells adhere strongly to each other and weakly to
+  light cells; light cells barely adhere at all. Random motility spreads the colony over three days, and
+  differential adhesion predicts that the dark cells hold together while the light cells disperse.
+space:
+  dimensions: 2
+  bounds: {x_min: -300, x_max: 300, y_min: -300, y_max: 300}
+  voxel: {dx: 30, dy: 30}
+  boundary: closed
+cell_types:
+  - name: dark
+    volume: 2494
+    cycle: {model: live, rates: [0.0]}
+    mechanics:
+      adhesion_strength: 2.0
+      repulsion_strength: 10
+      max_adhesion_distance: 1.5
+      adhesion_affinities: {dark: 1.0, light: 0.1}
+    motility: {speed: 0.5, persistence_time: 5}
+  - name: light
+    volume: 2494
+    cycle: {model: live, rates: [0.0]}
+    mechanics:
+      adhesion_strength: 0.1
+      repulsion_strength: 10
+      max_adhesion_distance: 1.5
+      adhesion_affinities: {dark: 0.1, light: 1.0}
+    motility: {speed: 0.5, persistence_time: 5}
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: dark, count: 60, centre: [0, 0], radius: 150}
+    - {kind: disc, cell_type: light, count: 60, centre: [0, 0], radius: 150}
+observables:
+  - {name: dark_spread, kind: radius_of_gyration, cell_type: dark}
+  - {name: light_spread, kind: radius_of_gyration, cell_type: light}
+  - {name: cells, kind: live_count}
+experiment:
+  max_time: 4320
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 360
+provenance:
+  source: ABMfact reference problem (differential adhesion, after Steinberg's hypothesis)
+  licence: Apache-2.0

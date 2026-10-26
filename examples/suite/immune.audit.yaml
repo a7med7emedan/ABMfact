@@ -1,0 +1,23 @@
+# Reference problem 6: effector cells attack tumour cells, and damage triggers apoptosis.
+title: "Reference problem 6: immune attack"
+model:
+  adapter: engine
+  engine: reference
+  model: ../ir/immune.yaml
+claims:
+  - id: I1
+    statement: "more attack leaves fewer live tumour cells"
+    metric: last(tumour_live)
+    test: monotone_decreasing
+    over: cell_types[effector].interactions.attack_rates.tumour
+    where: {"cell_types[effector].interactions.attack_rates.tumour": [0.0, 0.02]}
+    skip_checks:
+      population_scale: "the cell count is extensive and doubles with the domain"
+  - id: I2
+    statement: "attacked tumour cells die"
+    metric: max(tumour_dead)
+    test: greater_than
+    value: 0
+    skip_checks:
+      population_scale: "the dead count is extensive and grows with the domain"
+budget: {seeds: 20, jobs: 4}
