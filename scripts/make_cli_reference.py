@@ -28,6 +28,7 @@ EXIT_CODES = {
     "export": "0 when the project was written.",
     "engines": "0.",
     "recommend": "0, also when no engine can run the model; the output says why.",
+    "compare": "0 unless an engine DISAGREEs with the baseline on a metric, then 1; 2 for an invalid comparison.",
 }
 
 

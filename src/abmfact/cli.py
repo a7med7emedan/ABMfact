@@ -313,6 +313,53 @@ def cmd_converge(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare(args: argparse.Namespace) -> int:
+    """Run ``abmfact compare``; exit code 1 when any engine disagrees with the baseline, else 0."""
+    import yaml
+
+    from .verify.compare import CompareError, compare, comparison_from_model, load_comparison
+
+    try:
+        raw = yaml.safe_load(Path(args.target).read_text(encoding="utf-8")) or {}
+        if "schema_version" in raw:  # an ABM-IR model: a quick comparison from the options
+            if not args.engines or not args.metric:
+                raise CompareError("comparing a model directly needs --engines and at least one --metric")
+            cmp = comparison_from_model(args.target, args.engines.split(","), args.metric, args.budget,
+                                        args.seeds or 10, args.jobs or 1)  # fmt: skip
+        else:
+            cmp = load_comparison(args.target, {"seeds": args.seeds, "jobs": args.jobs})
+    except CompareError as exc:
+        raise ConfigError(str(exc)) from exc
+    result = compare(cmp, workdir=args.workdir, store=args.store, progress=_progress(args.quiet))
+    if not args.quiet:
+        _print_comparison(result.data)
+    if args.out:
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "compare.json").write_text(result.to_json(), encoding="utf-8")
+        if not args.quiet:
+            print(f"  wrote {out / 'compare.json'}")
+    return 1 if result.any_disagree else 0
+
+
+def _print_comparison(d: dict[str, Any]) -> None:
+    base = d["comparison"]["baseline"]
+    print(f"  {d['comparison']['title']}: compared with {base}")
+    for name, e in d["engines"].items():
+        if not e["runs"]:
+            print(f"  {name:<12} not run: {e['reason']}")
+            continue
+        fid = ", ".join(f"{k} {v}" for k, v in e.get("fidelity", {}).items() if v)
+        runs = f"{e['ok'] + e['cached']} runs" + (f", {e['failed']} failed" if e["failed"] else "")
+        print(f"  {name:<12} {e.get('tier', '')} {runs}" + (f"; translated: {fid}" if fid else ""))
+    for v in d["verdicts"]:
+        print(f"  {v['metric']:<22} {v['engine']:<12} {v['verdict']:<13} {v['reason']}")
+    for c in d["claims"]:
+        statuses = ", ".join(f"{n} {s}" for n, s in c["status"].items())
+        same = "same conclusion" if c["same_conclusion"] else "DIFFERENT conclusions"
+        print(f"  claim {c['claim']:<6} {same}: {statuses}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser with every subcommand and its options."""
     p = argparse.ArgumentParser(
@@ -378,6 +425,17 @@ def build_parser() -> argparse.ArgumentParser:
     ex.add_argument("-o", "--output", required=True, help="project folder to write")
     ex.add_argument("--base", help="project whose C++ to use (default: PhysiCell's template project)")
     ex.add_argument("-q", "--quiet", action="store_true", help="print nothing; the fidelity report is still written")
+    cp = sub.add_parser("compare", help="run one model in several engines and compare against a disagreement budget")
+    cp.add_argument("target", help="comparison YAML file, or an ABM-IR model with --engines and --metric")
+    cp.add_argument("--engines", help="comma-separated engines for a model; the first is the baseline")
+    cp.add_argument("--metric", action="append", help="metric to compare, e.g. 'last(cells)'; repeatable")
+    cp.add_argument("--budget", type=float, default=0.10, help="relative budget for --metric (default 0.10)")
+    cp.add_argument("--seeds", type=int, help="seeds per engine")
+    cp.add_argument("--jobs", type=int, help="runs at once")
+    cp.add_argument("--out", help="folder for compare.json")
+    cp.add_argument("--store", help="run store: finished runs are kept and reused")
+    cp.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
+    cp.add_argument("-q", "--quiet", action="store_true", help="print only errors")
     en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
     en.add_argument("--json", action="store_true", help="print JSON instead of a table")
     rc = sub.add_parser(
@@ -416,6 +474,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_converge(args)
         if args.command == "export":
             return cmd_export(args)
+        if args.command == "compare":
+            return cmd_compare(args)
         return cmd_replay(args)
     except (ConfigError, ClaimError, AdapterError, EngineError, json.JSONDecodeError, FileNotFoundError) as exc:
         print(f"abmfact: error: {exc}", file=sys.stderr)

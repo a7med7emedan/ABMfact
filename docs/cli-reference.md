@@ -165,6 +165,29 @@ abmfact export model --to {physicell} --output OUTPUT [--base BASE] [--quiet]
 
 Exit status: 0 when the project was written.
 
+## `abmfact compare`
+
+Run one model in several engines and compare against a disagreement budget.
+
+```text
+abmfact compare target [--engines ENGINES] [--metric METRIC] [--budget BUDGET] [--seeds SEEDS] [--jobs JOBS] [--out OUT] [--store STORE] [--workdir WORKDIR] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `target` | comparison YAML file, or an ABM-IR model with --engines and --metric | required |
+| `--engines` | comma-separated engines for a model; the first is the baseline |  |
+| `--metric` | metric to compare, e.g. 'last(cells)'; repeatable |  |
+| `--budget` | relative budget for --metric (default 0.10) | `0.1` |
+| `--seeds` | seeds per engine |  |
+| `--jobs` | runs at once |  |
+| `--out` | folder for compare.json |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 unless an engine DISAGREEs with the baseline on a metric, then 1; 2 for an invalid comparison.
+
 ## `abmfact engines`
 
 List engines, their capabilities and whether they run here.

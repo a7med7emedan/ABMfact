@@ -1,6 +1,6 @@
 # Verification
 
-Convergence under time-step and voxel refinement.
+Convergence under time-step and voxel refinement, and comparison of one model across engines.
 
 ## `abmfact.verify`
 
@@ -12,4 +12,10 @@ Convergence under time-step and voxel refinement.
 
 ```{eval-rst}
 .. automodule:: abmfact.verify.convergence
+```
+
+## `abmfact.verify.compare`
+
+```{eval-rst}
+.. automodule:: abmfact.verify.compare
 ```

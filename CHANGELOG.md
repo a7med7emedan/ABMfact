@@ -8,6 +8,10 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- `abmfact compare`: runs one ABM-IR model in several engines over the same seeds and compares each metric with
+  a baseline engine against a declared disagreement budget (AGREE, DISAGREE, INCONCLUSIVE with the seeds
+  needed, NOT_RUN), with each engine's fidelity report and, for threshold claims, whether every engine draws
+  the same conclusion. Runs can be kept in a run store and reused.
 - Translation between ABM-IR and Morpheus (tier T1) with a fidelity report, in stated units of micron per
   node and minutes per step: one MorpheusML file with cell states, Hill-type rules as Morpheus expressions,
   division, death, motility, fields with secretion and uptake, attack and timed boundary values. MorpheusML
