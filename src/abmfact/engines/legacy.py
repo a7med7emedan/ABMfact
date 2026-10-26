@@ -50,7 +50,7 @@ class AdapterEngine(Engine):
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
         adapter = model if isinstance(model, Adapter) else self.adapter
         if not isinstance(adapter, Adapter):
-            return [f"{self.name} runs v0.1 adapters, got {type(model).__name__}"]
+            return [f"the {self.name} engine runs {self.description}, set up in an audit file"]
         return []
 
     def prepare(

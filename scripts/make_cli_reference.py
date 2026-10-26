@@ -27,6 +27,7 @@ EXIT_CODES = {
     "import": "0 when the model was written.",
     "export": "0 when the project was written.",
     "engines": "0.",
+    "recommend": "0, also when no engine can run the model; the output says why.",
 }
 
 

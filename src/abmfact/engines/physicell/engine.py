@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from ...knobs import Knobs
-from ...records import RunRecord, RunRequest
+from ...records import FidelityReport, RunRecord, RunRequest
 from ...records.record import canonical
 from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle
 from .build import BINARY, IMAGE, Toolchain, build_project, detect_toolchain, is_project, source_hash
@@ -161,6 +161,17 @@ class PhysiCellEngine(Engine):
             (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")
             (out / ".exported").write_text(m.name, encoding="utf-8")
         return out, xml_params
+
+    def translation(self, model: Any) -> FidelityReport | None:
+        """The fidelity report of exporting an ABM-IR model to a PhysiCell project, or ``None`` for a project."""
+        from ...ir import IRModel
+        from .translate import export_project
+
+        loaded = self.load(model)
+        if not isinstance(loaded, IRModel):
+            return None
+        with tempfile.TemporaryDirectory() as tmp:
+            return export_project(loaded, Path(tmp) / "project", base=self.base)
 
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
         try:

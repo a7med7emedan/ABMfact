@@ -8,6 +8,9 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- `abmfact recommend`: ranks every engine for one model by whether it can run it, how faithfully (a dry-run
+  translation's fidelity counts), which audit checks become testable and whether it is installed. Engines
+  gain an optional `translation()` method for this.
 - ABM-IR 0.1: a versioned, engine-neutral model description (space, substrates, cell types, Hill-type
   rules, intracellular model references, initial conditions, timed events, observables, experiment
   settings, provenance and native extensions), with a JSON Schema, validation errors that name the place

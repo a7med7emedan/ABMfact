@@ -23,6 +23,8 @@ def as_model(model: Any) -> IRModel:
     if isinstance(model, IRModel):
         return model
     if isinstance(model, str | Path):
+        if Path(model).is_dir():
+            raise EngineError(f"the reference engine runs ABM-IR files, and {model} is a folder")
         return load_model(model)
     raise EngineError(f"the reference engine runs ABM-IR models, got {type(model).__name__}")
 

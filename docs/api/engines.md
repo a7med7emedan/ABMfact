@@ -20,6 +20,12 @@ The engine contract, the registry, and the engines that ship with ABMfact.
 .. automodule:: abmfact.engines.registry
 ```
 
+## `abmfact.engines.recommend`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.recommend
+```
+
 ## `abmfact.engines.legacy`
 
 ```{eval-rst}

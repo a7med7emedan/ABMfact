@@ -178,3 +178,19 @@ abmfact engines [--json]
 | `--json` | print JSON instead of a table |  |
 
 Exit status: 0.
+
+## `abmfact recommend`
+
+Rank the engines for one model: can they run it, how faithfully, what checks.
+
+```text
+abmfact recommend model [--details] [--json]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `model` | ABM-IR file, or a native project folder | required |
+| `--details` | list every approximated or dropped part |  |
+| `--json` | print JSON instead of a table |  |
+
+Exit status: 0, also when no engine can run the model; the output says why.

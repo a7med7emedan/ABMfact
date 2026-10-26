@@ -25,6 +25,21 @@ outputs:
 abmfact replay examples/command/audit.yaml --seed 3 --knobs '{"update_order": "synchronous"}'
 ```
 
+## Choose an engine for a model
+
+`abmfact recommend` ranks every engine for one model: whether it can run the model, how faithfully, which
+audit checks become testable with it, and whether it is installed here.
+
+```bash
+abmfact recommend examples/ir/monolayer.yaml
+abmfact recommend examples/ir/monolayer.yaml --details   # list every approximated part
+```
+
+For the monolayer example, the reference engine reads ABM-IR directly and can test every check, while
+PhysiCell runs a translation with five approximated parts and can test determinism, random streams, the
+time step and convergence. A native PhysiCell project runs only in PhysiCell, as given. Engines that cannot
+run the model are listed with the reason.
+
 ## Audit a model written in another language
 
 The `command` adapter runs any program that reads a JSON request on standard input and prints JSON

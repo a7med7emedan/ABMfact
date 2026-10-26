@@ -25,6 +25,9 @@ The base class supplies the rest:
   streams.
 - `availability` reports a built-in engine. Override it when the engine needs an installed program.
 - `load` turns what the user gave (often a file path) into the model object `prepare` takes.
+- `translation` reports how faithfully the engine would run a model, without running it. The default says
+  the model runs as given. An engine that translates ABM-IR into its own format returns the fidelity report
+  of a dry-run translation, and `abmfact recommend` uses it to rank engines.
 
 ## A complete example
 

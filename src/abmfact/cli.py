@@ -160,6 +160,40 @@ def cmd_engines(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_recommend(args: argparse.Namespace) -> int:
+    """Run ``abmfact recommend`` and rank the engines for one model; exit code 0."""
+    from .engines.recommend import recommend
+
+    recs = recommend(args.model)
+    if args.json:
+        json.dump([r.to_dict() for r in recs], sys.stdout, indent=2)
+        sys.stdout.write("\n")
+        return 0
+    runnable = [r for r in recs if r.runs]
+    width = max(len(r.engine) for r in recs) + 2
+    print(f"engines for {args.model}, best first:" if runnable else f"no engine can run {args.model}:")
+    for k, r in enumerate(runnable, 1):
+        if r.route == "translated":
+            counts = ", ".join(f"{s} {n}" for s, n in r.fidelity.items() if n)
+            how = f"translated ({r.tier}): {counts}"
+        else:
+            how = f"{r.route} ({r.tier}), nothing translated"
+        here = "installed here" if r.available else f"not installed here: {r.detail}"
+        print(f"{k:>2}. {r.engine:<{width}}{r.description}")
+        print(f"    {'':<{width}}{how}; {here}")
+        print(f"    {'':<{width}}testable checks: {', '.join(r.checks) or 'none'}")
+        for path, status, note in r.losses if args.details else ():
+            print(f"    {'':<{width}}{status:<13}{path}: {note}")
+    blocked = [r for r in recs if not r.runs]
+    if blocked:
+        print("cannot run it:")
+        for r in blocked:
+            print(f"    {r.engine:<{width}}{'; '.join(r.reasons)}")
+    if runnable and not args.details and any(r.losses for r in runnable):
+        print("add --details to list every approximated or dropped part")
+    return 0
+
+
 def _options(pairs: list[str] | None) -> dict[str, Any]:
     """``KEY=VALUE`` engine options; a value is read as JSON when it parses, else kept as text."""
     out: dict[str, Any] = {}
@@ -346,6 +380,12 @@ def build_parser() -> argparse.ArgumentParser:
     ex.add_argument("-q", "--quiet", action="store_true", help="print nothing; the fidelity report is still written")
     en = sub.add_parser("engines", help="list engines, their capabilities and whether they run here")
     en.add_argument("--json", action="store_true", help="print JSON instead of a table")
+    rc = sub.add_parser(
+        "recommend", help="rank the engines for one model: can they run it, how faithfully, what checks"
+    )
+    rc.add_argument("model", help="ABM-IR file, or a native project folder")
+    rc.add_argument("--details", action="store_true", help="list every approximated or dropped part")
+    rc.add_argument("--json", action="store_true", help="print JSON instead of a table")
     return p
 
 
@@ -366,6 +406,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_init(args)
         if args.command == "engines":
             return cmd_engines(args)
+        if args.command == "recommend":
+            return cmd_recommend(args)
         if args.command == "run-model":
             return cmd_run_model(args)
         if args.command == "import":

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from ..knobs import KNOB_NAMES, Knobs, Support, derived_seed
-from ..records import RunOutputs, RunRecord, RunRequest
+from ..records import FidelityReport, RunOutputs, RunRecord, RunRequest
 from ..records.cache import cache_bypassed
 
 if TYPE_CHECKING:
@@ -135,6 +135,15 @@ class Engine(ABC):
     def load(self, model: Any) -> Any:
         """Turn a user-supplied model (often a path) into what :meth:`prepare` takes. Default: unchanged."""
         return model
+
+    def translation(self, model: Any) -> FidelityReport | None:
+        """How faithfully this engine would run ``model``, from a dry run of its translation.
+
+        ``None`` means the engine runs the model as given, with nothing translated: a native project, or an
+        ABM-IR model that the engine reads directly. An engine that translates ABM-IR into its own format
+        overrides this and returns the fidelity report of that translation, without running anything.
+        """
+        return None
 
     def support_for(self, model: Any) -> Support:
         """The knobs this engine honours for this model, found by asking :meth:`refuse` about each one.
