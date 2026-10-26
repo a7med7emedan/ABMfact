@@ -119,6 +119,9 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
+          # The runners' default Azure mirror is at times very slow for TeX Live; the main archive is not.
+          sudo sed -i 's|http://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' \
+            /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
           # Rebuilding the man-page index after installing TeX Live takes many minutes on the runners.
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
