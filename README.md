@@ -11,45 +11,67 @@
   <a href="https://github.com/a7med7emedan/ABMfact/blob/main/LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-green" alt="Apache-2.0"></a>
 </p>
 
-**ABMfact tells you whether the conclusions of an agent-based model are findings or implementation
-artefacts.**
+**ABMfact runs agent-based models in several simulators through one interface, and tells you whether
+their conclusions are findings or implementation artefacts.**
 
-You state your model's conclusions as checkable claims. ABMfact reruns the model under changes that a
-correct implementation must not care about: activation order, agent labels, random streams, where the
-world sits on the grid, the time step and the population size. It then reports, claim by claim, which
-conclusions survive. Every verdict comes with an interval, a reason and a one-line command that
-reproduces it.
+A model stays in its own format, or is written once in ABM-IR, a shared description that ABMfact
+translates for each simulator. Every translation reports what it kept exactly, approximated or dropped.
+Every run is recorded with its engine version, settings and seed, so it can be repeated. On top sit the
+checks: ABMfact reruns the model under changes that a correct implementation must not care about, and
+refines its time step and voxel size. It then reports, claim by claim, which conclusions survive. Each
+verdict comes with an interval, a reason and a command that reproduces it.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works-dark.svg">
-    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works.svg" alt="The audit pipeline: a model and its claims run under a baseline and six perturbed conditions, over many seeds; intervals and equivalence tests give a verdict per claim and check (ROBUST, SHIFTED or FRAGILE), written to report.html, results.json and an RO-Crate record." width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/platform-dark.svg">
+    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/platform.svg" alt="How ABMfact fits together: a model in its own format or in ABM-IR is translated with a fidelity report, run by an engine on this machine, in a container or on Slurm, recorded in the run store, and checked by the seven audit checks and convergence, which write report.html, results.json and an RO-Crate record." width="100%">
   </picture>
 </p>
 
-## Why
+## Supported tools
 
-Galán et al. (2009) separated two ways a model can mislead. An *error* is code that does not do what
-the modeller meant. An *artefact* is a result produced by an implementation choice that is not part of
-the theory, such as the order agents act in. Both are hard to see by reading code, and both survive
-peer review. ABMfact turns that distinction into automatic, repeatable tests, so the question "is this
-an artefact?" gets an answer with a seed attached.
+| Tool | How ABMfact runs it | ABM-IR translation | Status |
+|---|---|---|---|
+| [PhysiCell](https://github.com/MathCancer/PhysiCell) 1.14.2 and PhysiBoSS | projects run as they are, built with GNU g++ or in a pinned container | both ways, with a fidelity report | available |
+| Reference engine | a small built-in 2D simulator with PhysiCell's mechanics and rule semantics | runs ABM-IR directly | available |
+| [Mesa](https://github.com/projectmesa/mesa) 3 | model classes, through the `mesa` adapter | not yet | available for audits |
+| [NetLogo](https://ccl.northwestern.edu/netlogo/) | `.nlogo` models, through pynetlogo | not yet | available for audits |
+| Python | any `run(params, seed, knobs)` function | not needed | available |
+| Any other language | a program that reads JSON on standard input and prints JSON | not needed | available |
+| CompuCell3D, Morpheus | | | planned next |
+| Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py | | | planned |
+
+`abmfact engines` lists the engines installed on your machine and what each can do. Another package can
+add an engine through an entry point; see
+[writing an engine plug-in](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engine-plugins.md).
+
+## Install
+
+ABMfact needs Python 3.11 to 3.13. Version 0.2 is not on PyPI yet, so install it from GitHub:
+
+```bash
+pip install "abmfact @ git+https://github.com/a7med7emedan/ABMfact"
+```
+
+Once it is released, `pip install abmfact` will do. Extras add optional parts: `[mesa]`, `[netlogo]`,
+`[store]` (Parquet, Zarr and DuckDB), `[physicell]` (the pcdl output reader) and `[docs]`.
 
 ## Quick start
 
+See it work on the planted-fault zoo, about a minute on four cores:
+
 ```bash
-pip install abmfact            # add [mesa] or [netlogo] for those frameworks
-abmfact demo --jobs 4          # audit the planted-fault zoo (about a minute on four cores)
-abmfact init                   # write a commented audit.yaml for your model
-abmfact run audit.yaml --out results/
+abmfact demo --jobs 4
 ```
 
-`results/report.html` opens in any browser. `abmfact check audit.yaml` exits with status 1 when any claim
-is fragile, so it fits in continuous integration.
+**Audit your own model.** Write one YAML file with the model, its parameters, the claims to test and a
+budget of seeds:
 
-## What you write
-
-One YAML file: the model, its parameters, the claims and a budget.
+```bash
+abmfact init                          # a commented audit.yaml to fill in
+abmfact run audit.yaml --out results/
+abmfact check audit.yaml              # exits with status 1 if any claim is FRAGILE or SHIFTED, for CI
+```
 
 ```yaml
 model:
@@ -76,13 +98,6 @@ claims:
     test: monotone_increasing
     over: beta
     where: {beta: [0.25, 0.4]}
-  - id: C3
-    statement: "the epidemic peaks within 25 time units"
-    metric: peak_time
-    test: less_than
-    value: 25
-    skip_checks:
-      population_scale: "peak time legitimately grows with system size"
 
 budget: {seeds: 100, jobs: 4}
 ```
@@ -90,10 +105,66 @@ budget: {seeds: 100, jobs: 4}
 Claims test conclusions, not raw numbers, because a number can move while the conclusion holds. Write
 them from the paper or the abstract before running anything.
 
-## What you get
+**Run a biological model.** Run an ABM-IR model, move a PhysiCell project into ABM-IR and back, and check
+convergence:
 
-For example, auditing the zoo model with a stale-buffer bug (`abmfact.zoo:fault_stale_state`, claims as
-in [examples/zoo/audit.yaml](https://github.com/a7med7emedan/ABMfact/blob/main/examples/zoo/audit.yaml)) gives:
+```bash
+abmfact run-model examples/ir/monolayer.yaml --engine reference --out results/monolayer
+abmfact import physicell path/to/project -o model.yaml
+abmfact export model.yaml --to physicell -o exported/
+abmfact converge examples/ir/audit_monolayer.yaml
+```
+
+Any audit file can name an engine and a model (`adapter: engine`), so every check applies to models run
+in any engine.
+
+## Why
+
+Galán et al. (2009) separated two ways a model can mislead. An *error* is code that does not do what
+the modeller meant. An *artefact* is a result produced by an implementation choice that is not part of
+the theory, such as the order agents act in. Both are hard to see by reading code, and both survive
+peer review. ABMfact turns that distinction into automatic, repeatable tests, so the question "is this
+an artefact?" gets an answer with a seed attached.
+
+## The checks
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works-dark.svg">
+    <img src="https://raw.githubusercontent.com/a7med7emedan/ABMfact/main/assets/how-it-works.svg" alt="The audit pipeline: a model and its claims run under a baseline and six perturbed conditions, over many seeds; intervals and equivalence tests give a verdict per claim and check (ROBUST, SHIFTED or FRAGILE), written to report.html, results.json and an RO-Crate record." width="100%">
+  </picture>
+</p>
+
+| Check | Question | Typical cause when it fails |
+|---|---|---|
+| `determinism` | Does the same seed always give the same result? | an unseeded generator, set or dict iteration order, wall-clock time |
+| `update_order` | Does the conclusion survive a different activation order? | stale or partial state reads, buffers reused between steps |
+| `agent_order` | Does it survive relabelling the agents? | `agents[:k]`, ties broken by id |
+| `rng_streams` | Does it survive fresh, independent random streams? | a hard-coded seed, streams shared between processes |
+| `grid` | Does it survive moving or rotating the world on the torus? | a boundary that does not wrap, absolute array positions |
+| `time_step` | Does it survive halving the time step? | probabilities not converted with the current step |
+| `population_scale` | Does it survive doubling the population at fixed density? | a size or count fixed at the calibration value |
+| `convergence` | Does the result settle as the time step and voxel size shrink? | an explicit solver past its stability limit, a rate tied to one step size |
+
+A check needs the model or its engine to honour its knob. When neither does, the check is reported as
+`NOT_TESTABLE`, never skipped silently. The `rng_streams` check always runs: when a model does not manage
+its own streams, ABMfact remaps the seed.
+
+| Verdict | Meaning |
+|---|---|
+| `ROBUST` | the claim holds under every variant, and every result is statistically equivalent to baseline |
+| `SHIFTED` | the claim still holds, but a result moved beyond its tolerance, or its spread doubled or halved |
+| `FRAGILE` | the claim fails under a variant, or the same seed gave a different result |
+| `INCONCLUSIVE` | the intervals are too wide to decide; the report says how many seeds would settle it |
+| `BASELINE_FAILS` | the claim does not hold even before anything is changed |
+| `NOT_TESTABLE`, `SKIPPED` | the model does not expose the knob, or the claim declares the check out of scope, with a reason |
+
+Convergence has its own verdicts: `CONVERGED`, `NOT_CONVERGED`, `INCONCLUSIVE` and `NOT_TESTABLE`, with
+the observed order and Roache's grid convergence index. Each audit writes `report.html` (verdicts,
+interval plots, likely causes and reproducer commands), `results.json` for scripts and CI, and an
+RO-Crate 1.1 record so the audit itself can be archived and cited.
+
+For example, the zoo model with a stale-buffer bug (`abmfact.zoo:fault_stale_state`) gives:
 
 | Claim | determinism | update order | agent order | rng streams | grid | time step | population |
 |---|---|---|---|---|---|---|---|
@@ -105,54 +176,13 @@ in [examples/zoo/audit.yaml](https://github.com/a7med7emedan/ABMfact/blob/main/e
 with the likely cause: *stale or partial state reads: agents see a state that depends on the scheduling
 path*.
 
-Each run writes three files:
-
-- `report.html`: the verdict table, one interval plot per claim and condition, likely causes, and
-  reproducer commands. Self-contained, light and dark.
-- `results.json`: every interval, comparison and verdict, for scripts and CI. Identical across reruns
-  apart from the timestamp.
-- `ro-crate-metadata.json`: an RO-Crate 1.1 record of the audit file, results and report, with SHA-256
-  hashes, so the audit itself can be archived and cited.
-
-## The checks
-
-| Check | Question | Typical cause when it fails |
-|---|---|---|
-| `determinism` | Does the same seed always give the same result? | an unseeded generator, set or dict iteration order, wall-clock time |
-| `update_order` | Does the conclusion survive a different activation order? | stale or partial state reads, buffers reused between steps |
-| `agent_order` | Does it survive relabelling the agents? | `agents[:k]`, ties broken by id |
-| `rng_streams` | Does it survive fresh, independent random streams? | a hard-coded seed, streams shared between processes |
-| `grid` | Does it survive moving or rotating the world on the torus? | a boundary that does not wrap, absolute array positions |
-| `time_step` | Does it survive halving the time step? | probabilities not converted with the current step |
-| `population_scale` | Does it survive doubling the population at fixed density? | a size or count fixed at the calibration value |
-
-A check needs the model to honour its knob. When a model does not, the check is reported as
-`NOT_TESTABLE`, never skipped silently. The `rng_streams` check always runs: when a model does not manage
-its own streams, ABMfact remaps the seed.
-
-## Verdicts
-
-| Verdict | Meaning |
-|---|---|
-| `ROBUST` | the claim holds under every variant, and every result is statistically equivalent to baseline |
-| `SHIFTED` | the claim still holds, but a result moved beyond its tolerance, or its spread doubled or halved |
-| `FRAGILE` | the claim fails under a variant, or the same seed gave a different result |
-| `INCONCLUSIVE` | the intervals are too wide to decide; the report says how many seeds would settle it |
-| `BASELINE_FAILS` | the claim does not hold even before anything is changed |
-| `NOT_TESTABLE`, `SKIPPED` | the model does not expose the knob, or the claim declares the check out of scope, with a reason |
-
-Decisions use one-sided tests at `alpha` (0.05 by default, so 90% intervals) and a three-outcome
-equivalence test against a tolerance, 10% of the baseline mean unless the claim sets one. See
-[docs/statistics.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/statistics.md).
-
 ## Validation: the planted-fault zoo
 
 A checker is only as good as its evidence that it catches what it claims to catch, and nothing else.
 `abmfact.zoo` holds one clean SIR model on a torus and seven copies of it, each with one realistic bug,
 plus a second clean model with a diffusing nutrient and one copy whose diffusion step breaks its
-stability limit. `abmfact demo` audits all ten with every check and checks their convergence. The figure
-below is drawn from a real run with 100 seeds per condition by
-[scripts/make_figures.py](https://github.com/a7med7emedan/ABMfact/blob/main/scripts/make_figures.py).
+stability limit. `abmfact demo` audits all ten with every check. The figure below is drawn from a real
+run with 100 seeds per condition, and the test suite requires exactly this matrix.
 
 <p align="center">
   <picture>
@@ -161,82 +191,50 @@ below is drawn from a real run with 100 seeds per condition by
   </picture>
 </p>
 
-The test suite requires this exact matrix:
+Each fault is caught by its own check and by no other, with one documented overlap: `dt_unscaled` is
+also caught by convergence, because both checks refine the time step. The clean models are never
+flagged. The bugs are described in
+[the zoo page](https://github.com/a7med7emedan/ABMfact/blob/main/docs/zoo.md) and marked `# FAULT` in
+the source.
 
-```
-                    determinism  update order  agent order  rng streams  grid    time step  population scale  convergence
-clean               .            .             .            .            .       .          .                 .
-nondeterminism      CAUGHT       .             .            .            .       .          .                 .
-stale_state         .            CAUGHT        .            .            .       .          .                 .
-id_dependence       .            .             CAUGHT       .            .       .          .                 .
-ignored_seed        .            .             .            CAUGHT       .       .          .                 .
-boundary            .            .             .            .            CAUGHT  .          .                 .
-dt_unscaled         .            .             .            .            .       CAUGHT     .                 CAUGHT
-density             .            .             .            .            .       .          CAUGHT            .
-field_clean         .            .             .            .            .       .          .                 .
-unstable_diffusion  .            .             .            .            .       .          .                 CAUGHT
-```
+## Documentation
 
-Each fault is caught by its own check and by no other, with one documented overlap: `dt_unscaled` is also
-caught by convergence. Both checks refine the time step, and a rate tied to the calibration step
-genuinely does not converge, so two checks rightly flag the same bug. The `unstable_diffusion` fault is
-identical to its clean model at the audit's resolution and is caught by convergence alone. The clean
-models are never flagged. The bugs are described in
-[docs/zoo.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/zoo.md) and marked `# FAULT` in the source.
+The manual is in [`docs/`](https://github.com/a7med7emedan/ABMfact/tree/main/docs) and builds with
+Sphinx as web pages and as a PDF. It covers getting started, the user guide, ABM-IR and each engine,
+recipes, the command-line and Python API references, and a guide to writing an engine plug-in.
 
-## Adapters
+## Roadmap
 
-| Adapter | For | Notes |
-|---|---|---|
-| `python` | any `run(params, seed, knobs)` callable | the fastest path |
-| `mesa` | Mesa 3 model classes | knobs map to constructor keywords; `pip install "abmfact[mesa]"` |
-| `netlogo` | `.nlogo` models through pynetlogo | knobs map to globals; needs a local NetLogo |
-| `command` | anything else: R, Julia, Java, C++ | reads JSON on stdin, prints JSON on stdout |
+These are plans, not features yet:
 
-Working examples for each live in [examples/](https://github.com/a7med7emedan/ABMfact/tree/main/examples). See [docs/adapters.md](https://github.com/a7med7emedan/ABMfact/blob/main/docs/adapters.md).
-
-## Simulators and ABM-IR (0.2, in development)
-
-The platform core runs biological agent-based models in several simulators behind one interface:
-
-- **ABM-IR**, a versioned, engine-neutral model description with a JSON Schema
-  ([reference](https://github.com/a7med7emedan/ABMfact/blob/main/docs/ir-reference.md)).
-- **Engines** behind one contract, listed by `abmfact engines`: the v0.1 adapters, a small
-  [reference engine](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engines/reference.md), and
-  [PhysiCell and PhysiBoSS](https://github.com/a7med7emedan/ABMfact/blob/main/docs/engines/physicell.md),
-  built natively or in a pinned container.
-- **Translation** between PhysiCell projects and ABM-IR, each way with a fidelity report.
-- **Run records and a store**, so an identical run is served from disk, and local, container and Slurm
-  backends.
-- **Convergence**: does a result stop changing as the time step and voxel size shrink?
-  ([how](https://github.com/a7med7emedan/ABMfact/blob/main/docs/convergence.md)).
-
-```bash
-abmfact run-model examples/ir/monolayer.yaml --engine reference --out results/monolayer
-abmfact import physicell path/to/project -o model.yaml
-abmfact export model.yaml --to physicell -o exported/
-abmfact converge examples/ir/audit_monolayer.yaml
-```
-
-Any audit file can name an engine and a model (`adapter: engine`), so every check applies to models run
-in any engine. See the [architecture](https://github.com/a7med7emedan/ABMfact/blob/main/docs/architecture.md).
+- **Next:** CompuCell3D and Morpheus engines; a command that recommends which engine suits a given model,
+  from what each engine can run and how faithfully it translates; six reference problems run in every
+  engine; and comparison of the same model across simulators.
+- **Later:** calibration, sensitivity analysis and surrogate models through existing tools as plug-ins;
+  more engines; and a twin mode that re-audits a model each time new data recalibrates it.
 
 ## Limits
 
 ABMfact checks implementation choices that should not matter. It does not check whether the model is a
 good description of the world, and it cannot find a bug that changes no stated claim. Its power depends
 on the seeds you give it: an `INCONCLUSIVE` verdict is an honest answer, not a pass. Many comparisons are
-made in one audit, so treat a single marginal `SHIFTED` as a lead to investigate, not a conclusion.
+made in one audit, so treat a single marginal `SHIFTED` as a lead to investigate, not a conclusion. A
+translated model is a second implementation of the original, so read its fidelity report before
+comparing results.
 
 ## Citing
 
-If ABMfact helps your work, please cite it using [CITATION.cff](https://github.com/a7med7emedan/ABMfact/blob/main/CITATION.cff) (GitHub shows a "Cite this
+If ABMfact helps your work, please cite it using
+[CITATION.cff](https://github.com/a7med7emedan/ABMfact/blob/main/CITATION.cff) (GitHub shows a "Cite this
 repository" button). The idea it implements comes from:
 
 > Galán, J. M., Izquierdo, L. R., Izquierdo, S. S., Santos, J. I., del Olmo, R., López-Paredes, A., &
 > Edmonds, B. (2009). Errors and artefacts in agent-based modelling. *Journal of Artificial Societies and
 > Social Simulation*, 12(1), 1. https://www.jasss.org/12/1/1.html
 
+When you run models in PhysiCell or PhysiBoSS through ABMfact, please cite those projects too.
+
 ## Licence
 
-Apache-2.0. See [LICENSE](https://github.com/a7med7emedan/ABMfact/blob/main/LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/a7med7emedan/ABMfact/blob/main/LICENSE). The PhysiCell
+template files bundled with the PhysiCell engine keep their BSD-3-Clause licence.
