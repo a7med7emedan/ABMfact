@@ -1,8 +1,8 @@
 # CompuCell3D
 
 `engine: compucell3d` runs [CompuCell3D](https://compucell3d.org) 4.10.0 projects, cellular Potts models on a
-lattice, as they are (tier T0). Translation between ABM-IR and CompuCell3D comes next; until then the engine
-refuses ABM-IR models with that reason, and `abmfact recommend` says so.
+lattice, as they are (tier T0), and ABM-IR models translated into CompuCell3D projects (tier T1), each with a
+fidelity report. `abmfact recommend` shows that report before anything runs.
 
 ## Running CompuCell3D
 
@@ -47,6 +47,43 @@ abmfact run-model path/to/project --engine compucell3d --out results/run --param
 CompuCell3D works in lattice sites and Monte Carlo steps (MCS). The common output schema uses micron and
 minutes, so the engine takes `site_length` (micron per site) and `mcs_minutes` (minutes per MCS), both 1 by
 default. With the defaults the outputs stay in sites and MCS, and every run record says so in a warning.
+
+## Translation (tier T1)
+
+ABM-IR describes centre-based cells in micron and minutes; CompuCell3D moves lattice sites between cells,
+step by Monte Carlo step. Every quantity is converted with two stated scales: `site_length` (2 micron per
+site by default for exports, so a cell of PhysiCell's default volume covers about 55 sites in 2D) and
+`mcs_minutes` (1 minute per MCS). An exported project has a CC3DML model for what the cellular Potts model
+does natively, `abmfact_model.json` with the rest of the model in lattice units, and a generic steppable
+module that runs it. Projects are exported once per model and translator version, and cached.
+
+| ABM-IR | Exported as | Fidelity |
+|---|---|---|
+| space | lattice of `size / site_length` sites; periodic edges kept | exact |
+| volume | target area (2D: the cross-section of the cell's sphere) in sites, volume stiffness 2 | approximated |
+| adhesion and affinities | contact energies `J(a,b) = 20 - 10 e / 0.4` (at least 2), medium 10, with `e` the geometric mean of strength times affinity | approximated |
+| repulsion | the volume constraint | approximated |
+| substrates | DiffusionSolverFE: coefficients in sites² per MCS, decay, initial and boundary values | exact, unless capped |
+| fast diffusion | above 200 sites² per MCS the coefficient is capped, with the ratio in the note; a larger `site_length` keeps more of it | approximated |
+| secretion and uptake | CompuCell3D's field secretor, at the cell's centre value | approximated |
+| live cycle, apoptosis, necrosis | the generated steppable; dead cells keep their size until their clearance time, then shrink away | exact cycle, approximated death |
+| rules | Hill-type rules combined as in PhysiCell 1.14.2 | exact |
+| pressure signal | the fraction of the cell's boundary touching other cells, as cellular Potts has no pressure | approximated |
+| motility and chemotaxis | a persistent walk pushed by an external potential of strength 50 x speed; the speed reached depends on temperature and the volume constraint | approximated |
+| attack and damage | as in PhysiCell 1.14.2, over lattice neighbours | exact |
+| initial placements | each cell on the free sites of a square of its target area, or the nearest free site, then grown to size | approximated |
+| timed boundary values (a drug pulse) | held on every edge site while the event lasts | approximated |
+| phagocytosis, fusion, transformations, intracellular models, CSV positions | not exported | dropped |
+
+Importing a project reads what its CC3DML declares: the lattice, cell types, target volumes, contact
+energies (inverting the mapping above), diffusion fields with their boundary values, and blob or uniform
+initialisers. The project's Python code becomes a declared native extension. Plugins without an ABM-IR
+counterpart are listed as dropped.
+
+```bash
+abmfact run-model examples/ir/immune.yaml --engine compucell3d --out results/immune --option site_length=2
+abmfact recommend examples/ir/immune.yaml --details
+```
 
 ## Knobs
 

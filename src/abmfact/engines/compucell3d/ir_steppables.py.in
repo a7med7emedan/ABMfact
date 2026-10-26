@@ -1,0 +1,353 @@
+"""ABM-IR behaviour for a CompuCell3D project exported by ABMfact.
+
+CompuCell3D's CC3DML holds what the cellular Potts model does natively: the lattice, cell types, volumes,
+contact energies and diffusion. Everything ABM-IR describes beyond that is run here, from abmfact_model.json,
+in lattice sites and Monte Carlo steps (MCS): initial placements, the live cycle, apoptosis and necrosis,
+Hill-type rules combined as in PhysiCell 1.14.2, persistent and chemotactic motility, secretion and uptake,
+effector attack with damage, and timed events. ABMfact's own translator wrote this file; it is regenerated on
+every export.
+"""
+
+import json
+import math
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import numpy as np
+from cc3d.core.PySteppables import MitosisSteppableBase, SteppableBasePy
+
+HERE = Path(__file__).parent
+SPEC = json.loads((HERE / "abmfact_model.json").read_text(encoding="utf-8"))
+LIVE, APOPTOTIC, NECROTIC = 0, 1, 2
+
+
+def run_seed():
+    """The seed ABMfact wrote into Potts/RandomSeed for this run."""
+    root = ET.parse(HERE / SPEC["xml"]).getroot()
+    return int(root.findtext("Potts/RandomSeed") or 0)
+
+
+def hill(s, half, n):
+    s = max(float(s), 0.0)
+    return (s / half) ** n if half > 0 else 0.0
+
+
+class IRBehaviour(SteppableBasePy):
+    """Runs every ABM-IR process that CC3DML does not: see the module docstring."""
+
+    def __init__(self):
+        SteppableBasePy.__init__(self, 1)
+        self.rng = None
+        self.types = {t["cc3d"]: t for t in SPEC["types"]}
+        self.events_on = {}
+
+    # -- set-up ---------------------------------------------------------------------------------------------
+
+    def start(self):
+        self.rng = np.random.default_rng(run_seed())
+        for p in SPEC["placements"]:
+            self.place(p)
+        for cell in self.cell_list:
+            self.init_cell(cell)
+
+    def type_id(self, name):
+        return getattr(self, name.upper())
+
+    def init_cell(self, cell):
+        t = self.types[self.get_type_name_by_cell(cell)]
+        cell.targetVolume = t["target_volume"]
+        cell.lambdaVolume = t["lambda_volume"]
+        d = cell.dict
+        d.setdefault("abmfact_state", LIVE)
+        d.setdefault("damage", 0.0)
+        d.setdefault("attack_time", 0.0)
+        d.setdefault("target", -1)
+        d.setdefault("death_mcs", -1)
+        d.setdefault("dir", [0.0, 0.0])
+        d["beh"] = dict(t["base"])
+
+    def place(self, p):
+        """Every requested cell is placed: on the free sites of a square of its target area around its point,
+        or, when all are taken, on the nearest free site. The volume constraint then grows it to size."""
+        side = max(1, int(round(math.sqrt(self.types[p["cell_type"]]["target_volume"]))))
+        for x, y in self.points(p):
+            x0 = min(max(int(round(x - side / 2)), 0), self.dim.x - side)
+            y0 = min(max(int(round(y - side / 2)), 0), self.dim.y - side)
+            sites = [(x0 + i, y0 + j) for i in range(side) for j in range(side)
+                     if not self.cell_field[x0 + i, y0 + j, 0]]
+            if not sites:
+                free = self.nearest_free(int(round(x)), int(round(y)))
+                if free is None:
+                    continue  # the lattice is full
+                sites = [free]
+            cell = self.new_cell(self.type_id(p["cell_type"]))
+            for i, j in sites:
+                self.cell_field[i, j, 0] = cell
+
+    def nearest_free(self, x, y):
+        x = min(max(x, 0), self.dim.x - 1)
+        y = min(max(y, 0), self.dim.y - 1)
+        for r in range(max(self.dim.x, self.dim.y)):
+            for i in range(x - r, x + r + 1):
+                for j in (y - r, y + r) if r else (y,):
+                    if 0 <= i < self.dim.x and 0 <= j < self.dim.y and not self.cell_field[i, j, 0]:
+                        return i, j
+            for j in range(y - r + 1, y + r):
+                for i in (x - r, x + r):
+                    if 0 <= i < self.dim.x and 0 <= j < self.dim.y and not self.cell_field[i, j, 0]:
+                        return i, j
+        return None
+
+    def points(self, p):
+        if p["kind"] == "positions":
+            return [tuple(q) for q in p["positions"]]
+        n = p["count"]
+        if p["kind"] == "disc":
+            r = p["radius"] * np.sqrt(self.rng.random(n))
+            a = 2 * math.pi * self.rng.random(n)
+            return list(zip(p["centre"][0] + r * np.cos(a), p["centre"][1] + r * np.sin(a)))
+        if p["kind"] == "rectangle":
+            u = self.rng.random((n, 2)) - 0.5
+            return [(p["centre"][0] + a * p["size"][0], p["centre"][1] + b * p["size"][1]) for a, b in u]
+        return [(a * self.dim.x, b * self.dim.y) for a, b in self.rng.random((n, 2))]
+
+    # -- signals --------------------------------------------------------------------------------------------
+
+    def field_at(self, name, cell):
+        x = min(max(int(cell.xCOM), 0), self.dim.x - 1)
+        y = min(max(int(cell.yCOM), 0), self.dim.y - 1)
+        return float(getattr(self.field, name)[x, y, 0])
+
+    def gradient(self, name, cell):
+        f = getattr(self.field, name)
+        x = min(max(int(cell.xCOM), 1), self.dim.x - 2)
+        y = min(max(int(cell.yCOM), 1), self.dim.y - 2)
+        return 0.5 * (f[x + 1, y, 0] - f[x - 1, y, 0]), 0.5 * (f[x, y + 1, 0] - f[x, y - 1, 0])
+
+    def neighbours(self, cell):
+        out, total, shared = [], 0.0, 0.0
+        for n, area in self.get_cell_neighbor_data_list(cell):
+            total += area
+            if n:
+                shared += area
+                out.append(n)
+        return out, (shared / total if total > 0 else 0.0)
+
+    def signal(self, name, cell, contact_fraction, neighbours):
+        d = cell.dict
+        if name in SPEC["fields"]:
+            return self.field_at(name, cell)
+        if name == "pressure":
+            return contact_fraction  # cellular Potts has no pressure; see the fidelity report
+        if name in ("time", "current time", "global time"):
+            return self.mcs * SPEC["mcs_minutes"]
+        if name in ("dead", "is dead"):
+            return float(d["abmfact_state"] != LIVE)
+        if name == "damage":
+            return d["damage"]
+        if name in ("attacking", "is attacking"):
+            return float(d["target"] >= 0)
+        if name == "total attack time":
+            return d["attack_time"]
+        if name == "volume":
+            return cell.volume * SPEC["site_volume"]
+        if name.startswith("contact with "):
+            what = name[len("contact with "):]
+            if what in ("live cell", "live cells"):
+                return float(sum(1 for n in neighbours if n.dict.get("abmfact_state", 0) == LIVE))
+            if what in ("dead cell", "dead cells"):
+                return float(sum(1 for n in neighbours if n.dict.get("abmfact_state", 0) != LIVE))
+            return float(sum(1 for n in neighbours if self.types[self.get_type_name_by_cell(n)]["name"] == what))
+        for form in ("{} gradient", "grad({})", "gradient of {}"):
+            for f in SPEC["fields"]:
+                if name == form.format(f):
+                    gx, gy = self.gradient(f, cell)
+                    return math.hypot(gx, gy) / SPEC["site_length"]
+        return 0.0
+
+    # -- processes ------------------------------------------------------------------------------------------
+
+    def step(self, mcs):
+        self.mcs = mcs
+        self.events(mcs)
+        self.motility()
+        self.secretion()
+        self.attacks()
+        if mcs % SPEC["phenotype_every"] == 0:
+            self.phenotype()
+
+    def events(self, mcs):
+        for k, ev in enumerate(SPEC["events"]):
+            on = self.events_on.get(k)
+            if on is None and mcs >= ev["time"]:
+                self.events_on[k] = True
+                if ev["action"] == "add_cells":
+                    self.place({"kind": "random", "cell_type": ev["target"], "count": int(ev["value"] or 0)})
+                    for cell in self.cell_list:
+                        if "beh" not in cell.dict:
+                            self.init_cell(cell)
+                elif ev["action"] == "set_substrate":
+                    f = getattr(self.field, ev["target"])
+                    for x in range(self.dim.x):
+                        for y in range(self.dim.y):
+                            f[x, y, 0] = float(ev["value"] or 0.0)
+            elif on and ev.get("until") is not None and mcs >= ev["until"]:
+                self.events_on[k] = False
+            if ev["action"] == "set_substrate_boundary" and self.events_on.get(k):
+                # Held on every edge while the event lasts, as a Dirichlet value would be.
+                f = getattr(self.field, ev["target"])
+                v = float(ev["value"] or 0.0)
+                for x in range(self.dim.x):
+                    f[x, 0, 0] = v
+                    f[x, self.dim.y - 1, 0] = v
+                for y in range(self.dim.y):
+                    f[0, y, 0] = v
+                    f[self.dim.x - 1, y, 0] = v
+
+    def motility(self):
+        dt = 1.0
+        for cell in self.cell_list:
+            d = cell.dict
+            t = self.types[self.get_type_name_by_cell(cell)]
+            speed = d["beh"]["migration speed"] if d["abmfact_state"] == LIVE else 0.0
+            if speed <= 0:
+                cell.lambdaVecX = cell.lambdaVecY = 0.0
+                continue
+            persistence = max(d["beh"]["migration persistence time"], 1e-12)
+            if self.rng.random() < dt / persistence or d["dir"] == [0.0, 0.0]:
+                a = 2 * math.pi * self.rng.random()
+                rand = np.array([math.cos(a), math.sin(a)])
+                bias = d["beh"]["migration bias"]
+                chemo = t.get("chemotaxis")
+                g = np.zeros(2)
+                if chemo and bias > 0:
+                    g = np.array(self.gradient(chemo["field"], cell)) * chemo["direction"]
+                    norm = math.hypot(*g)
+                    g = g / norm if norm > 1e-16 else np.zeros(2)
+                v = (1 - bias) * rand + bias * g
+                norm = math.hypot(*v)
+                d["dir"] = list(v / norm) if norm > 1e-16 else [0.0, 0.0]
+            k = SPEC["motility_lambda"] * speed
+            cell.lambdaVecX = -k * d["dir"][0]
+            cell.lambdaVecY = -k * d["dir"][1]
+
+    def secretion(self):
+        for name in SPEC["fields"]:
+            sec = self.get_field_secretor(name)
+            for cell in self.cell_list:
+                if cell.dict["abmfact_state"] != LIVE:
+                    continue
+                b = cell.dict["beh"]
+                s, u = b.get(f"{name} secretion", 0.0), b.get(f"{name} uptake", 0.0)
+                target, export = b.get(f"{name} secretion target", 1.0), b.get(f"{name} export", 0.0)
+                if s > 0:
+                    rho = self.field_at(name, cell)
+                    amount = s * max(target - rho, 0.0) * cell.volume
+                    if amount > 0:
+                        sec.secreteInsideCellTotalCount(cell, amount)
+                if u > 0:
+                    sec.uptakeInsideCellTotalCount(cell, 1e30, min(u, 1.0))
+                if export > 0:
+                    sec.secreteInsideCellTotalCount(cell, export)
+
+    def attacks(self):
+        dt = 1.0
+        by_id = {c.id: c for c in self.cell_list}
+        order = list(self.cell_list)
+        self.rng.shuffle(order)
+        for cell in order:
+            d = cell.dict
+            t = self.types[self.get_type_name_by_cell(cell)]
+            rates = t.get("attack_rates") or {}
+            if d["abmfact_state"] != LIVE or not rates:
+                continue
+            if d["target"] < 0:
+                neighbours, _ = self.neighbours(cell)
+                live = [n for n in neighbours if n.dict.get("abmfact_state", 0) == LIVE]
+                for k in self.rng.permutation(len(live)):
+                    n = live[k]
+                    nt = self.types[self.get_type_name_by_cell(n)]
+                    p = rates.get(nt["cc3d"], 0.0) * nt["immunogenicities"].get(t["cc3d"], 1.0) * dt
+                    if self.rng.random() < p:
+                        d["target"] = n.id
+                        break
+            if d["target"] < 0:
+                continue
+            target = by_id.get(d["target"])
+            if target is None:
+                d["target"] = -1
+                continue
+            if target.dict.get("abmfact_state", 0) == LIVE:
+                target.dict["damage"] += t["damage_rate"] * dt
+                target.dict["attack_time"] += dt
+            if self.rng.random() < dt / (1e-15 + t["attack_duration"]) or target.dict.get("abmfact_state", 0) != LIVE:
+                d["target"] = -1
+
+    def phenotype(self):
+        dt = SPEC["phenotype_every"]
+        cells = list(self.cell_list)
+        info = {c.id: self.neighbours(c) for c in cells}
+        for cell in cells:
+            d = cell.dict
+            t = self.types[self.get_type_name_by_cell(cell)]
+            neighbours, contact = info[cell.id]
+            dead = d["abmfact_state"] != LIVE
+            for beh, rules in t["rules"].items():
+                b0 = t["base"][beh]
+                up = [r for r in rules if r["direction"] == "increases"]
+                down = [r for r in rules if r["direction"] == "decreases"]
+                hi = max([b0] + [r["saturation"] for r in up])
+                lo = min([b0] + [r["saturation"] for r in down])
+                active = [r for r in rules if r["apply_to_dead"] or not dead]
+                if not active:
+                    continue
+                su = sum(hill(self.signal(r["signal"], cell, contact, neighbours), r["half_max"], r["hill"])
+                         for r in up if r in active)
+                sd = sum(hill(self.signal(r["signal"], cell, contact, neighbours), r["half_max"], r["hill"])
+                         for r in down if r in active)
+                u, w = su / (1 + su), sd / (1 + sd)
+                b_up = b0 + (hi - b0) * u
+                d["beh"][beh] = b_up + (lo - b_up) * w
+            grow, repair = t["damage_growth"], t["damage_repair"]
+            if grow > 1e-8 or repair > 1e-8:
+                d["damage"] = (d["damage"] + grow * dt) / (1 + repair * dt)
+        for cell in cells:
+            d = cell.dict
+            t = self.types[self.get_type_name_by_cell(cell)]
+            if d["abmfact_state"] == LIVE:
+                b = d["beh"]
+                if self.rng.random() < -math.expm1(-max(b["apoptosis"], 0.0) * dt):
+                    self.kill(cell, APOPTOTIC)
+                elif self.rng.random() < -math.expm1(-max(b["necrosis"], 0.0) * dt):
+                    self.kill(cell, NECROTIC)
+                elif self.rng.random() < -math.expm1(-max(b["cycle entry"], 0.0) * dt):
+                    d["divide"] = True
+            elif d["death_mcs"] >= 0:
+                duration = t["apoptosis_duration"] if d["abmfact_state"] == APOPTOTIC else t["necrosis_duration"]
+                if self.mcs - d["death_mcs"] >= duration:
+                    cell.targetVolume = 0.0
+                    cell.lambdaVolume = 100.0
+
+    def kill(self, cell, state):
+        cell.dict["abmfact_state"] = state
+        cell.dict["death_mcs"] = self.mcs
+        cell.dict["target"] = -1
+        cell.lambdaVecX = cell.lambdaVecY = 0.0
+
+
+class IRDivision(MitosisSteppableBase):
+    """Divides the cells IRBehaviour marked, each into two halves along a random axis."""
+
+    def __init__(self):
+        MitosisSteppableBase.__init__(self, 1)
+
+    def step(self, mcs):
+        for cell in [c for c in self.cell_list if c.dict.get("divide")]:
+            cell.dict["divide"] = False
+            self.divide_cell_random_orientation(cell)
+
+    def update_attributes(self):
+        self.clone_parent_2_child()
+        self.child_cell.dict["dir"] = [0.0, 0.0]
+        self.child_cell.dict["attack_time"] = 0.0
+        self.parent_cell.dict["attack_time"] = 0.0

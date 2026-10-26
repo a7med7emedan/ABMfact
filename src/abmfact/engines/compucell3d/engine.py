@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from ...knobs import Knobs
-from ...records import RunRecord, RunRequest
+from ...records import FidelityReport, RunRecord, RunRequest
 from ...records.record import canonical
 from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle
 from .outputs import read_output
@@ -39,6 +39,8 @@ VERSION = "4.10.0"
 IMAGE = f"abmfact/compucell3d:{VERSION}"
 PLATFORM = "linux/amd64"
 DRIVER = "abmfact_cc3d_driver.py"
+#: Micron per site for ABM-IR exports: a cell of PhysiCell's default volume covers about 55 sites in 2D.
+DEFAULT_SITE_LENGTH = 2.0
 
 
 def driver_source() -> str:
@@ -63,6 +65,16 @@ def _slug(name: str) -> str:
     return s if s and not s[0].isdigit() else f"_{s}"
 
 
+def _log_error(handle: RunHandle) -> str:
+    """The last error line in the run's log, so a failure says why; CompuCell3D can fail with exit status 0."""
+    log = handle.log_path or (handle.prepared.workdir / "run.log" if handle.prepared.workdir else None)
+    if log is None or not Path(log).is_file():
+        return ""
+    lines = Path(log).read_text(encoding="utf-8", errors="replace").splitlines()
+    errors = [ln.strip() for ln in lines if "Error" in ln and not ln.strip().startswith("File ")]
+    return f"; CompuCell3D said: {errors[-1]}" if errors else ""
+
+
 def _project_hash(folder: Path) -> str:
     import hashlib
 
@@ -83,7 +95,8 @@ class CompuCell3DEngine(Engine):
         image: The container image.
         cache_dir: The folder for run folders; default ``~/.cache/abmfact/compucell3d``.
         save_every: Save outputs every this many MCS; default a tenth of the run, at least 1.
-        site_length: Micron per lattice site, used to report positions and volumes.
+        site_length: Micron per lattice site: 1 for native projects (lattice units) and 2 for ABM-IR exports,
+            unless given.
         mcs_minutes: Minutes per Monte Carlo step, used to report times.
         observables: ABM-IR observable specs to compute; ``None`` uses :func:`default_observables`.
         timeout: The time limit for each run, in seconds; ``None`` for no limit.
@@ -98,7 +111,7 @@ class CompuCell3DEngine(Engine):
         image: str = IMAGE,
         cache_dir: str | Path | None = None,
         save_every: int | None = None,
-        site_length: float = 1.0,
+        site_length: float | None = None,
         mcs_minutes: float = 1.0,
         observables: Sequence[Mapping[str, Any]] | None = None,
         timeout: float | None = None,
@@ -107,7 +120,7 @@ class CompuCell3DEngine(Engine):
         self.image = image
         self.cache_dir = Path(cache_dir) if cache_dir else Path.home() / ".cache" / "abmfact" / "compucell3d"
         self.save_every = save_every
-        self.site_length = float(site_length)
+        self.site_length = float(site_length) if site_length is not None else None
         self.mcs_minutes = float(mcs_minutes)
         self.observables = [dict(o) for o in observables] if observables else None
         self.timeout = timeout
@@ -154,24 +167,66 @@ class CompuCell3DEngine(Engine):
         kind, detail, _ = self._route()
         return Availability(kind != "none", detail, f"CompuCell3D {VERSION}" if kind != "none" else None)
 
-    def load(self, model: Any) -> Path:
-        """A CompuCell3D project folder; ABM-IR models are refused until the translation is added."""
-        from ...ir import IRModel
+    def load(self, model: Any) -> Any:
+        """A CompuCell3D project folder (tier T0), or an ABM-IR model or file (tier T1, exported before running)."""
+        from ...ir import IRModel, load_model
 
-        if isinstance(model, IRModel) or Path(str(model)).suffix.lower() in (".yaml", ".yml", ".json"):
-            raise EngineError("ABM-IR models do not yet translate to CompuCell3D; run a CompuCell3D project folder")
+        if isinstance(model, IRModel):
+            return model
         path = Path(model)
+        if path.is_file() and path.suffix.lower() in (".yaml", ".yml", ".json"):
+            return load_model(path)
         if not is_project(path):
             raise EngineError(f"{path} is not a CompuCell3D project (a folder with one .cc3d file)")
         return path.resolve()
 
+    def _scales(self, translated: bool) -> tuple[float, float]:
+        """``(site_length, mcs_minutes)``: native projects keep lattice units unless told otherwise."""
+        default_site = DEFAULT_SITE_LENGTH if translated else 1.0
+        return (self.site_length if self.site_length is not None else default_site), self.mcs_minutes
+
+    def translation(self, model: Any) -> FidelityReport | None:
+        """The fidelity report of exporting an ABM-IR model to a CompuCell3D project, or ``None`` for a project."""
+        from ...ir import IRModel
+        from .translate import export_project
+
+        loaded = self.load(model)
+        if not isinstance(loaded, IRModel):
+            return None
+        site, mcs = self._scales(True)
+        with tempfile.TemporaryDirectory() as tmp:
+            return export_project(loaded, Path(tmp) / "project", site_length=site, mcs_minutes=mcs)
+
+    def _export(self, model: Any, params: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
+        """Export an ABM-IR model after its IR parameters; return the project and the CC3DML parameters."""
+        from ...ir import apply_params, model_hash
+        from .translate import export_project, exporter_fingerprint
+
+        ir_params = {k: v for k, v in params.items() if "/" not in k}
+        xml_params = {k: v for k, v in params.items() if k not in ir_params}
+        m = apply_params(model, ir_params)
+        site, mcs = self._scales(True)
+        key = f"{model_hash(m)[:16]}-{exporter_fingerprint()[:12]}-{site:g}-{mcs:g}"
+        out = self.cache_dir / "exports" / key
+        if not (out / ".exported").exists():
+            report = export_project(m, out, site_length=site, mcs_minutes=mcs)
+            (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")
+            (out / ".exported").write_text(m.name, encoding="utf-8")
+        return out, xml_params
+
     def refuse(self, model: Any, knobs: Knobs) -> list[str]:
+        from ...ir import IRModel
+
         try:
-            project = CC3DProject.read(self.load(model))
-            project.steps()
-        except EngineError as exc:
+            loaded = self.load(model)
+            if not isinstance(loaded, IRModel):
+                CC3DProject.read(loaded).steps()
+        except (EngineError, OSError, ValueError) as exc:
             return [str(exc)]
-        return super().refuse(model, knobs)
+        reasons = super().refuse(model, knobs)
+        if isinstance(loaded, IRModel) and loaded.space.dimensions == 3:
+            reasons.append("ABM-IR models export to 2D CompuCell3D projects only, for now")
+        return reasons
 
     # -- contract ----------------------------------------------------------------------------------------
 
@@ -183,7 +238,20 @@ class CompuCell3DEngine(Engine):
         Every parameter is an element path in the CC3DML model, such as ``Potts/Steps`` or
         ``Plugin[@Name='Volume']/VolumeEnergyParameters[@CellType='Condensing']``; the element's text is set.
         """
-        source = self.load(model)
+        from ...ir import IRModel
+
+        loaded = self.load(model)
+        translated = isinstance(loaded, IRModel)
+        ir_observables: list[dict[str, Any]] | None = None
+        if translated:
+            source, params = self._export(loaded, params)
+            ir_observables = [o.model_dump(mode="json") for o in loaded.observables] or None
+            type_names = [c.name for c in loaded.cell_types]
+            b = loaded.space.bounds
+            origin = (b.x_min, b.y_min, b.z_min if loaded.space.dimensions == 3 else 0.0)
+        else:
+            source = loaded
+        site, mcs = self._scales(translated)
         kind, detail, runtime = self._route()
         if kind == "none":
             raise EngineError(f"CompuCell3D cannot run here: {detail}")
@@ -193,7 +261,7 @@ class CompuCell3DEngine(Engine):
 
             digest = ContainerBackend(self.image, runtime=runtime or "docker", platform=PLATFORM).image_digest()
         identity = f"image {self.image}@{digest}" if kind == "docker" else detail
-        options = {"save_every": self.save_every, "site_length": self.site_length, "mcs_minutes": self.mcs_minutes,
+        options = {"save_every": self.save_every, "site_length": site, "mcs_minutes": mcs,
                    "observables": self.observables}  # fmt: skip
         request = RunRequest(self.name, _project_hash(source), dict(params), int(seed), knobs.to_dict(),
                              engine_version=f"CompuCell3D {VERSION} ({identity})", image_digest=digest,
@@ -216,11 +284,22 @@ class CompuCell3DEngine(Engine):
         project.ensure_center_of_mass()
         project.write_xml()
         (work / DRIVER).write_text(driver_source(), encoding="utf-8")
-        every = self.save_every or max(1, project.steps() // 10)
+        if self.save_every:
+            every = self.save_every
+        elif translated:
+            every = max(1, round(loaded.experiment.save_interval / mcs))
+        else:
+            every = max(1, project.steps() // 10)
         cc3d_file = project.cc3d_file.relative_to(work).as_posix()
         args = [DRIVER, cc3d_file, "output", str(every), *project.fields()]
-        context: dict[str, Any] = {"toolchain": kind, "observables": self.observables or default_observables(project),
-                                   "type_names": project.cell_types()}  # fmt: skip
+        context: dict[str, Any] = {
+            "toolchain": kind,
+            "observables": self.observables or ir_observables or default_observables(project),
+            "type_names": project.cell_types(),
+            "ir_type_names": type_names if translated else None,
+            "scales": (site, mcs),
+            "origin": origin if translated else (0.0, 0.0, 0.0),
+        }
         if kind == "docker":
             argv = ["python", *args]
             context["runtime"] = runtime
@@ -250,14 +329,18 @@ class CompuCell3DEngine(Engine):
             return self.record(handle)
         assert handle.prepared.workdir is not None
         out = handle.prepared.workdir / "output"
+        site, mcs = handle.prepared.context["scales"]
         try:
-            outputs = read_output(out, handle.prepared.context["type_names"], self.site_length, self.mcs_minutes)
+            outputs = read_output(out, handle.prepared.context["type_names"], site, mcs,
+                                  tuple(handle.prepared.context.get("origin", (0.0, 0.0, 0.0))))  # fmt: skip
         except (FileNotFoundError, ValueError, KeyError) as exc:
-            handle.error = f"could not read CompuCell3D output: {exc}"
+            handle.error = f"could not read CompuCell3D output: {exc}{_log_error(handle)}"
             return self.record(handle)
+        if handle.prepared.context.get("ir_type_names"):
+            outputs.type_names = list(handle.prepared.context["ir_type_names"])
         compute_series([Observable.model_validate(o) for o in handle.prepared.context["observables"]], outputs)
         handle.outputs = outputs
         warnings = []
-        if self.site_length == 1.0 and self.mcs_minutes == 1.0:
+        if site == 1.0 and mcs == 1.0 and not handle.prepared.context.get("ir_type_names"):
             warnings.append("outputs are in lattice sites and Monte Carlo steps (site_length and mcs_minutes are 1)")
         return self.record(handle, output_paths={"output": str(out)}, warnings=warnings)

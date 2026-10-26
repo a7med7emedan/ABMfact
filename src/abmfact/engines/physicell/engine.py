@@ -8,8 +8,8 @@ binary is built once per source hash (see :mod:`.build`) and the run record pins
 and, for container builds, the image digest.
 
 An ABM-IR model (fidelity tier T1) is exported onto PhysiCell's template project first (see
-:mod:`.translate`), once per model hash; ABM-IR parameter paths in the request change the model before
-export, and settings paths (``overall/max_time``, ``user_parameters.<name>``) change the exported XML.
+:mod:`~abmfact.engines.physicell.translate`), once per model hash; ABM-IR parameter paths in the request change
+the model before export, and settings paths (``overall/max_time``, ``user_parameters.<name>``) change the exported XML.
 
 Outputs are read into the common schema. Observables are the ones passed as ``observables`` (ABM-IR
 observable specs), or by default: ``cells``, ``live``, ``dead``, ``live_<type>`` for each cell type and

@@ -21,6 +21,7 @@ from abmfact.engines.compucell3d.project import is_project
 from abmfact.engines.physicell import PhysiCellEngine
 from abmfact.engines.recommend import recommend
 from abmfact.engines.registry import list_engines
+from abmfact.ir import load_model
 from abmfact.knobs import Knobs
 
 FIX = Path(__file__).parent / "fixtures" / "compucell3d"
@@ -80,7 +81,10 @@ def test_engine_is_registered_and_declares_what_it_honours():
     assert engine.refuse(SORTING, Knobs()) == []
     assert any("dt_scale" in r for r in engine.refuse(SORTING, Knobs(dt_scale=0.5)))
     assert engine.refuse(SORTING, Knobs(rng_streams="independent")) == []  # the seed is remapped
-    assert "translate" in engine.refuse("examples/ir/monolayer.yaml", Knobs())[0]
+    assert engine.refuse("examples/ir/monolayer.yaml", Knobs()) == []  # translated (tier T1)
+    three_d = load_model("examples/ir/monolayer.yaml")
+    three_d.space.dimensions = 3
+    assert "2D" in engine.refuse(three_d, Knobs())[0]
     assert "not a CompuCell3D project" in engine.refuse(FIX, Knobs())[0]
 
 
@@ -137,7 +141,9 @@ def test_output_reader_converts_units_and_layout(tmp_path):
     assert o.cells["volume"].tolist() == [100, 96, 104, 100]  # sites times site_length squared in 2D
     frame = o.field_at("FGF", 5.0)
     assert frame is not None and frame.values.shape == (3, 4) and frame.values[1, 3] == 2.0  # [y, x]
-    assert frame.spacing == (2.0, 2.0)
+    assert frame.spacing == (2.0, 2.0) and frame.origin == (1.0, 1.0)
+    shifted = read_output(tmp_path / "out", ["Condensing", "NonCondensing"], 2.0, 0.5, origin=(-100.0, -50.0, 0.0))
+    assert shifted.cells["x"].tolist() == [-80, -40, -78, -38] and shifted.field_at("FGF", 5.0).origin == (-99.0, -49.0)
 
 
 def test_recommend_runs_a_project_only_in_its_own_engine():

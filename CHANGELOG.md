@@ -8,6 +8,9 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- Translation between ABM-IR and CompuCell3D (tier T1) with a fidelity report, in stated units of micron per
+  site and minutes per Monte Carlo step: a CC3DML model plus a generic steppable that runs placements, the
+  cycle, death, rules, motility, secretion, attack and timed events. CompuCell3D projects import to ABM-IR.
 - The CompuCell3D engine: CompuCell3D 4.10.0 projects run as they are, with a driver that adds one output
   steppable, natively with `CC3D_PYTHON` or in the pinned image in `containers/compucell3d/Dockerfile`.
 - Six reference problems in `examples/suite/`: monolayer, spheroid, differential adhesion, chemotaxis, drug
