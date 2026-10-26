@@ -10,6 +10,8 @@ Build from the repository root, with the ``[docs]`` extra installed:
 from __future__ import annotations
 
 import importlib
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -57,7 +59,21 @@ html_favicon = "../assets/mark.svg"
 html_theme_options = {"light_logo": "logo.svg", "dark_logo": "logo-dark.svg", "sidebar_hide_name": True}
 html_show_sourcelink = False
 
+
+def _latex_logo() -> str | None:
+    """The logo as a PDF for the manual's title page, when ``rsvg-convert`` is installed to convert it."""
+    converter = shutil.which("rsvg-convert")
+    if converter is None:
+        return None
+    out = ROOT / "docs" / "_build" / "logo.pdf"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    logo = ROOT / "assets" / "logo.svg"
+    subprocess.run([converter, "-f", "pdf", "-o", str(out), str(logo)], check=True)  # noqa: S603 - fixed argv
+    return str(out)
+
+
 latex_engine = "xelatex"
+latex_logo = _latex_logo()
 latex_documents = [("index", "abmfact.tex", "ABMfact manual", author, "manual")]
 latex_show_urls = "footnote"
 latex_elements = {

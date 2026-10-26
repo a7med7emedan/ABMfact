@@ -1,10 +1,25 @@
 # Architecture
 
-ABMfact runs biological agent-based models in several simulators behind one interface, and checks their
+ABMfact runs agent-based models in several simulators behind one interface, and checks their
 credibility. Version 0.2 adds the platform core: a shared model description (ABM-IR), one adapter
 contract for every engine, a run record and store, runtime backends, a small reference engine, a
 PhysiCell and PhysiBoSS adapter, and a convergence check. The v0.1 audit runs on top of all of it
 unchanged.
+
+![How ABMfact fits together: a model in its own format or in ABM-IR is translated with a fidelity report, run by an engine on this machine, in a container or on Slurm, recorded in the run store, and checked.](../assets/platform.svg)
+
+## Engines and their status
+
+| Engine | Runs | ABM-IR translation | Status |
+|---|---|---|---|
+| `physicell` | PhysiCell 1.14.2 and PhysiBoSS projects, as they are | both ways, with a fidelity report | available |
+| `reference` | ABM-IR models, in a built-in 2D simulator | runs ABM-IR directly | available |
+| `mesa` | Mesa 3 model classes | not yet | available for audits |
+| `netlogo` | NetLogo models through pynetlogo | not yet | available for audits |
+| `python` | any `run(params, seed, knobs)` function | not needed | available |
+| `command` | any program that reads JSON on standard input and prints JSON | not needed | available |
+| CompuCell3D, Morpheus | | | planned next |
+| Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py | | | planned |
 
 ## Layers
 

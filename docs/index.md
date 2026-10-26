@@ -1,14 +1,28 @@
 # ABMfact
 
 ````{only} html
-**Is it a finding or an artefact?** ABMfact reruns an agent-based model under changes that a correct
-implementation should not care about. These include activation order, agent labels, random streams,
-grid placement, time step, voxel size and population size. It then reports which of the model's stated
-conclusions survive, with intervals and a command that reproduces each run.
+**ABMfact runs agent-based models in several simulators through one interface, and tells you whether
+their conclusions are findings or implementation artefacts.**
 
-Version 0.2 adds a platform core for biological models: a shared model description (ABM-IR), one
-contract for every simulation engine, run records and a store, local, container and Slurm backends, a
-small reference engine, a PhysiCell and PhysiBoSS engine, and a convergence check.
+A model stays in its own format, or is written once in ABM-IR, a shared description that ABMfact
+translates for each simulator with a report of what it kept exactly, approximated or dropped. Every run
+is recorded with its engine version, settings and seed. On top sit the checks: ABMfact reruns the model
+under changes that a correct implementation must not care about, and refines its time step and voxel
+size, then reports which of the model's stated conclusions survive.
+
+```{image} ../assets/platform.svg
+:class: only-light
+:alt: How ABMfact fits together, from a model through translation, an engine, a runtime and the run store to the checks.
+```
+
+```{image} ../assets/platform-dark.svg
+:class: only-dark
+:alt: How ABMfact fits together, from a model through translation, an engine, a runtime and the run store to the checks.
+```
+
+Today ABMfact runs PhysiCell and PhysiBoSS projects and its own reference engine natively, and Mesa,
+NetLogo, Python and any other program through adapters. CompuCell3D and Morpheus come next; the
+[architecture](architecture.md) page lists every engine and its status.
 
 This manual is built from one source as web pages and as a PDF:
 
