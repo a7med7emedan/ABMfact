@@ -42,6 +42,10 @@ FIXED_SIGNALS = frozenset(
         "contact with live cells",
         "contact with dead cell",
         "contact with dead cells",
+        "damage",
+        "attacking",
+        "is attacking",
+        "total attack time",
     }
 )
 FIXED_BEHAVIOURS = frozenset(

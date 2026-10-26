@@ -10,6 +10,16 @@ Motility follows ``Cell::update_motility_vector`` in ``core/PhysiCell_cell.cpp``
 cell picks a new direction with probability ``dt / persistence_time`` per mechanics step (none before
 its first turn), mixing a random unit vector with its bias direction (the substrate gradient, for
 chemotaxis), each normalised as PhysiCell normalises them.
+
+Attacks follow ``standard_cell_cell_interactions`` in ``core/PhysiCell_standard_models.cpp`` and
+``Cell::attack_cell`` in ``core/PhysiCell_cell.cpp``. Once per mechanics step, after the pair forces, each
+live effector without a target tries its live neighbours (cells within the adhesion distance) in a random
+order and starts an attack on the first with probability ``attack_rate * immunogenicity * dt``. While
+attacking, it adds ``damage_rate * dt`` to its target's damage, and ends the attack with probability
+``dt / attack_duration`` or when the target dies. Damage grows and is repaired as in
+``Cell_Integrity::advance_damage``, once per phenotype step after the rules, and kills only through rules
+that read the ``damage`` signal. PhysiCell also links the two cells by a spring during an attack; the
+reference engine does not.
 """
 
 from __future__ import annotations
@@ -44,11 +54,11 @@ def refusals(model: IRModel, knobs: Knobs) -> list[str]:
     for ct in model.cell_types:
         if ct.cycle.model != "live":
             out.append(f"cell type {ct.name!r}: the reference engine runs the live cycle model only")
-        if ct.interactions.active:
-            out.append(
-                f"cell type {ct.name!r}: attack, damage, phagocytosis and fusion are not in the reference engine "
-                "(planned for milestone 3)"
-            )
+        it = ct.interactions
+        if any(r > 0 for r in [*it.phagocytosis_rates.values(), *it.fusion_rates.values()]) or (
+            it.dead_phagocytosis_rate > 0
+        ):
+            out.append(f"cell type {ct.name!r}: phagocytosis and fusion are not in the reference engine")
         if any(r > 0 for r in ct.transformations.values()):
             out.append(f"cell type {ct.name!r}: transformations are not in the reference engine")
     for i, r in enumerate(model.rules):
@@ -88,6 +98,12 @@ class _Types:
     chemo_dir: np.ndarray
     apo_duration: np.ndarray
     nec_duration: np.ndarray
+    attack: np.ndarray  # attack[i, j]: rate at which type i starts attacks on type j
+    immunogenicity: np.ndarray  # immunogenicity[j, i]: how readily type i starts attacks on type j
+    attack_damage: np.ndarray
+    attack_duration: np.ndarray
+    damage_rate: np.ndarray
+    damage_repair: np.ndarray
 
 
 def _types(model: IRModel) -> _Types:
@@ -104,6 +120,13 @@ def _types(model: IRModel) -> _Types:
             chemo_sub[i] = subs.index(ct.motility.chemotaxis.substrate)
             chemo_dir[i] = ct.motility.chemotaxis.direction
     cts = model.cell_types
+    attack = np.zeros((n, n))
+    immunogenicity = np.ones((n, n))
+    for i, ct in enumerate(cts):
+        for other, r in ct.interactions.attack_rates.items():
+            attack[i, names.index(other)] = r
+        for other, g in ct.interactions.immunogenicities.items():
+            immunogenicity[i, names.index(other)] = g
     return _Types(
         names,
         np.array([c.radius for c in cts]),
@@ -114,6 +137,12 @@ def _types(model: IRModel) -> _Types:
         chemo_dir,
         np.array([c.death.apoptosis_duration for c in cts]),
         np.array([c.death.necrosis_duration for c in cts]),
+        attack,
+        immunogenicity,
+        np.array([c.interactions.damage_rate for c in cts]),
+        np.array([c.interactions.attack_duration for c in cts]),
+        np.array([c.integrity.damage_rate for c in cts]),
+        np.array([c.integrity.damage_repair_rate for c in cts]),
     )
 
 
@@ -126,6 +155,9 @@ class _Cells:
     death_time: np.ndarray
     v_prev: np.ndarray
     motility: np.ndarray
+    damage: np.ndarray
+    target: np.ndarray  # id of the cell being attacked, or -1
+    attack_time: np.ndarray  # total time this cell has been attacked
     beh: dict[str, np.ndarray] = field(default_factory=dict)
 
     @property
@@ -135,7 +167,8 @@ class _Cells:
     def take(self, idx: np.ndarray) -> _Cells:
         return _Cells(
             self.pos[idx], self.type[idx], self.id[idx], self.state[idx], self.death_time[idx], self.v_prev[idx],
-            self.motility[idx], {k: v[idx] for k, v in self.beh.items()},
+            self.motility[idx], self.damage[idx], self.target[idx], self.attack_time[idx],
+            {k: v[idx] for k, v in self.beh.items()},
         )  # fmt: skip
 
     def extend(self, other: _Cells) -> _Cells:
@@ -147,6 +180,9 @@ class _Cells:
             np.concatenate([self.death_time, other.death_time]),
             np.concatenate([self.v_prev, other.v_prev]),
             np.concatenate([self.motility, other.motility]),
+            np.concatenate([self.damage, other.damage]),
+            np.concatenate([self.target, other.target]),
+            np.concatenate([self.attack_time, other.attack_time]),
             {k: np.concatenate([v, other.beh[k]]) for k, v in self.beh.items()},
         )
 
@@ -189,8 +225,10 @@ class Simulation:
             ss = np.random.SeedSequence([int(seed) & 0xFFFF_FFFF, RNG_SALT])
         else:
             ss = np.random.SeedSequence(int(seed) & 0xFFFF_FFFF)
+        # Streams are spawned by index, so adding the eighth (attacks) left the first seven, and every run of a
+        # model without attacks, unchanged.
         self.rng_init, self.rng_order, self.rng_cycle, self.rng_death, self.rng_motility, self.rng_division, \
-            self.rng_events = (np.random.default_rng(s) for s in ss.spawn(7))  # fmt: skip
+            self.rng_events, self.rng_attack = (np.random.default_rng(s) for s in ss.spawn(8))  # fmt: skip
 
         self.types = _types(model)
         self.rulesets = build_rulesets(model)
@@ -296,7 +334,7 @@ class Simulation:
         self.next_id += n
         cells = _Cells(
             pos, type_idx.astype(np.int64), ids, np.full(n, LIVE, dtype=np.int8), np.zeros(n), np.zeros((n, 2)),
-            np.zeros((n, 2)),
+            np.zeros((n, 2)), np.zeros(n), np.full(n, -1, dtype=np.int64), np.zeros(n),
         )  # fmt: skip
         cells.beh = self._base_behaviours(type_idx)
         return cells
@@ -389,6 +427,12 @@ class Simulation:
                 out[name] = (c.state == APOPTOTIC).astype(float)
             elif name in ("necrotic", "is_necrotic"):
                 out[name] = (c.state == NECROTIC).astype(float)
+            elif name == "damage":
+                out[name] = c.damage
+            elif name in ("attacking", "is attacking"):
+                out[name] = (c.target >= 0).astype(float)
+            elif name == "total attack time":
+                out[name] = c.attack_time
             elif name.startswith("contact with "):
                 out[name] = self._contacts(name[len("contact with ") :])
             else:
@@ -487,6 +531,10 @@ class Simulation:
             current = c.beh[target][sel]
             c.beh[target][sel] = rs.evaluate({k: v[sel] for k, v in signals.items()}, dead[sel], current)
         dt = self.dt_p
+        # Damage, as Cell_Integrity::advance_damage: grows at the damage rate, then divided by 1 + repair * dt.
+        grow, repair = self.types.damage_rate[c.type], self.types.damage_repair[c.type]
+        changing = (grow > 1e-8) | (repair > 1e-8)
+        c.damage[changing] = ((c.damage + grow * dt) / (1.0 + repair * dt))[changing]
         order = self._order(c.n)
         u_apo = self._draw(self.rng_death, order)
         u_nec = self._draw(self.rng_death, order)
@@ -514,6 +562,9 @@ class Simulation:
             self.next_id += parents.size
             daughters.v_prev[:] = 0.0
             daughters.motility[:] = 0.0
+            # Damage is heritable and the attack target is copied with the phenotype; the attack time is reset.
+            c.attack_time[parents] = 0.0
+            daughters.attack_time[:] = 0.0
             c.pos[parents] = self.domain.wrap(c.pos[parents] - u)
             keep = np.concatenate([keep, np.ones(parents.size, dtype=bool)])
             c = c.extend(daughters)
@@ -540,6 +591,7 @@ class Simulation:
         )  # fmt: skip
         self.pressure = pf.pressure
         self.contacts = pf.neighbours
+        self.attacks()
         live = c.state == LIVE
         order = self._order(n)
         u_turn = self._draw(self.rng_motility, order)
@@ -570,6 +622,42 @@ class Simulation:
         self.max_step_ratio = max(self.max_step_ratio, float(moved.max(initial=0.0)))
         c.pos = self.domain.wrap(c.pos + step)
         c.v_prev = v
+
+    def attacks(self) -> None:
+        """One round of effector attacks over the current neighbour pairs; see the module docstring."""
+        t, c = self.types, self.cells
+        effectors = t.attack.any(axis=1)
+        if not effectors.any() or c.n == 0:
+            return
+        dt = self.dt_m
+        live = c.state == LIVE
+        index = {int(cid): k for k, cid in enumerate(c.id)}
+        neighbours: list[list[int]] = [[] for _ in range(c.n)]
+        for i, j in self.contacts:
+            neighbours[i].append(int(j))
+            neighbours[j].append(int(i))
+        for i in self._order(c.n):
+            if not live[i] or not effectors[c.type[i]]:
+                continue
+            if c.target[i] < 0:
+                candidates = [j for j in neighbours[i] if live[j]]
+                for k in self.rng_attack.permutation(len(candidates)):
+                    j = candidates[k]
+                    p = t.attack[c.type[i], c.type[j]] * t.immunogenicity[c.type[j], c.type[i]] * dt
+                    if self.rng_attack.random() < p:
+                        c.target[i] = c.id[j]
+                        break
+            if c.target[i] < 0:
+                continue
+            j = index.get(int(c.target[i]))
+            if j is None:
+                c.target[i] = -1
+                continue
+            if c.state[j] == LIVE:
+                c.damage[j] += t.attack_damage[c.type[i]] * dt
+                c.attack_time[j] += dt
+            if self.rng_attack.random() < dt / (1e-15 + t.attack_duration[c.type[i]]) or c.state[j] != LIVE:
+                c.target[i] = -1
 
     # -- outputs -----------------------------------------------------------------------------------------
 

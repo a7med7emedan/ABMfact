@@ -57,6 +57,9 @@
         "death": {
           "$ref": "#/$defs/Death"
         },
+        "integrity": {
+          "$ref": "#/$defs/Integrity"
+        },
         "interactions": {
           "$ref": "#/$defs/Interactions"
         },
@@ -305,10 +308,36 @@
       "title": "InitialConditions",
       "type": "object"
     },
+    "Integrity": {
+      "additionalProperties": false,
+      "description": "Damage a cell carries, as in PhysiCell's cell integrity: it grows at ``damage_rate`` and is repaired\nat ``damage_repair_rate``, both per unit time. Attacks add to it, and rules can read it as the\n``damage`` signal.",
+      "properties": {
+        "damage_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Damage Rate",
+          "type": "number"
+        },
+        "damage_repair_rate": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Damage Repair Rate",
+          "type": "number"
+        }
+      },
+      "title": "Integrity",
+      "type": "object"
+    },
     "Interactions": {
       "additionalProperties": false,
-      "description": "Contact interactions with other cells, as in PhysiCell.\n\nAttack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is\nthe attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.",
+      "description": "Contact interactions with other cells, as in PhysiCell.\n\nAttack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is\nthe attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type. An attack\nlasts ``attack_duration`` on average. ``immunogenicities`` scales how readily each attacker type starts\nan attack on this cell type, keyed by the attacker's name; a missing type counts as 1.",
       "properties": {
+        "attack_duration": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "title": "Attack Duration",
+          "type": "number"
+        },
         "attack_rates": {
           "additionalProperties": {
             "minimum": 0,
@@ -335,6 +364,14 @@
             "type": "number"
           },
           "title": "Fusion Rates",
+          "type": "object"
+        },
+        "immunogenicities": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Immunogenicities",
           "type": "object"
         },
         "phagocytosis_rates": {

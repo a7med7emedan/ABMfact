@@ -15,6 +15,7 @@ applies to it. It is not meant to compete with PhysiCell.
 | Substrates | diffusion, decay, secretion and uptake on a regular grid; no-flux, Dirichlet or periodic edges |
 | Rules | Hill-type signal-to-behaviour rules, combined exactly as PhysiCell 1.14.2 combines them |
 | Events | set a substrate, set a substrate's boundary value for a while (a drug pulse), add cells |
+| Attack and damage | effectors start attacks on live neighbours at `attack_rate * immunogenicity * dt`, add `damage_rate * dt` of damage per mechanics step, and stop with probability `dt / attack_duration` or when the target dies; damage grows and is repaired per phenotype step, and kills through rules that read `damage` (PhysiCell 1.14.2 `standard_cell_cell_interactions`, `Cell::attack_cell`, `Cell_Integrity::advance_damage`) |
 
 The diffusion solver is a symmetrised backward-Euler LOD scheme with decay and uptake inside the
 implicit sweeps. It is unconditionally stable, keeps concentrations non-negative, and is first order in
@@ -47,8 +48,12 @@ fields and positions as the original to rounding, and a test checks this to 1e-9
 
 The engine refuses, with the reason, models it cannot run faithfully: 3D models, intracellular models,
 cycle models other than `live`, transformations, rules with signals or behaviours it does not implement,
-timed parameter changes, native extensions, and cells that attack, damage, phagocytose or fuse. Contact
-interactions such as immune attack are planned for milestone 3.
+timed parameter changes, native extensions, and cells that phagocytose or fuse.
+
+Attacks differ from PhysiCell in two declared ways. PhysiCell links an effector to its target by a spring
+for the length of an attack; the reference engine does not. PhysiCell tries neighbours in the order its
+cell container holds them; the reference engine tries them in a random order drawn from the run's seed,
+so the result does not depend on how cells are labelled.
 
 ## Examples
 

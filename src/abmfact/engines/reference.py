@@ -51,7 +51,7 @@ class ReferenceEngine(Engine):
             knobs=tuple(KNOB_NAMES),
             native_formats=("abm-ir",),
             ir_features=FEATURES,
-            notes="grid knobs need a periodic domain; no intracellular models, attack or phagocytosis",
+            notes="grid knobs need a periodic domain; no intracellular models, phagocytosis or fusion",
             update_orders=("random", "id", "reverse", "synchronous"),
         )
 

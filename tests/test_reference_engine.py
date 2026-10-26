@@ -138,7 +138,9 @@ def test_refusals_name_the_reason():
     assert "2D only" in refusals(model_from_dict(three_d), Knobs())[0]
     immune = copy.deepcopy(BASE)
     immune["cell_types"][1]["interactions"] = {"attack_rates": {"a": 0.1}}
-    assert "milestone 3" in " ".join(refusals(model_from_dict(immune), Knobs()))
+    assert refusals(model_from_dict(immune), Knobs()) == []
+    immune["cell_types"][1]["interactions"] = {"phagocytosis_rates": {"a": 0.1}}
+    assert "phagocytosis and fusion" in " ".join(refusals(model_from_dict(immune), Knobs()))
     assert refusals(model(rules=[rule("intracellular oxygen", "increases", "apoptosis", 1, 1, 1)]), Knobs())
     assert refusals(model(rules=[rule("oxygen", "increases", "attack b", 1, 1, 1)]), Knobs())
     closed = copy.deepcopy(BASE)

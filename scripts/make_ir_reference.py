@@ -16,7 +16,7 @@ REPO = "https://github.com/a7med7emedan/ABMfact"
 
 ORDER = [
     "IRModel", "Units", "Space", "Bounds", "Voxel", "Substrate", "SubstrateBoundary", "CellType", "Cycle", "Death",
-    "Mechanics", "Motility", "Chemotaxis", "Secretion", "Interactions", "Rule", "IntracellularModel",
+    "Integrity", "Mechanics", "Motility", "Chemotaxis", "Secretion", "Interactions", "Rule", "IntracellularModel",
     "InitialConditions", "Placement", "TimedEvent", "Observable", "Experiment", "Provenance", "DerivedFrom",
     "NativeExtension",
 ]  # fmt: skip

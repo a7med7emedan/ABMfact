@@ -104,6 +104,7 @@ One cell type: its volume, cycle, death, mechanics, motility, secretion and inte
 | `volume` | number (> 0) | `2494.0` |
 | `cycle` | [Cycle](#cycle) | defaults |
 | `death` | [Death](#death) | defaults |
+| `integrity` | [Integrity](#integrity) | defaults |
 | `mechanics` | [Mechanics](#mechanics) | defaults |
 | `motility` | [Motility](#motility) | defaults |
 | `secretion` | list of [Secretion](#secretion) | empty list |
@@ -131,6 +132,15 @@ Apoptosis and necrosis rates, and how long a dead cell remains before it is remo
 | `necrosis_rate` | number (>= 0) | `0.0` |
 | `apoptosis_duration` | number (> 0) | `516.0` |
 | `necrosis_duration` | number (> 0) | `86400.0` |
+
+## Integrity
+
+Damage a cell carries, as in PhysiCell's cell integrity: it grows at ``damage_rate`` and is repaired at ``damage_repair_rate``, both per unit time. Attacks add to it, and rules can read it as the ``damage`` signal.
+
+| Field | Type | Default |
+|---|---|---|
+| `damage_rate` | number (>= 0) | `0.0` |
+| `damage_repair_rate` | number (>= 0) | `0.0` |
 
 ## Mechanics
 
@@ -177,12 +187,14 @@ Exchange of one substrate between a cell and its voxel, as in PhysiCell. The cel
 
 ## Interactions
 
-Contact interactions with other cells, as in PhysiCell. Attack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.
+Contact interactions with other cells, as in PhysiCell. Attack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type. An attack lasts ``attack_duration`` on average. ``immunogenicities`` scales how readily each attacker type starts an attack on this cell type, keyed by the attacker's name; a missing type counts as 1.
 
 | Field | Type | Default |
 |---|---|---|
 | `attack_rates` | map of number (>= 0) | empty |
 | `damage_rate` | number (>= 0) | `0.0` |
+| `attack_duration` | number (> 0) | `0.1` |
+| `immunogenicities` | map of number (>= 0) | empty |
 | `phagocytosis_rates` | map of number (>= 0) | empty |
 | `dead_phagocytosis_rate` | number (>= 0) | `0.0` |
 | `fusion_rates` | map of number (>= 0) | empty |

@@ -231,7 +231,12 @@ def _import_cell_type(cd: ET.Element, rep: FidelityReport, subs: list[str]) -> d
             a.get("name", ""): float(a.text or 0) for a in ph.iterfind("cell_interactions/fusion_rates/*")
         },
         "damage_rate": _f(ci, "attack_damage_rate"),
+        "attack_duration": max(_f(ci, "attack_duration", 0.1), 1e-15),
         "dead_phagocytosis_rate": max(dead),
+    }
+    ct["integrity"] = {
+        "damage_rate": _f(ph, "cell_integrity/damage_rate"),
+        "damage_repair_rate": _f(ph, "cell_integrity/damage_repair_rate"),
     }
     if len({d for d in dead if d > 0}) > 1:
         rep.add(
@@ -239,8 +244,7 @@ def _import_cell_type(cd: ET.Element, rep: FidelityReport, subs: list[str]) -> d
             "approximated",
             "apoptotic, necrotic and other dead phagocytosis rates differ; the largest is kept",
         )
-    if _f(ph, "cell_integrity/damage_rate") > 0 or _f(ph, "cell_integrity/damage_repair_rate") > 0:
-        rep.add(f"{base}.cell_integrity", "dropped", "damage accumulation and repair are not in ABM-IR")
+    rep.add(f"{base}.integrity", "exact", "damage and repair rates")
     ct["transformations"] = {
         t.get("name", ""): float(t.text or 0) for t in ph.iterfind("cell_transformations/transformation_rates/*")
     }
@@ -554,6 +558,16 @@ def _export_cell_type(proto: ET.Element, ct: Any, idx: int, model: IRModel, rep:
     for tag in ("apoptotic_phagocytosis_rate", "necrotic_phagocytosis_rate", "other_dead_phagocytosis_rate"):
         _set(ph, f"cell_interactions/{tag}", it.dead_phagocytosis_rate)
     _set(ph, "cell_interactions/attack_damage_rate", it.damage_rate)
+    _set(ph, "cell_interactions/attack_duration", it.attack_duration)
+    if any(v != 1.0 for v in it.immunogenicities.values()):
+        rep.add(
+            f"{base}.interactions.immunogenicities",
+            "dropped",
+            "the PhysiCell 1.14.2 settings file has no immunogenicity; set it with an 'immunogenicity to' rule",
+        )
+    _set(ph, "cell_integrity/damage_rate", ct.integrity.damage_rate)
+    _set(ph, "cell_integrity/damage_repair_rate", ct.integrity.damage_repair_rate)
+    rep.add(f"{base}.integrity", "exact")
     tr = ph.find("cell_transformations/transformation_rates")
     if tr is not None:
         _named_list(tr, "transformation_rate", ct.transformations, names, 0.0)

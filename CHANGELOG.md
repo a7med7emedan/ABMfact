@@ -8,6 +8,10 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- Attack and damage in the reference engine, following PhysiCell 1.14.2: effectors attack live neighbours,
+  damage accumulates and is repaired, and rules read it as the `damage` signal. ABM-IR gains
+  `attack_duration`, `immunogenicities` and a cell type's `integrity` (damage and repair rates), and the
+  PhysiCell translation carries them both ways.
 - `abmfact recommend`: ranks every engine for one model by whether it can run it, how faithfully (a dry-run
   translation's fidelity counts), which audit checks become testable and whether it is installed. Engines
   gain an optional `translation()` method for this.

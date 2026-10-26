@@ -139,6 +139,15 @@ class Death(_Base):
     necrosis_duration: Pos = 86400.0
 
 
+class Integrity(_Base):
+    """Damage a cell carries, as in PhysiCell's cell integrity: it grows at ``damage_rate`` and is repaired
+    at ``damage_repair_rate``, both per unit time. Attacks add to it, and rules can read it as the
+    ``damage`` signal."""
+
+    damage_rate: NonNeg = 0.0
+    damage_repair_rate: NonNeg = 0.0
+
+
 class Mechanics(_Base):
     """Centre-based mechanics. ``max_adhesion_distance`` is relative to the cell radius, as in PhysiCell."""
 
@@ -185,11 +194,15 @@ class Interactions(_Base):
     """Contact interactions with other cells, as in PhysiCell.
 
     Attack, phagocytosis and fusion rates are keyed by the name of the target cell type. ``damage_rate`` is
-    the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type.
+    the attack damage rate, and ``dead_phagocytosis_rate`` applies to dead cells of any type. An attack
+    lasts ``attack_duration`` on average. ``immunogenicities`` scales how readily each attacker type starts
+    an attack on this cell type, keyed by the attacker's name; a missing type counts as 1.
     """
 
     attack_rates: dict[str, NonNeg] = Field(default_factory=dict)
     damage_rate: NonNeg = 0.0
+    attack_duration: Pos = 0.1
+    immunogenicities: dict[str, NonNeg] = Field(default_factory=dict)
     phagocytosis_rates: dict[str, NonNeg] = Field(default_factory=dict)
     dead_phagocytosis_rate: NonNeg = 0.0
     fusion_rates: dict[str, NonNeg] = Field(default_factory=dict)
@@ -212,6 +225,7 @@ class CellType(_Base):
     volume: Pos = 2494.0
     cycle: Cycle = Field(default_factory=Cycle)
     death: Death = Field(default_factory=Death)
+    integrity: Integrity = Field(default_factory=Integrity)
     mechanics: Mechanics = Field(default_factory=Mechanics)
     motility: Motility = Field(default_factory=Motility)
     secretion: list[Secretion] = Field(default_factory=list)
@@ -468,7 +482,7 @@ def reference_problems(m: IRModel) -> list[tuple[str, str]]:
             need(f"{base}.motility.chemotaxis.substrate", ct.motility.chemotaxis.substrate, subs, "substrate")
         for t in ct.mechanics.adhesion_affinities:
             need(f"{base}.mechanics.adhesion_affinities", t, types, "cell type")
-        for field in ("attack_rates", "phagocytosis_rates", "fusion_rates"):
+        for field in ("attack_rates", "immunogenicities", "phagocytosis_rates", "fusion_rates"):
             for t in getattr(ct.interactions, field):
                 need(f"{base}.interactions.{field}", t, types, "cell type")
         for t in ct.transformations:

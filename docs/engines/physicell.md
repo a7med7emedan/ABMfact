@@ -85,7 +85,8 @@ model hash.
 | mechanics | adhesion, repulsion, adhesion distance, affinities | exact | exact |
 | motility | speed, persistence, bias, chemotaxis | exact; advanced chemotaxis dropped | exact |
 | secretion | per-substrate rates and targets | exact | exact |
-| interactions | attack, phagocytosis, fusion, transformations | exact; distinct dead-phagocytosis rates approximated | exact |
+| interactions | attack (rate, damage rate, duration), phagocytosis, fusion, transformations | exact; distinct dead-phagocytosis rates approximated | exact; immunogenicity other than 1 dropped, since the 1.14.2 settings file has none |
+| integrity | `cell_integrity` damage and repair rates | exact | exact |
 | rules | `cell_rules.csv` (CBHG v3) | exact; rules naming unknown things dropped | exact |
 | initial cells | `cells.csv` | positions and types; extra columns dropped (approximated) | random placements drawn once with seed 0 (approximated) |
 | intracellular | `intracellular[@type="maboss"]` | files and settings; mappings carried as settings (approximated) | MaBoSS files and settings (approximated); SBML dropped |
