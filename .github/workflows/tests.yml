@@ -100,6 +100,22 @@ jobs:
       - name: Run CompuCell3D projects
         run: pytest -m compucell3d -rs
 
+  morpheus:
+    name: Morpheus integration (container)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . pytest
+      - name: Morpheus 2.4.1 image
+        run: docker build --platform linux/amd64 -t abmfact/morpheus:2.4.1 containers/morpheus
+      - name: Run Morpheus models
+        run: pytest -m morpheus -rs
+
   validation:
     name: planted-fault matrix
     runs-on: ubuntu-latest

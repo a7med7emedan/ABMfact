@@ -19,7 +19,7 @@ unchanged.
 | `python` | any `run(params, seed, knobs)` function | not needed | available |
 | `command` | any program that reads JSON on standard input and prints JSON | not needed | available |
 | `compucell3d` | CompuCell3D 4.10.0 projects, as they are | both ways, with a fidelity report | available |
-| Morpheus | | | planned next |
+| `morpheus` | Morpheus 2.4.1 models, as they are | planned next | available |
 | Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py | | | planned |
 
 ## Layers

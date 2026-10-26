@@ -64,6 +64,7 @@ command = "abmfact.engines.legacy:CommandEngine"
 reference = "abmfact.engines.reference:ReferenceEngine"
 physicell = "abmfact.engines.physicell:PhysiCellEngine"
 compucell3d = "abmfact.engines.compucell3d:CompuCell3DEngine"
+morpheus = "abmfact.engines.morpheus:MorpheusEngine"
 
 [dependency-groups]
 dev = [
@@ -90,6 +91,7 @@ markers = [
   "slow: the full planted-fault matrix (deselect with -m 'not slow')",
   "physicell: runs PhysiCell; needs a g++ with OpenMP or the Docker image, skipped otherwise",
   "compucell3d: runs CompuCell3D; needs CC3D_PYTHON or the Docker image, skipped otherwise",
+  "morpheus: runs Morpheus; needs MORPHEUS_BIN or the Docker image, skipped otherwise",
 ]
 
 [tool.coverage.run]

@@ -25,6 +25,7 @@ BUILTIN: dict[str, str] = {
     "reference": "abmfact.engines.reference:ReferenceEngine",
     "physicell": "abmfact.engines.physicell:PhysiCellEngine",
     "compucell3d": "abmfact.engines.compucell3d:CompuCell3DEngine",
+    "morpheus": "abmfact.engines.morpheus:MorpheusEngine",
 }
 
 

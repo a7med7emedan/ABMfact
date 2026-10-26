@@ -1,0 +1,100 @@
+<MorpheusModel version="5.0">
+    <Description>
+        <Title>Example-AutocrineChemotaxis</Title>
+        <Details></Details>
+    </Description>
+    <Global>
+        <Field symbol="U" name="chemoattractant" value="0"/>
+        <System time-step="10.0" solver="Euler [fixed, O(1)]">
+            <DiffEqn symbol-ref="U">
+                <Reaction>p - d*U</Reaction>
+                <Diffusion>0.1</Diffusion>
+            </DiffEqn>
+            <Constant symbol="d" name="degradation U" value="0.01"/>
+        </System>
+        <Constant symbol="cell_density" value="0.003"/>
+    </Global>
+    <Space>
+        <Lattice class="square">
+            <Size symbol="size" value="200, 200, 0"/>
+            <BoundaryConditions>
+                <Condition type="periodic" boundary="x"/>
+                <Condition type="periodic" boundary="y"/>
+            </BoundaryConditions>
+            <NodeLength value="1.0"/>
+            <Neighborhood>
+                <Distance>2.5</Distance>
+            </Neighborhood>
+        </Lattice>
+        <SpaceSymbol symbol="space"/>
+    </Space>
+    <Time>
+        <StartTime value="0"/>
+        <StopTime value="2.5e4"/>
+        <SaveInterval value="0"/>
+        <RandomSeed value="0"/>
+        <TimeSymbol symbol="time"/>
+    </Time>
+    <CellTypes>
+        <CellType class="biological" name="cells">
+            <!--    <Disabled>
+        <Property symbol="cell" value="1.0"/>
+    </Disabled>
+-->
+            <Property symbol="c" name="chemotactic strength" value="100.0"/>
+            <Property symbol="p" name="production chemoattractant" value="0.01"/>
+            <Property symbol="neighbors" name="number of neighboring cells" value="0"/>
+            <VolumeConstraint strength="1" target="60"/>
+            <SurfaceConstraint strength="1" target="0.85" mode="aspherity"/>
+            <Chemotaxis retraction="true" strength="c" field="U" contact-inhibition="false"/>
+            <NeighborhoodReporter>
+                <Input value="cell.type == celltype.cells.id" scaling="cell"/>
+                <Output symbol-ref="neighbors" mapping="sum"/>
+            </NeighborhoodReporter>
+        </CellType>
+        <CellType class="medium" name="medium">
+            <Constant symbol="neighbors" value="0.0"/>
+            <Constant symbol="p" name="production" value="0.0"/>
+        </CellType>
+    </CellTypes>
+    <CPM>
+        <Interaction default="0.0">
+            <Contact value="-10" type1="cells" type2="medium"/>
+            <Contact value="-20" type1="cells" type2="cells"/>
+        </Interaction>
+        <MonteCarloSampler stepper="edgelist">
+            <MCSDuration value="1.0"/>
+            <Neighborhood>
+                <Order>2</Order>
+            </Neighborhood>
+            <MetropolisKinetics temperature="10.0"/>
+        </MonteCarloSampler>
+        <ShapeSurface scaling="norm">
+            <Neighborhood>
+                <Distance>2.5</Distance>
+            </Neighborhood>
+        </ShapeSurface>
+    </CPM>
+    <CellPopulations>
+        <Population type="cells" size="0">
+            <InitRectangle number-of-cells="cell_density * size.x * size.y" mode="regular">
+                <Dimensions origin="0.0, 0.0, 0.0" size="size.x, size.y, 0"/>
+            </InitRectangle>
+        </Population>
+    </CellPopulations>
+    <Analysis>
+        <Gnuplotter decorate="false" time-step="500">
+            <Terminal name="png" persist="true"/>
+            <Plot>
+                <Field symbol-ref="U" surface="true" min="0.0" isolines="5"/>
+                <Cells value="cell.type" opacity="0.55">
+                    <ColorMap>
+                        <Color value="2.0" color="gray"/>
+                        <Color value="0" color="gray"/>
+                    </ColorMap>
+                </Cells>
+            </Plot>
+        </Gnuplotter>
+        <ModelGraph format="svg" reduced="false" include-tags="#untagged"/>
+    </Analysis>
+</MorpheusModel>

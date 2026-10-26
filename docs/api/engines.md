@@ -115,3 +115,27 @@ The engine contract, the registry, and the engines that ship with ABMfact.
 ```{eval-rst}
 .. automodule:: abmfact.engines.compucell3d.translate
 ```
+
+## `abmfact.engines.morpheus`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.morpheus
+```
+
+## `abmfact.engines.morpheus.engine`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.morpheus.engine
+```
+
+## `abmfact.engines.morpheus.model`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.morpheus.model
+```
+
+## `abmfact.engines.morpheus.outputs`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.morpheus.outputs
+```

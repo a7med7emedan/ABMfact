@@ -8,6 +8,8 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- The Morpheus engine: Morpheus 2.4.1 models run as they are, with two added loggers for cells and fields,
+  natively with `MORPHEUS_BIN` or in the pinned image in `containers/morpheus/Dockerfile`.
 - Translation between ABM-IR and CompuCell3D (tier T1) with a fidelity report, in stated units of micron per
   site and minutes per Monte Carlo step: a CC3DML model plus a generic steppable that runs placements, the
   cycle, death, rules, motility, secretion, attack and timed events. CompuCell3D projects import to ABM-IR.

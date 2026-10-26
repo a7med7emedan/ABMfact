@@ -39,7 +39,7 @@ verdict comes with an interval, a reason and a command that reproduces it.
 | Python | any `run(params, seed, knobs)` function | not needed | available |
 | Any other language | a program that reads JSON on standard input and prints JSON | not needed | available |
 | [CompuCell3D](https://compucell3d.org) 4.10.0 | projects run as they are, natively or in a pinned container | both ways, with a fidelity report | available |
-| Morpheus | | | planned next |
+| [Morpheus](https://morpheus.gitlab.io) 2.4.1 | models run as they are, natively or in a pinned container | planned next | available |
 | Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py | | | planned |
 
 `abmfact engines` lists the engines installed on your machine and what each can do. Another package can
