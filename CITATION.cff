@@ -1,11 +1,14 @@
 cff-version: 1.2.0
 message: "If you use ABMfact, please cite it as below."
-title: "ABMfact: is it a finding or an artefact?"
+title: "ABMfact: run agent-based models across simulators and check their conclusions"
 abstract: >-
-  ABMfact audits the conclusions of agent-based models against implementation artefacts. It reruns a
-  model under changes that a correct implementation must not care about, such as activation order,
-  agent labels, random streams, grid placement, time step and population size, and reports which
-  stated conclusions survive, with intervals and reproducible commands.
+  ABMfact runs agent-based models in several simulators through one interface and checks whether their
+  conclusions are findings or implementation artefacts. Models run in their own format or are written in
+  ABM-IR, a shared description translated for each simulator with a report of what was kept exactly,
+  approximated or dropped. Every run is recorded with its engine version, settings and seed. ABMfact
+  reruns a model under changes that a correct implementation must not care about, such as activation
+  order, agent labels, random streams, grid placement, time step, voxel size and population size, and
+  reports which stated conclusions survive, with intervals and reproducible commands.
 type: software
 authors:
   - family-names: Hemedan
@@ -15,10 +18,13 @@ license: Apache-2.0
 repository-code: "https://github.com/a7med7emedan/ABMfact"
 keywords:
   - agent-based modelling
+  - computational biology
+  - cell-based modelling
+  - simulation
   - verification
   - reproducibility
   - artefacts
-  - simulation
+  - PhysiCell
 references:
   - type: article
     title: "Errors and artefacts in agent-based modelling"

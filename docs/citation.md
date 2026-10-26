@@ -7,7 +7,7 @@ GitHub turns it into a "Cite this repository" button. Each release will also be 
 ```bibtex
 @software{hemedan_abmfact,
   author  = {Hemedan, Ahmed},
-  title   = {{ABMfact}: is it a finding or an artefact?},
+  title   = {{ABMfact}: run agent-based models across simulators and check their conclusions},
   url     = {https://github.com/a7med7emedan/ABMfact},
   license = {Apache-2.0},
   year    = {2026}

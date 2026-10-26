@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "abmfact"
 version = "0.2.0.dev0"
-description = "Is it a finding or an artefact? Audits the conclusions of agent-based models against implementation artefacts."
+description = "Run agent-based models across simulators through one interface, and check that their conclusions are findings, not artefacts."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -14,7 +14,8 @@ authors = [{ name = "Ahmed Hemedan" }]
 keywords = [
   "agent-based-model", "agent-based-modelling", "abm", "simulation", "verification", "validation",
   "reproducibility", "robustness", "artefacts", "metamorphic-testing", "mesa", "netlogo",
-  "computational-science", "research-software",
+  "computational-science", "research-software", "computational-biology", "systems-biology",
+  "cell-based-modelling", "multiscale-modelling", "physicell", "physiboss", "convergence",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -25,6 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
   "Topic :: Scientific/Engineering :: Information Analysis",
   "Topic :: Software Development :: Testing",
   "Typing :: Typed",

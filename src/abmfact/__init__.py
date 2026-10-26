@@ -1,7 +1,8 @@
-"""ABMfact: is it a finding or an artefact?
+"""ABMfact: run agent-based models across simulators and check their conclusions.
 
-Audit the conclusions of an agent-based model by rerunning it under changes that a correct
-implementation must not care about, and report which conclusions survive.
+Run a model in several simulators through one engine contract, translate it through ABM-IR with a
+fidelity report, and audit its conclusions by rerunning it under changes that a correct implementation
+must not care about. ABMfact reports which conclusions survive: are they findings or artefacts?
 """
 
 from __future__ import annotations

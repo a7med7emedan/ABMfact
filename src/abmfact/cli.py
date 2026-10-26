@@ -283,7 +283,8 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser with every subcommand and its options."""
     p = argparse.ArgumentParser(
         prog="abmfact",
-        description="Is it a finding or an artefact? Audit an agent-based model's conclusions.",
+        description="Run agent-based models across simulators and check whether their conclusions are findings "
+        "or artefacts.",
     )
     p.add_argument("--version", action="version", version=f"abmfact {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
