@@ -1,0 +1,15 @@
+# Gate 3, problem 6: immune attack. Written and committed before any Gate 3 run; see PROTOCOL.md.
+title: "Gate 3, problem 6: immune attack"
+model: ../../examples/ir/immune.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seeds: 20
+jobs: 10
+claims_from: ../../examples/suite/immune.audit.yaml
+metrics:
+  - metric: last(tumour_live)
+    budget: {relative: 0.25}
+    note: "a quarter of the surviving tumour"
+  - metric: max(tumour_dead)
+    budget: {relative: 0.25}
+    note: "a quarter of the baseline's peak dead count"

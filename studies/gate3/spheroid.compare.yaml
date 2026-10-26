@@ -1,0 +1,17 @@
+# Gate 3, problem 2: spheroid with oxygen and a necrotic core. Written and committed before any Gate 3 run; see PROTOCOL.md.
+title: "Gate 3, problem 2: spheroid with oxygen and a necrotic core"
+model: ../../examples/ir/spheroid.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seeds: 20
+jobs: 10
+seeds_by_engine:
+  compucell3d: 10                  # about 2 hours per run under amd64 emulation
+claims_from: ../../examples/suite/spheroid.audit.yaml
+metrics:
+  - metric: last(oxygen_min)
+    budget: 0.94
+    note: "a quarter of the necrosis rule's half-max (3.75 mmHg)"
+  - metric: max(dead)
+    budget: {relative: 0.25}
+    note: "a quarter of the baseline's peak dead count"

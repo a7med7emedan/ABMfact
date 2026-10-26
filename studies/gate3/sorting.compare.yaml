@@ -1,0 +1,15 @@
+# Gate 3, problem 3: differential adhesion. Written and committed before any Gate 3 run; see PROTOCOL.md.
+title: "Gate 3, problem 3: differential adhesion"
+model: ../../examples/ir/sorting.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seeds: 20
+jobs: 10
+claims_from: ../../examples/suite/sorting.audit.yaml
+metrics:
+  - metric: last(dark_spread)
+    budget: 33.6
+    note: "two cell diameters (a 2494 cubic micron sphere is 16.8 micron across)"
+  - metric: last(light_spread)
+    budget: 33.6
+    note: "two cell diameters"

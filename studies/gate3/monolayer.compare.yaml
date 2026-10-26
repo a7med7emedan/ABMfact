@@ -1,0 +1,14 @@
+# Gate 3, problem 1: monolayer with contact inhibition. Written and committed before any Gate 3 run; see PROTOCOL.md.
+title: "Gate 3, problem 1: monolayer with contact inhibition"
+model: ../../examples/ir/monolayer.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seeds: 20
+jobs: 10
+params:
+  experiment.max_time: 1440        # one day, as the suite audit's claims
+claims_from: ../../examples/suite/monolayer.audit.yaml
+metrics:
+  - metric: last(cells)
+    budget: {relative: 0.25}
+    note: "a quarter of the colony; counts are compared relative to their size"

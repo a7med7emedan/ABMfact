@@ -1,0 +1,17 @@
+# Gate 3: Morpheus on its own published cell-sorting example (Graner and Glazier 1992, unchanged).
+title: "Morpheus cell sorting, native"
+model:
+  adapter: engine
+  engine: morpheus
+  model: ../../../tests/fixtures/morpheus/CellSorting_2D.xml
+  options:
+    observables:
+      - {name: ct1_spread, kind: radius_of_gyration, cell_type: ct1}
+      - {name: ct2_spread, kind: radius_of_gyration, cell_type: ct2}
+claims:
+  - id: C1
+    statement: "the ct1 cells, which bind each other and shun the medium, gather into a core more compact than the starting disc"
+    metric: last(ct1_spread)
+    test: less_than
+    value: 47.1                    # a uniform disc of radius 200/3 nodes has a radius of gyration of 47.1
+budget: {seeds: 20, jobs: 10}

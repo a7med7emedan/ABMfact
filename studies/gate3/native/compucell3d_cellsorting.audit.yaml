@@ -1,0 +1,17 @@
+# Gate 3: CompuCell3D on its own published cell-sorting example (the book-chapter demo, unchanged).
+title: "CompuCell3D cell sorting, native"
+model:
+  adapter: engine
+  engine: compucell3d
+  model: ../../../tests/fixtures/compucell3d/cellsorting
+  options:
+    observables:
+      - {name: condensing_spread, kind: radius_of_gyration, cell_type: Condensing}
+      - {name: noncondensing_spread, kind: radius_of_gyration, cell_type: NonCondensing}
+claims:
+  - id: C1
+    statement: "the condensing cells gather into a core more compact than the starting blob"
+    metric: last(condensing_spread)
+    test: less_than
+    value: 28.3                    # a uniform disc of radius 40 sites has a radius of gyration of 40 / sqrt(2)
+budget: {seeds: 20, jobs: 10}
