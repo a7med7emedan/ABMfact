@@ -42,6 +42,9 @@ All notable changes are recorded here. The format follows
 
 ### Changed
 
+- A new logo for the platform, drawn by `scripts/make_logo.py`: agents on a lattice, off-lattice cells and
+  cellular Potts cells under one lens. The README, manual front page, package description and citation
+  now describe ABMfact as one interface to several simulators, with a table of supported tools.
 - Version 0.2.0.dev0. pydantic is now a core dependency (ABM-IR only; `import abmfact` does not load it).
 - `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
 
