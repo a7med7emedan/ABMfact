@@ -3,15 +3,13 @@
 Build from the repository root, with the ``[docs]`` extra installed:
 
     sphinx-build -W -b html docs docs/_build/html
-    sphinx-build -W -b latex docs docs/_build/latex && make -C docs/_build/latex
+    sphinx-build -W -b latex docs docs/_build/latex   # then latexmk -pdfxe abmfact.tex in docs/_build/latex
     sphinx-build -W -b doctest docs docs/_build/doctest
 """
 
 from __future__ import annotations
 
 import importlib
-import shutil
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +29,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.rsvgconverter",
+    "sphinxcontrib.cairosvgconverter",
 ]
 
 source_suffix = {".md": "markdown", ".rst": "restructuredtext"}
@@ -61,19 +59,21 @@ html_show_sourcelink = False
 
 
 def _latex_logo() -> str | None:
-    """The logo as a PDF for the manual's title page, when ``rsvg-convert`` is installed to convert it."""
-    converter = shutil.which("rsvg-convert")
-    if converter is None:
+    """The logo as a PDF for the manual's title page, converted with CairoSVG when it is installed."""
+    try:
+        import cairosvg
+    except (ImportError, OSError):
         return None
     out = ROOT / "docs" / "_build" / "logo.pdf"
     out.parent.mkdir(parents=True, exist_ok=True)
-    logo = ROOT / "assets" / "logo.svg"
-    subprocess.run([converter, "-f", "pdf", "-o", str(out), str(logo)], check=True)  # noqa: S603 - fixed argv
+    cairosvg.svg2pdf(url=str(ROOT / "assets" / "logo.svg"), write_to=str(out))
     return str(out)
 
 
 latex_engine = "xelatex"
 latex_logo = _latex_logo()
+# makeindex ships with every TeX installation; xindy needs extra packages.
+latex_use_xindy = False
 latex_documents = [("index", "abmfact.tex", "ABMfact manual", author, "manual")]
 latex_show_urls = "footnote"
 latex_elements = {

@@ -108,6 +108,8 @@ jobs:
     name: documentation
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TEXLIVE_IMAGE: texlive/texlive:latest-full@sha256:540d736c78e2803cdd7b6a196bd21339c30185948db55e04e75a415959102ca8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -115,27 +117,20 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[docs]"
-      - name: TeX Live for the PDF manual
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          # The runners' default Azure mirror is at times very slow for TeX Live; the main archive is not.
-          sudo sed -i 's|http://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' \
-            /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
-          # Rebuilding the man-page index after installing TeX Live takes many minutes on the runners.
-          echo "set man-db/auto-update false" | sudo debconf-communicate
-          sudo dpkg-reconfigure man-db
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends latexmk texlive-xetex texlive-latex-extra \
-            texlive-fonts-recommended fonts-freefont-otf fonts-inter xindy librsvg2-bin
       - name: HTML, with warnings as errors
         run: sphinx-build -W --keep-going -b html docs docs/_build/html
       - name: Examples in the manual
         run: sphinx-build -W --keep-going -b doctest docs docs/_build/doctest
-      - name: PDF manual
+      - name: LaTeX sources, with figures converted by CairoSVG
         run: |
           sphinx-build -W --keep-going -b latex docs docs/_build/latex
-          make -C docs/_build/latex LATEXMKOPTS="-halt-on-error -interaction=nonstopmode"
+          test -f docs/_build/logo.pdf
+      - name: PDF manual, typeset in the pinned TeX Live image
+        # The image comes from Docker Hub; installing TeX Live with apt depended on slow Ubuntu mirrors.
+        run: |
+          docker run --rm -v "$PWD/docs/_build:/build" -w /build/latex "$TEXLIVE_IMAGE" \
+            latexmk -pdfxe -interaction=nonstopmode -halt-on-error abmfact.tex
+          test -s docs/_build/latex/abmfact.pdf
       - uses: actions/upload-artifact@v4
         with:
           name: manual

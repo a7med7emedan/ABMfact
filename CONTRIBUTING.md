@@ -51,11 +51,14 @@ sphinx-build -W -b html docs docs/_build/html       # open docs/_build/html/inde
 sphinx-build -W -b doctest docs docs/_build/doctest # run the examples in the manual
 ```
 
-The PDF needs a TeX installation with XeLaTeX, latexmk, xindy and `rsvg-convert`. Continuous integration
-builds it on every pull request and keeps it as an artefact of the run:
+The PDF needs a TeX installation with XeLaTeX and latexmk; the figures are converted with CairoSVG, which
+the `[docs]` extra installs and which needs the Cairo library. Continuous integration typesets the PDF in a
+pinned TeX Live image on every pull request and keeps it as an artefact of the run. The same works locally
+with Docker:
 
 ```bash
-sphinx-build -W -b latex docs docs/_build/latex && make -C docs/_build/latex
+sphinx-build -W -b latex docs docs/_build/latex
+docker run --rm -v "$PWD/docs/_build:/build" -w /build/latex texlive/texlive:latest-full latexmk -pdfxe abmfact.tex
 ```
 
 ## Figures
