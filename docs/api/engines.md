@@ -85,3 +85,27 @@ The engine contract, the registry, and the engines that ship with ABMfact.
 ```{eval-rst}
 .. automodule:: abmfact.engines.physicell.translate
 ```
+
+## `abmfact.engines.compucell3d`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.compucell3d
+```
+
+## `abmfact.engines.compucell3d.engine`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.compucell3d.engine
+```
+
+## `abmfact.engines.compucell3d.project`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.compucell3d.project
+```
+
+## `abmfact.engines.compucell3d.outputs`
+
+```{eval-rst}
+.. automodule:: abmfact.engines.compucell3d.outputs
+```

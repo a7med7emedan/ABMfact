@@ -84,6 +84,22 @@ jobs:
           PHYSICELL_SOURCE: ${{ runner.temp }}/PhysiCell
         run: pytest -m physicell -rs
 
+  compucell3d:
+    name: CompuCell3D integration (container)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . pytest
+      - name: CompuCell3D 4.10.0 image
+        run: docker build --platform linux/amd64 -t abmfact/compucell3d:4.10.0 containers/compucell3d
+      - name: Run CompuCell3D projects
+        run: pytest -m compucell3d -rs
+
   validation:
     name: planted-fault matrix
     runs-on: ubuntu-latest

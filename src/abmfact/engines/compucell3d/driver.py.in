@@ -1,0 +1,77 @@
+"""Run a CompuCell3D project unchanged, plus one output steppable written by ABMfact.
+
+Usage: python abmfact_cc3d_driver.py PROJECT.cc3d OUTPUT_DIR SAVE_EVERY [FIELD ...]
+"""
+import csv
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+from cc3d import CompuCellSetup
+from cc3d.core.PySteppables import SteppableBasePy
+
+PROJECT, OUT, EVERY, FIELDS = sys.argv[1], Path(sys.argv[2]), int(sys.argv[3]), sys.argv[4:]
+
+
+class ABMfactOutput(SteppableBasePy):
+    """Writes every cell's centre and volume, and every named field, at MCS 0, every EVERY steps and the last."""
+
+    def __init__(self):
+        SteppableBasePy.__init__(self, 1)
+        self.saved = []
+        self.last = -1
+
+    def start(self):
+        OUT.mkdir(parents=True, exist_ok=True)
+        self.fh = (OUT / "cells.csv").open("w", newline="", encoding="utf-8")
+        self.writer = csv.writer(self.fh)
+        self.writer.writerow(["mcs", "id", "type", "x", "y", "z", "volume"])
+        self.save(0)
+
+    def step(self, mcs):
+        self.last = mcs
+        if mcs > 0 and mcs % EVERY == 0:
+            self.save(mcs)
+
+    def save(self, mcs):
+        for cell in self.cell_list:
+            self.writer.writerow([mcs, cell.id, self.get_type_name_by_cell(cell), cell.xCOM, cell.yCOM, cell.zCOM,
+                                  cell.volume])
+        arrays = {}
+        dim = self.dim
+        for name in FIELDS:
+            f = getattr(self.field, name)
+            a = np.empty((dim.x, dim.y, dim.z))
+            # Element by element: slicing a CompuCell3D field fails in 4.10.0.
+            for x in range(dim.x):
+                for y in range(dim.y):
+                    for z in range(dim.z):
+                        a[x, y, z] = f[x, y, z]
+            arrays[name] = a
+        if arrays:
+            np.savez_compressed(OUT / f"fields_{mcs}.npz", **arrays)
+        self.saved.append(mcs)
+
+    def finish(self):
+        if self.last > 0 and self.last not in self.saved:
+            self.save(self.last)
+        self.fh.close()
+        dim = self.dim
+        meta = {"saved_mcs": self.saved, "lattice": [dim.x, dim.y, dim.z], "dimensions": 2 if dim.z == 1 else 3}
+        (OUT / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+
+
+_run = CompuCellSetup.run
+
+
+def run(*args, **kwargs):
+    CompuCellSetup.register_steppable(steppable=ABMfactOutput())
+    return _run(*args, **kwargs)
+
+
+CompuCellSetup.run = run
+
+from cc3d.run_script import main, process_cml  # noqa: E402
+
+main(process_cml(["-i", PROJECT, "-o", str(OUT / "cc3d"), "-f", "0"]))

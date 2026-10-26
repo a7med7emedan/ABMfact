@@ -30,7 +30,7 @@ This manual is built from one source as web pages and as a PDF:
 - **User guide:** [concepts](concepts.md), [claims](claims.md), [checks](checks.md),
   [adapters](adapters.md), [statistics](statistics.md) and [convergence](convergence.md).
 - **Models and engines:** the [architecture](architecture.md), the [ABM-IR reference](ir-reference.md),
-  the [reference engine](engines/reference.md), and [PhysiCell and PhysiBoSS](engines/physicell.md).
+  the [reference engine](engines/reference.md), [PhysiCell and PhysiBoSS](engines/physicell.md), and [CompuCell3D](engines/compucell3d.md).
 - [Recipes](howto.md) for common tasks.
 - **Reference:** the [command line](cli-reference.md) and the [Python API](api/index.md).
 - **Validation:** [the planted-fault zoo](zoo.md) and [the reference problems](suite.md).
@@ -68,6 +68,7 @@ architecture
 ir-reference
 engines/reference
 engines/physicell
+engines/compucell3d
 ```
 
 ```{toctree}

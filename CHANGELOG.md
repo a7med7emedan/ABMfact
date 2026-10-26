@@ -8,6 +8,8 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- The CompuCell3D engine: CompuCell3D 4.10.0 projects run as they are, with a driver that adds one output
+  steppable, natively with `CC3D_PYTHON` or in the pinned image in `containers/compucell3d/Dockerfile`.
 - Six reference problems in `examples/suite/`: monolayer, spheroid, differential adhesion, chemotaxis, drug
   pulse and immune attack, each an ABM-IR model with two qualitative claims committed before any audit.
 - Attack and damage in the reference engine, following PhysiCell 1.14.2: effectors attack live neighbours,

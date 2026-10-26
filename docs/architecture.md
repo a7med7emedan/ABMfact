@@ -18,7 +18,8 @@ unchanged.
 | `netlogo` | NetLogo models through pynetlogo | not yet | available for audits |
 | `python` | any `run(params, seed, knobs)` function | not needed | available |
 | `command` | any program that reads JSON on standard input and prints JSON | not needed | available |
-| CompuCell3D, Morpheus | | | planned next |
+| `compucell3d` | CompuCell3D 4.10.0 projects, as they are | planned next | available |
+| Morpheus | | | planned next |
 | Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py | | | planned |
 
 ## Layers

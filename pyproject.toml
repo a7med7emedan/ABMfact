@@ -63,6 +63,7 @@ netlogo = "abmfact.engines.legacy:NetLogoEngine"
 command = "abmfact.engines.legacy:CommandEngine"
 reference = "abmfact.engines.reference:ReferenceEngine"
 physicell = "abmfact.engines.physicell:PhysiCellEngine"
+compucell3d = "abmfact.engines.compucell3d:CompuCell3DEngine"
 
 [dependency-groups]
 dev = [
@@ -88,6 +89,7 @@ addopts = "-q"
 markers = [
   "slow: the full planted-fault matrix (deselect with -m 'not slow')",
   "physicell: runs PhysiCell; needs a g++ with OpenMP or the Docker image, skipped otherwise",
+  "compucell3d: runs CompuCell3D; needs CC3D_PYTHON or the Docker image, skipped otherwise",
 ]
 
 [tool.coverage.run]
@@ -102,6 +104,8 @@ exclude_also = ["if __name__ == .__main__.:", "pragma: no cover"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+# Demo projects copied unchanged from CompuCell3D.
+extend-exclude = ["tests/fixtures/compucell3d"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "S", "BLE"]
