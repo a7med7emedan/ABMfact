@@ -176,8 +176,9 @@ def export_model(
         if periodic:
             _sub(bcs, "Condition", type="periodic", boundary=axis)
         else:
-            _sub(bcs, "Condition", type="constant", boundary=axis)
-            _sub(bcs, "Condition", type="constant", boundary=f"-{axis}")
+            # Closed edges are no-flux; a field's BoundaryValue holds its Dirichlet sides at their value.
+            _sub(bcs, "Condition", type="noflux", boundary=axis)
+            _sub(bcs, "Condition", type="noflux", boundary=f"-{axis}")
     _sub(_sub(lattice, "Neighborhood"), "Order").text = "2"
     _sub(space, "SpaceSymbol", symbol="space")
     rep.add("space", "exact", f"{nx} x {ny} nodes, {model.space.boundary} edges")

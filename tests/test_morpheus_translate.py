@@ -81,7 +81,8 @@ def test_fields_pulses_and_attacks(tmp_path):
     eqn = root.find("Global/System/DiffEqn[@symbol-ref='attractant']")
     assert float(eqn.findtext("Diffusion")) == pytest.approx(1000 * 0.5 / 16)  # micron^2/min to nodes^2/step
     sides = {b.get("boundary"): b.get("value") for b in root.iterfind("Global/Field/BoundaryValue")}
-    assert sides == {"x": "1.0"}  # the other edges are no-flux
+    assert sides == {"x": "1.0"}  # the other edges are no-flux, as the lattice's are
+    assert {c.get("type") for c in root.iterfind("Space/Lattice/BoundaryConditions/Condition")} == {"noflux"}
     assert root.find("CellTypes/CellType/Chemotaxis").get("field") == "attractant"
     _, report, root = exported("drug_pulse", tmp_path)
     conditions = [e.findtext("Condition") for e in root.iterfind("Global/Event")]
