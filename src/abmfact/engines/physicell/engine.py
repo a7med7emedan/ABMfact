@@ -150,12 +150,13 @@ class PhysiCellEngine(Engine):
     def _export(self, model: Any, params: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
         """Export an IR model, after applying its IR parameters; return the project and the XML parameters."""
         from ...ir import apply_params, model_hash
-        from .translate import export_project
+        from .translate import export_project, exporter_fingerprint
 
         ir_params = {k: v for k, v in params.items() if "/" not in k and not k.startswith("user_parameters.")}
         xml_params = {k: v for k, v in params.items() if k not in ir_params}
         m = apply_params(model, ir_params)
-        out = self.cache_dir / "exports" / model_hash(m)[:16]
+        # Keyed by the model and by the exporter, so a fixed or changed exporter writes a fresh project.
+        out = self.cache_dir / "exports" / f"{model_hash(m)[:16]}-{exporter_fingerprint()[:12]}"
         if not (out / ".exported").exists():
             report = export_project(m, out, base=self.base)
             (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")

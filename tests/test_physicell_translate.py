@@ -79,6 +79,14 @@ def test_export_of_the_ir_examples(tmp_path):
             assert notes["substrates"].status == "approximated"
         if name in ("monolayer", "chemotaxis"):
             assert "dt_diffusion" in notes["experiment.dt_diffusion"].note
+    for name in ("monolayer", "spheroid", "chemotaxis"):
+        s = SettingsXML.read(tmp_path / name / "config" / "PhysiCell_settings.xml")
+        declared = {v.get("name") for v in s.root.iterfind("microenvironment_setup/variable")}
+        named = {(el.text or "").strip() for el in s.root.iterfind(".//motility/options/chemotaxis/substrate")}
+        named |= {el.get("name") for el in s.root.iterfind(".//secretion/substrate")}
+        named |= {el.get("substrate") for el in s.root.iterfind(".//chemotactic_sensitivity")}
+        # PhysiCell refuses a cell definition that names a substrate the microenvironment does not declare.
+        assert named <= declared, (name, named - declared)
     chemo = SettingsXML.read(tmp_path / "chemotaxis" / "config" / "PhysiCell_settings.xml")
     side = chemo.find("microenvironment_setup/variable/Dirichlet_options/boundary_value[@ID='xmax']")
     assert side is not None and side.get("enabled") == "True" and side.text == "1.0"
@@ -149,6 +157,10 @@ def test_engine_exports_ir_models_once_per_hash(tmp_path, monkeypatch):
     assert p2.request.seed == 2 and not p1.context.get("warnings")
     engine.prepare(model, {"experiment.max_time": 30}, Knobs(), 1)
     assert len(list((tmp_path / "cache" / "exports").iterdir())) == 2
+    # A changed exporter never reuses an export written by the old one.
+    monkeypatch.setattr("abmfact.engines.physicell.translate.exporter_fingerprint", lambda: "f" * 64)
+    engine.prepare(model, {"experiment.max_time": 30}, Knobs(), 1)
+    assert len(list((tmp_path / "cache" / "exports").iterdir())) == 3
 
 
 def test_native_runs_warn_when_diffusion_steps_exceed_mechanics(tmp_path, monkeypatch):
@@ -174,6 +186,18 @@ def test_ir_model_runs_in_physicell_like_in_the_reference_engine(tmp_path):
     ref = simulate(load_model("examples/ir/chemotaxis.yaml"), 0).scalars["mean_x"][: len(pc)]
     # Both engines move the cells up the gradient at a similar speed (a T1 translation, not a docking test).
     assert pc[-1] - pc[0] > 200 and abs((pc[-1] - pc[0]) - (ref[-1] - ref[0])) < 0.3 * (ref[-1] - ref[0])
+
+
+@pytest.mark.physicell
+def test_ir_model_without_substrates_runs_in_physicell(tmp_path):
+    from test_physicell_engine import _toolchain_or_skip
+
+    _toolchain_or_skip()
+    engine = PhysiCellEngine(cache_dir=tmp_path / "cache", threads=1)
+    params = {"experiment.max_time": 60}
+    rec = engine.run_once(load_model("examples/ir/monolayer.yaml"), params, 0, Knobs(), workdir=tmp_path / "w")
+    assert rec.status == "ok", rec.error
+    assert rec.outputs.scalars["cells"][0] == 40
 
 
 def test_template_code_is_recognised_with_windows_line_endings(rules_sample):

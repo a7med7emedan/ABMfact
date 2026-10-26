@@ -9,6 +9,8 @@ BSD-3), or onto a project you give. Every field is reported as exact, approximat
 from __future__ import annotations
 
 import copy
+import functools
+import hashlib
 import math
 import shutil
 import xml.etree.ElementTree as ET
@@ -18,7 +20,7 @@ from typing import Any
 import numpy as np
 
 from ... import __version__
-from ...digest import content_digest
+from ...digest import content_bytes, content_digest
 from ...ir import IRModel, model_from_dict
 from ...ir.io import read_cells_csv
 from ...records import FidelityReport
@@ -58,6 +60,20 @@ DT_ORDER_NOTE = (
     "fixed dt_mechanics, so a longer diffusion step would slow every cell down"
 )
 SIDES = {"xmin": "x_min", "xmax": "x_max", "ymin": "y_min", "ymax": "y_max", "zmin": "z_min", "zmax": "z_max"}
+
+
+@functools.cache
+def exporter_fingerprint() -> str:
+    """A hash of this module's code and the bundled template, so a changed exporter never reuses old exports."""
+    h = hashlib.sha256(content_bytes(Path(__file__)))
+    for f in sorted(p for p in TEMPLATE.rglob("*") if p.is_file()):
+        h.update(f.relative_to(TEMPLATE).as_posix().encode())
+        h.update(content_bytes(f))
+    return h.hexdigest()
+
+
+#: The template's only substrate, kept (inert) when an ABM-IR model has none.
+INERT_SUBSTRATE = "substrate"
 
 
 def _f(el: ET.Element | None, path: str, default: float = 0.0) -> float:
@@ -461,7 +477,9 @@ def _export_cell_type(proto: ET.Element, ct: Any, idx: int, model: IRModel, rep:
     assert ph is not None
     base = f"cell_types[{ct.name}]"
     names = [c.name for c in model.cell_types]
-    subs = [s.name for s in model.substrates]
+    # A model without substrates is exported with the template's inert substrate, which every reference to a
+    # substrate in a cell definition must then name; PhysiCell refuses an empty or unknown substrate.
+    subs = [s.name for s in model.substrates] or [INERT_SUBSTRATE]
     cyc = ph.find("cycle")
     assert cyc is not None
     code = next((c for c, m in CYCLE_CODES.items() if m == ct.cycle.model), None)
@@ -518,7 +536,7 @@ def _export_cell_type(proto: ET.Element, ct: Any, idx: int, model: IRModel, rep:
         _set(ph, "motility/options/chemotaxis/direction", mot.chemotaxis.direction)
     else:
         _set(ph, "motility/options/chemotaxis/enabled", "false")
-        _set(ph, "motility/options/chemotaxis/substrate", subs[0] if subs else "")
+        _set(ph, "motility/options/chemotaxis/substrate", subs[0])
     sens = ph.find("motility/options/advanced_chemotaxis/chemotactic_sensitivities")
     if sens is not None:
         proto_s = sens.find("chemotactic_sensitivity")
@@ -700,7 +718,9 @@ def export_project(model: IRModel, out: str | Path, base: str | Path | None = No
     if plot is not None and model.substrates:
         plot.text = model.substrates[0].name
     if not model.substrates:
-        rep.add("substrates", "approximated", "PhysiCell needs a substrate; an inert one named 'substrate' is kept")
+        rep.add(
+            "substrates", "approximated", f"PhysiCell needs a substrate; an inert one named {INERT_SUBSTRATE!r} is kept"
+        )
         me.insert(0, proto_v)
 
     defs = root.find("cell_definitions")
