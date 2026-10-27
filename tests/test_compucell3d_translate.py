@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
+import sys
+import types
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -94,6 +97,59 @@ def test_diffusion_is_converted_and_capped_with_a_note(tmp_path):
     tumour = spec["types"][0]
     assert tumour["base"]["oxygen uptake"] * tumour["target_volume"] * 4 * 20 == pytest.approx(50 * 2494)
     assert "times the ABM-IR rate" in {e.path: e.note for e in report.entries}["cell_types[tumour].secretion"]
+
+
+def steppables(sim: Path, monkeypatch):
+    """The exported steppable module, imported against a stub of CompuCell3D's Python API."""
+
+    class Base:
+        def __init__(self, frequency=1):
+            self.frequency = frequency
+
+    api = types.ModuleType("cc3d.core.PySteppables")
+    api.SteppableBasePy = api.MitosisSteppableBase = Base  # type: ignore[attr-defined]
+    for name, module in (("cc3d", types.ModuleType("cc3d")), ("cc3d.core", types.ModuleType("cc3d.core")),
+                         ("cc3d.core.PySteppables", api)):  # fmt: skip
+        monkeypatch.setitem(sys.modules, name, module)
+    spec = importlib.util.spec_from_file_location("abmfact_ir_steppables", sim / "abmfact_ir_steppables.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_rules_read_the_field_before_the_step_s_own_uptake(tmp_path, monkeypatch):
+    exported("spheroid", tmp_path)
+    behaviour = steppables(tmp_path / "spheroid" / "Simulation", monkeypatch).IRBehaviour()
+    calls: list[str] = []
+    for name in ("events", "motility", "secretion", "attacks", "phenotype"):
+        monkeypatch.setattr(behaviour, name, lambda *a, n=name: calls.append(n))
+    behaviour.step(6)  # a phenotype step: the oxygen rules must see the field before uptake removes any
+    assert calls.index("phenotype") < calls.index("secretion")
+
+
+def test_uptake_and_secretion_take_the_exact_fraction_of_a_step(tmp_path, monkeypatch):
+    _, _, _, spec = exported("spheroid", tmp_path)
+    behaviour = steppables(tmp_path / "spheroid" / "Simulation", monkeypatch).IRBehaviour()
+    calls: list[tuple] = []
+
+    class Secretor:
+        def uptakeInsideCellTotalCount(self, cell, most, fraction):
+            calls.append(("uptake", fraction))
+
+        def secreteInsideCellTotalCount(self, cell, amount):
+            calls.append(("secrete", amount))
+
+    cell = types.SimpleNamespace(volume=220, dict={"abmfact_state": 0, "beh": {
+        "oxygen uptake": 30.0, "oxygen secretion": 20.0, "oxygen secretion target": 1.0}})  # fmt: skip
+    behaviour.cell_list = [cell]
+    behaviour.get_field_secretor = lambda name: Secretor()
+    behaviour.field_at = lambda name, cell: 0.25
+    behaviour.secretion()
+    slow = spec["field_slowdown"]["oxygen"]
+    u, s = 30.0 / slow, 20.0 / slow
+    assert calls[0] == ("secrete", pytest.approx((1 - math.exp(-s)) * 0.75 * 220))
+    assert calls[1] == ("uptake", pytest.approx(1 - math.exp(-u)))  # not u, which overshoots by about u / 2
 
 
 def test_events_attacks_and_names(tmp_path):

@@ -171,10 +171,11 @@ class IRBehaviour(SteppableBasePy):
         self.mcs = mcs
         self.events(mcs)
         self.motility()
-        self.secretion()
-        self.attacks()
+        # Rules read the field as diffusion left it, before this step's uptake empties the cell's own sites.
         if mcs % SPEC["phenotype_every"] == 0:
             self.phenotype()
+        self.secretion()
+        self.attacks()
 
     def events(self, mcs):
         for k, ev in enumerate(SPEC["events"]):
@@ -242,13 +243,15 @@ class IRBehaviour(SteppableBasePy):
                 slow = SPEC.get("field_slowdown", {}).get(name, 1.0)
                 s, u = b.get(f"{name} secretion", 0.0) / slow, b.get(f"{name} uptake", 0.0) / slow
                 target, export = b.get(f"{name} secretion target", 1.0), b.get(f"{name} export", 0.0) / slow
+                # Rates act once per MCS, so each takes the exact fraction of its step, 1 - exp(-rate),
+                # rather than the explicit rate, which overshoots by about rate / 2.
                 if s > 0:
                     rho = self.field_at(name, cell)
-                    amount = s * max(target - rho, 0.0) * cell.volume
+                    amount = -math.expm1(-s) * max(target - rho, 0.0) * cell.volume
                     if amount > 0:
                         sec.secreteInsideCellTotalCount(cell, amount)
                 if u > 0:
-                    sec.uptakeInsideCellTotalCount(cell, 1e30, min(u, 1.0))
+                    sec.uptakeInsideCellTotalCount(cell, 1e30, -math.expm1(-u))
                 if export > 0:
                     sec.secreteInsideCellTotalCount(cell, export)
 
