@@ -25,6 +25,10 @@ All notable changes are recorded here. The format follows
   cycle, death, rules, motility, secretion, attack and timed events. CompuCell3D projects import to ABM-IR.
 - The CompuCell3D engine: CompuCell3D 4.10.0 projects run as they are, with a driver that adds one output
   steppable, natively with `CC3D_PYTHON` or in the pinned image in `containers/compucell3d/Dockerfile`.
+- The Gate 3 study in `studies/gate3/`: the six reference problems compared across the reference engine,
+  PhysiCell, CompuCell3D and Morpheus with 20 seeds each, against budgets taken from the models, and each new
+  engine audited on its own published cell-sorting example. The protocol, comparisons and budgets were
+  committed before any run.
 - Six reference problems in `examples/suite/`: monolayer, spheroid, differential adhesion, chemotaxis, drug
   pulse and immune attack, each an ABM-IR model with two qualitative claims committed before any audit.
 - Attack and damage in the reference engine, following PhysiCell 1.14.2: effectors attack live neighbours,
@@ -75,6 +79,16 @@ All notable changes are recorded here. The format follows
 - `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
 
 ### Fixed
+
+- Seed 0 no longer reaches CompuCell3D, which reads it as a request for a clock seed and so never repeats a
+  run; it is mapped to 2147483647, the largest seed CompuCell3D accepts.
+- The CompuCell3D and Morpheus translations dilute secretion and uptake over the voxel as ABM-IR does (a cell
+  acts at its rate times its volume over the voxel's, with a 20 micron voxel depth in 2D). They had applied
+  the rate on every lattice site a cell covers, which made the spheroid's oxygen uptake 1.8 times too strong.
+- Morpheus fidelity reports list the pressure rule as approximated, as CompuCell3D's do.
+- Translated Morpheus runs are keyed by the model file Morpheus reads, not by the ABM-IR model, so a changed
+  translation is never served from the run store. CompuCell3D's run key leaves out the fidelity notes
+  written beside a project, so an unchanged project keeps its stored runs.
 
 - Determinism reruns always execute again: they bypass the run store and any cache that honours
   `abmfact.records.cache`, so a cached first run can no longer make a nondeterministic model look
