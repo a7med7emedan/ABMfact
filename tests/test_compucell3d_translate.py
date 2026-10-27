@@ -152,6 +152,22 @@ def test_uptake_and_secretion_take_the_exact_fraction_of_a_step(tmp_path, monkey
     assert calls[1] == ("uptake", pytest.approx(1 - math.exp(-u)))  # not u, which overshoots by about u / 2
 
 
+def test_rules_read_the_field_averaged_over_the_step_s_uptake(tmp_path, monkeypatch):
+    _, _, _, spec = exported("spheroid", tmp_path)
+    module = steppables(tmp_path / "spheroid" / "Simulation", monkeypatch)
+    behaviour = module.IRBehaviour()
+    behaviour.field_at = lambda name, cell: 5.0
+    u = 50.0 / spec["field_slowdown"]["oxygen"]
+    cell = types.SimpleNamespace(volume=220, dict={"abmfact_state": 0, "beh": {"oxygen uptake": 50.0}})
+    # The mean of 5 exp(-u t) over the step: neither 5, before uptake, nor 5 exp(-u), after it.
+    assert behaviour.signal("oxygen", cell, 0.0, []) == pytest.approx(5.0 * (1 - math.exp(-u)) / u)
+    cell.dict["beh"] = {"oxygen secretion": 20.0, "oxygen secretion target": 8.0}
+    s = 20.0 / spec["field_slowdown"]["oxygen"]
+    assert behaviour.signal("oxygen", cell, 0.0, []) == pytest.approx(8.0 - 3.0 * (1 - math.exp(-s)) / s)
+    cell.dict["abmfact_state"] = module.NECROTIC  # dead cells take nothing up, so they read the field as it is
+    assert behaviour.signal("oxygen", cell, 0.0, []) == 5.0
+
+
 def test_events_attacks_and_names(tmp_path):
     _, report, _, spec = exported("drug_pulse", tmp_path)
     assert spec["events"] == [{"time": 360.0, "until": 720.0, "action": "set_substrate_boundary", "target": "drug",

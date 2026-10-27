@@ -136,7 +136,7 @@ class IRBehaviour(SteppableBasePy):
     def signal(self, name, cell, contact_fraction, neighbours):
         d = cell.dict
         if name in SPEC["fields"]:
-            return self.field_at(name, cell)
+            return self.sensed(name, cell)
         if name == "pressure":
             return contact_fraction  # cellular Potts has no pressure; see the fidelity report
         if name in ("time", "current time", "global time"):
@@ -171,7 +171,7 @@ class IRBehaviour(SteppableBasePy):
         self.mcs = mcs
         self.events(mcs)
         self.motility()
-        # Rules read the field as diffusion left it, before this step's uptake empties the cell's own sites.
+        # Rules read the field as diffusion left it, averaged over the step's secretion and uptake still to come.
         if mcs % SPEC["phenotype_every"] == 0:
             self.phenotype()
         self.secretion()
@@ -232,17 +232,40 @@ class IRBehaviour(SteppableBasePy):
             cell.lambdaVecX = -k * d["dir"][0]
             cell.lambdaVecY = -k * d["dir"][1]
 
+    def rates(self, name, cell):
+        """A live cell's secretion, uptake and export of a field per MCS, and its secretion target."""
+        b = cell.dict["beh"]
+        # A field whose diffusion was capped has its reactions slowed by the same factor.
+        slow = SPEC.get("field_slowdown", {}).get(name, 1.0)
+        s, u = b.get(f"{name} secretion", 0.0) / slow, b.get(f"{name} uptake", 0.0) / slow
+        return s, u, b.get(f"{name} export", 0.0) / slow, b.get(f"{name} secretion target", 1.0)
+
+    def sensed(self, name, cell):
+        """The field at the cell's centre averaged over this step's own secretion and uptake.
+
+        The cell's reactions act once per MCS, so its sites swing between the value diffusion leaves and the
+        value after uptake, by a factor exp(u). Under continuous reactions, as in ABM-IR, the cell sees neither
+        end: the value relaxes as dc/dt = s (target - c) - u c + e over the step, and this is its mean.
+        """
+        c0 = self.field_at(name, cell)
+        if cell.dict["abmfact_state"] != LIVE:
+            return c0
+        s, u, export, target = self.rates(name, cell)
+        s = s if c0 < target else 0.0  # secretion only fills towards the target
+        e = export / cell.volume if cell.volume > 0 else 0.0
+        k = s + u
+        if k < 1e-12:
+            return c0 + e / 2
+        eq = (s * target + e) / k
+        return eq + (c0 - eq) * -math.expm1(-k) / k
+
     def secretion(self):
         for name in SPEC["fields"]:
             sec = self.get_field_secretor(name)
             for cell in self.cell_list:
                 if cell.dict["abmfact_state"] != LIVE:
                     continue
-                b = cell.dict["beh"]
-                # A field whose diffusion was capped has its reactions slowed by the same factor.
-                slow = SPEC.get("field_slowdown", {}).get(name, 1.0)
-                s, u = b.get(f"{name} secretion", 0.0) / slow, b.get(f"{name} uptake", 0.0) / slow
-                target, export = b.get(f"{name} secretion target", 1.0), b.get(f"{name} export", 0.0) / slow
+                s, u, export, target = self.rates(name, cell)
                 # Rates act once per MCS, so each takes the exact fraction of its step, 1 - exp(-rate),
                 # rather than the explicit rate, which overshoots by about rate / 2.
                 if s > 0:

@@ -86,6 +86,9 @@ All notable changes are recorded here. The format follows
 - CompuCell3D exports take the exact fraction of a step for secretion and uptake, 1 − exp(−rate), and their
   rules read the field before the step's uptake. Both errors had lowered the oxygen a spheroid cell senses, and
   about two and a half times as many cells died as in the reference.
+- CompuCell3D rules read a field averaged over the step's own secretion and uptake. Read before uptake, a
+  spheroid cell saw the top of a 1.25-fold swing each step, and only half as many cells died by 12 hours as in
+  the reference; the necrosis rule's Hill power of 8 amplifies the swing.
 
 - Seed 0 no longer reaches CompuCell3D, which reads it as a request for a clock seed and so never repeats a
   run; it is mapped to 2147483647, the largest seed CompuCell3D accepts.
