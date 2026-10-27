@@ -217,7 +217,7 @@ class MorpheusEngine(Engine):
         ``value`` attribute is set, such as ``Global/Constant[@symbol='d']``. For an ABM-IR model, a dotted
         parameter such as ``cell_types[tumour].volume`` is applied to the model before it is translated.
         """
-        from ...ir import IRModel, model_hash
+        from ...ir import IRModel
 
         loaded = self.load(model)
         translated = isinstance(loaded, IRModel)
@@ -248,8 +248,8 @@ class MorpheusEngine(Engine):
                    "threads": self.threads, "observables": self.observables}  # fmt: skip
         from ...digest import content_digest
 
-        digest_of = model_hash(loaded) if translated else content_digest(source)
-        request = RunRequest(self.name, digest_of, dict(params), int(seed), knobs.to_dict(),
+        # The model file Morpheus reads, so a changed translation is a new run even when the IR model is not.
+        request = RunRequest(self.name, content_digest(source), dict(params), int(seed), knobs.to_dict(),
                              engine_version=f"Morpheus {VERSION} ({identity})", image_digest=digest,
                              outputs_spec=canonical(options))  # fmt: skip
         if workdir is not None:

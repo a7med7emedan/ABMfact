@@ -184,8 +184,20 @@ def test_engine_translates_ir_models_once_per_model_and_translator(tmp_path, mon
     logger = MorpheusModel.read(p1.workdir / "model.xml").root.find("Analysis/Logger[@name='abmfact cells']")
     assert [s.get("symbol-ref") for s in logger.iterfind("Input/Symbol")][-1] == "state"
     monkeypatch.setattr("abmfact.engines.morpheus.translate.translator_fingerprint", lambda: "f" * 64)
-    engine.prepare(model, {"experiment.max_time": 60}, Knobs(), 1, workdir=tmp_path / "w")
+    same = engine.prepare(model, {"experiment.max_time": 60}, Knobs(), 1, workdir=tmp_path / "w")
     assert len(list((tmp_path / "cache" / "exports").iterdir())) == 2
+    assert same.request.key() == p1.request.key()  # the same translation is the same run
+
+    def changed(m, out, **kw):  # a translator fix that changes the model file but not the IR model
+        report = export_model(m, out, **kw)
+        f = out / "model.xml"
+        f.write_text(f.read_text().replace("</MorpheusModel>", "<!-- fix -->\n</MorpheusModel>"))
+        return report
+
+    monkeypatch.setattr("abmfact.engines.morpheus.translate.translator_fingerprint", lambda: "e" * 64)
+    monkeypatch.setattr("abmfact.engines.morpheus.translate.export_model", changed)
+    fixed = engine.prepare(model, {"experiment.max_time": 60}, Knobs(), 1, workdir=tmp_path / "w")
+    assert fixed.request.key() != p1.request.key()  # a fixed translation is a new run, though the IR model is not
 
 
 def test_recommend_shows_the_morpheus_translation():
