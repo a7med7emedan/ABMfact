@@ -80,6 +80,13 @@ All notable changes are recorded here. The format follows
 
 ### Fixed
 
+- PhysiCell exports lower `dt_diffusion` until `dt_diffusion·D/dx²` is at most 0.25 for the fastest field, and
+  report it as approximated. BioFVM's split diffusion solver is far from converged above that: at 25, in the
+  Gate 3 spheroid, PhysiCell's oxygen fell far below the converged field and six times as many cells died.
+- CompuCell3D exports take the exact fraction of a step for secretion and uptake, 1 − exp(−rate), and their
+  rules read the field before the step's uptake. Both errors had lowered the oxygen a spheroid cell senses, and
+  about two and a half times as many cells died as in the reference.
+
 - Seed 0 no longer reaches CompuCell3D, which reads it as a request for a clock seed and so never repeats a
   run; it is mapped to 2147483647, the largest seed CompuCell3D accepts.
 - The CompuCell3D and Morpheus translations dilute secretion and uptake over the voxel as ABM-IR does (a cell

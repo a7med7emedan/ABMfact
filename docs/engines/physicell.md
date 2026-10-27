@@ -62,6 +62,14 @@ per diffusion step, and `Cell::update_position` fixes its time step from its fir
 with `dt_diffusion = 1` and `dt_mechanics = 0.1`, ten times too slowly. Native runs with that ordering
 carry a warning in their run record, and export lowers `dt_diffusion` to `dt_mechanics` and says so.
 
+BioFVM's diffusion solver splits each step by axis and is far from converged when `dt_diffusion·D/dx²` is
+large. In the Gate 3 spheroid (D 10⁵ micron²/min, dx 20 micron, `dt_diffusion` 0.1 minute, so 25), a field
+with no cells settled at 33.0 at its centre, where the converged value is 36.4, and six times as many
+spheroid cells died as in the reference. Export therefore lowers `dt_diffusion` to a whole fraction of
+`dt_mechanics` that keeps `dt_diffusion·D/dx²` at or below 0.25 for the fastest field, and reports it.
+This includes PhysiCell's usual oxygen setting (0.01 minute at 20 micron, 2.5), which still left a
+consuming cell's voxel about 4 below the converged value. Native runs keep their own step.
+
 ## Translation (tier T1)
 
 ```bash
@@ -91,7 +99,7 @@ model hash.
 | initial cells | `cells.csv` | positions and types; extra columns dropped (approximated) | random placements drawn once with seed 0 (approximated) |
 | intracellular | `intracellular[@type="maboss"]` | files and settings; mappings carried as settings (approximated) | MaBoSS files and settings (approximated); SBML dropped |
 | events | none | | dropped: PhysiCell has no timed events without custom code |
-| time steps | `overall` | exact | exact; `dt_diffusion` lowered to `dt_mechanics` when larger (approximated) |
+| time steps | `overall` | exact | exact; `dt_diffusion` lowered to `dt_mechanics` when larger, and until `dt_diffusion·D/dx²` ≤ 0.25 (approximated) |
 | custom C++ | `custom_modules` | native extension, never translated | the base project's code |
 
 The translation is structural, not a proof of equivalence: the reference engine and PhysiCell move

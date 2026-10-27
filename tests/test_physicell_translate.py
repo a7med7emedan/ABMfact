@@ -57,6 +57,9 @@ def test_round_trip_keeps_the_model(rules_sample, tmp_path):
     assert len(rows) == 27
     again, _ = import_project(tmp_path / "out")
     a, b = model_to_dict(model, full=True), model_to_dict(again, full=True)
+    # The sample's oxygen step (dt*D/dx^2 = 2.5) is lowered to 0.25 on export and reported; the rest is kept.
+    assert b["experiment"].pop("dt_diffusion") == pytest.approx(a["experiment"].pop("dt_diffusion") / 10)
+    assert {e.path: e.status for e in rep.entries}["experiment.dt_diffusion"] == "approximated"
     for key in ("space", "substrates", "cell_types", "rules", "experiment", "observables"):
         assert a[key] == b[key], key
     original = (tmp_path / "ir" / model.initial_conditions.placements[0].path).read_text().splitlines()[1:]
@@ -91,6 +94,17 @@ def test_export_of_the_ir_examples(tmp_path):
     side = chemo.find("microenvironment_setup/variable/Dirichlet_options/boundary_value[@ID='xmax']")
     assert side is not None and side.get("enabled") == "True" and side.text == "1.0"
     assert chemo.get("cell_definitions/cell_definition/phenotype/motility/options/chemotaxis/enabled") == "true"
+
+
+def test_export_lowers_a_diffusion_step_biofvm_cannot_converge(tmp_path):
+    rep = export_project(load_model("examples/ir/spheroid.yaml"), tmp_path / "s")  # oxygen: dt*D/dx^2 = 25
+    steps = SettingsXML.read(tmp_path / "s" / "config" / "PhysiCell_settings.xml").time_steps()
+    assert steps["dt_diffusion"] == pytest.approx(0.001)  # 0.1 / 100, so dt*D/dx^2 = 0.25
+    assert steps["dt_mechanics"] / steps["dt_diffusion"] == pytest.approx(100)  # whole steps per mechanics step
+    entry = {e.path: e for e in rep.entries}["experiment.dt_diffusion"]
+    assert entry.status == "approximated" and "was 25" in entry.note and "0.001" in entry.note
+    kept = export_project(load_model("examples/ir/drug_pulse.yaml"), tmp_path / "d")  # dt*D/dx^2 = 0.16
+    assert "split diffusion solver" not in {e.path: e.note for e in kept.entries}.get("experiment.dt_diffusion", "")
 
 
 def test_export_events_intracellular_and_custom_cycles(tmp_path):

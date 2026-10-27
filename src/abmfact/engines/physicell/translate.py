@@ -59,6 +59,10 @@ DT_ORDER_NOTE = (
     "dt_diffusion lowered to dt_mechanics: PhysiCell runs mechanics at most once per diffusion step with a "
     "fixed dt_mechanics, so a longer diffusion step would slow every cell down"
 )
+#: Largest dt_diffusion * D / dx^2 an export keeps. BioFVM's diffusion solver splits the step by axis and is far
+#: from converged above it: in the Gate 3 spheroid (D 1e5, dx 20, dt 0.1, so 25) a field with no cells settled at
+#: 33.0 at its centre, where the converged value is 36.4; at 0.25 it was 36.3 and the spheroid matched the reference.
+MAX_DIFFUSION_NUMBER = 0.25
 SIDES = {"xmin": "x_min", "xmax": "x_max", "ymin": "y_min", "ymax": "y_max", "zmin": "z_min", "zmax": "z_max"}
 
 
@@ -678,13 +682,25 @@ def export_project(model: IRModel, out: str | Path, base: str | Path | None = No
     e = model.experiment
     s.set("overall/max_time", e.max_time)
     dt_diffusion = min(e.dt_diffusion, e.dt_mechanics)
+    notes = [DT_ORDER_NOTE] if dt_diffusion < e.dt_diffusion else []
+    vox = model.space.voxel
+    h = min(vox.dx, vox.dy, vox.dz) if model.space.dimensions == 3 else min(vox.dx, vox.dy)
+    d_max = max((x.diffusion_coefficient for x in model.substrates), default=0.0)
+    number = dt_diffusion * d_max / h**2
+    if number > MAX_DIFFUSION_NUMBER:
+        # A whole number of diffusion steps per mechanics step, as PhysiCell expects.
+        dt_diffusion /= math.ceil(number / MAX_DIFFUSION_NUMBER)
+        notes.append(
+            f"dt_diffusion lowered to {dt_diffusion:.4g} min: dt*D/dx^2 was {number:.3g} for the fastest field, and "
+            f"BioFVM's split diffusion solver is far from converged above {MAX_DIFFUSION_NUMBER:g}"
+        )
     s.set("overall/dt_diffusion", dt_diffusion)
     s.set("overall/dt_mechanics", e.dt_mechanics)
     s.set("overall/dt_phenotype", e.dt_phenotype)
     s.set("parallel/omp_num_threads", e.threads)
     s.set_output("output", e.save_interval, svg=False)
-    if dt_diffusion < e.dt_diffusion:
-        rep.add("experiment.dt_diffusion", "approximated", DT_ORDER_NOTE)
+    if notes:
+        rep.add("experiment.dt_diffusion", "approximated", "; ".join(notes))
     rep.add("experiment", "exact", "end time, time steps, save interval and threads")
 
     me = root.find("microenvironment_setup")
