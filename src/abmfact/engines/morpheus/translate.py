@@ -367,6 +367,10 @@ def export_model(
             reporter = _sub(glob, "NeighborhoodReporter")
             _sub(reporter, "Input", value=f"{fname} * {d}", scaling="cell")
             _sub(reporter, "Output", symbol_ref=f"grad_{axis}_{fname}", mapping="sum")
+    if pressure_used:
+        rep.add("rules.pressure", "approximated",
+                "cellular Potts has no pressure; the signal is the fraction of the cell's boundary touching other "
+                "cells")  # fmt: skip
     medium = _sub(types_el, "CellType", name="medium", **{"class": "medium"})
     for fname in fields:
         for pre in ("sec_", "up_", "exp_", "tgt_"):

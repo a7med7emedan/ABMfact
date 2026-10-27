@@ -48,7 +48,7 @@ def test_export_writes_a_model_morpheus_can_read(tmp_path):
     assert float(ct.find("Constant[@symbol='base_r_cycle']").get("value")) == pytest.approx(0.00139)
     assert "contact / max(perimeter, 1)" in ct.findtext("Function[@symbol='r_cycle']/Expression")
     assert status(report)["cell_types[epithelial].rules"] == "exact"
-    assert status(report)["units"] == "approximated"
+    assert status(report)["units"] == "approximated" and status(report)["rules.pressure"] == "approximated"
 
 
 def test_hill_combination_matches_physicell():
