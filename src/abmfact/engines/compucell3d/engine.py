@@ -11,7 +11,7 @@ project's Python code runs as written.
 CompuCell3D works in lattice sites and Monte Carlo steps (MCS). Outputs are reported in micron and minutes
 through ``site_length`` and ``mcs_minutes``, both 1 by default, which keeps the native units. A Monte Carlo
 step is not a time step, so ``dt_scale`` and ``dx_scale`` are refused; the seed is remapped for
-``rng_streams``.
+``rng_streams``. CompuCell3D reads a seed of 0 as "seed from the clock", so seed 0 is passed as ``ZERO_SEED``.
 
 CompuCell3D 4.10.0 runs either with a Python that has the ``cc3d`` package (``CC3D_PYTHON``), or in the image
 built from ``containers/compucell3d/Dockerfile``. That image is amd64 only, as CompuCell3D publishes no
@@ -39,6 +39,10 @@ VERSION = "4.10.0"
 IMAGE = f"abmfact/compucell3d:{VERSION}"
 PLATFORM = "linux/amd64"
 DRIVER = "abmfact_cc3d_driver.py"
+# CompuCell3D 4.10.0 (Simulator::getRNGSeed) seeds from the clock when Potts/RandomSeed is 0, and it parses the
+# seed with stoi. Seed 0 is passed as the largest seed it accepts instead, which no other seed maps to: larger
+# seeds are refused.
+ZERO_SEED = 0x7FFF_FFFF
 #: Micron per site for ABM-IR exports: a cell of PhysiCell's default volume covers about 55 sites in 2D.
 DEFAULT_SITE_LENGTH = 2.0
 
@@ -159,8 +163,16 @@ class CompuCell3DEngine(Engine):
             knobs=(),
             native_formats=("compucell3d project folder",),
             notes="native projects run unchanged (tier T0); a Monte Carlo step is not a time step, so dt_scale and "
-            "dx_scale are refused; the seed is remapped for rng_streams",
+            "dx_scale are refused; the seed is remapped for rng_streams, and seed 0, which CompuCell3D reads as "
+            "a clock seed, is passed as 2147483647",
         )
+
+    def seed_for(self, seed: int, knobs: Knobs) -> int:
+        """The seed written to ``Potts/RandomSeed``: never 0, which CompuCell3D would replace with a clock seed."""
+        value = super().seed_for(seed, knobs)
+        if not 0 <= value < ZERO_SEED:
+            raise EngineError(f"CompuCell3D takes seeds from 0 to {ZERO_SEED - 1}, not {value}")
+        return value or ZERO_SEED
 
     def availability(self) -> Availability:
         """Available when ``CC3D_PYTHON`` names a Python with cc3d, or the container image is present."""

@@ -16,7 +16,7 @@ import pytest
 
 from abmfact.engines.base import EngineError
 from abmfact.engines.compucell3d import CC3DProject, CompuCell3DEngine, read_output
-from abmfact.engines.compucell3d.engine import DRIVER, default_observables, driver_source
+from abmfact.engines.compucell3d.engine import DRIVER, ZERO_SEED, default_observables, driver_source
 from abmfact.engines.compucell3d.project import is_project
 from abmfact.engines.physicell import PhysiCellEngine
 from abmfact.engines.recommend import recommend
@@ -105,6 +105,10 @@ def test_prepare_copies_the_project_and_sets_only_what_a_run_controls(tmp_path, 
     assert again.request.key() == prep.request.key()
     other = engine.prepare(SORTING, {"Potts/Steps": 100}, Knobs(rng_streams="independent"), 7, tmp_path / "w")
     assert CC3DProject.read(other.workdir / "project").seed() != 7
+    zero = engine.prepare(SORTING, {}, Knobs(), 0, workdir=tmp_path / "w")  # 0 would make CompuCell3D use the clock
+    assert CC3DProject.read(zero.workdir / "project").seed() == ZERO_SEED and zero.request.seed == 0
+    with pytest.raises(EngineError, match="seeds from 0"):
+        engine.prepare(SORTING, {}, Knobs(), ZERO_SEED, workdir=tmp_path / "w")
     default = CompuCell3DEngine()
     monkeypatch.setattr(default, "_route", lambda: ("native", "fake", None))
     fields = default.prepare(DIFFUSION, {}, Knobs(), 1, workdir=tmp_path / "d")
