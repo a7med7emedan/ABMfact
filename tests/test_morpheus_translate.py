@@ -114,6 +114,16 @@ def test_capped_diffusion_slows_the_reactions_alike(tmp_path):
     assert dt == pytest.approx(min(0.1, slow / k))  # reactions slowed, so the step can be longer
 
 
+def test_uptake_is_diluted_over_the_voxel_as_in_abm_ir(tmp_path):
+    model, report, root = exported("spheroid", tmp_path)
+    ct = root.find("CellTypes/CellType[@name='tumour']")
+    nodes = float(ct.find("VolumeConstraint").get("target"))
+    per_node = float(ct.find("Constant[@symbol='base_up_oxygen']").get("value"))
+    # a cell takes up rate x volume per unit concentration, as in ABM-IR, whose 2D voxels are dz deep
+    assert per_node * nodes * 4 * model.space.voxel.dz == pytest.approx(50 * model.cell_types[0].volume)
+    assert "times the ABM-IR rate" in {e.path: e.note for e in report.entries}["cell_types[tumour].secretion"]
+
+
 def test_renamed_types_and_3d_models_are_reported(tmp_path):
     model = load_model(ROOT / "examples" / "ir" / "monolayer.yaml")
     model.cell_types[0].name = "epithelial cell"

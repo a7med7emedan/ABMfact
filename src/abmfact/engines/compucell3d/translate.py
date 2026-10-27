@@ -179,8 +179,13 @@ def export_project(
                         ET.SubElement(plane, "ConstantValue", PlanePosition=pos, Value=repr(float(value)))
             rep.add(f"substrates[{sub.name}]", "exact", "diffusion, decay, initial value and boundary values")
 
+    # ABM-IR dilutes a cell's secretion, uptake and export over its voxel, which in 2D is dz deep. A lattice cell
+    # acts on each site it covers, so a site's rate is scaled by the cell's volume over the volume of those sites.
+    site_volume = site_area * (model.space.voxel.dz if dims == 2 else 1.0)
     types = []
     for ct in model.cell_types:
+        sites = max(1.0, round(_disc_area(ct.volume, dims) / site_area))
+        share = ct.volume / (sites * site_volume)
         base: dict[str, float] = {
             "cycle entry": (ct.cycle.rates or [ct.cycle.division_rate])[0] * m,
             "apoptosis": ct.death.apoptosis_rate * m,
@@ -191,17 +196,21 @@ def export_project(
         }
         for f in fields:
             sec = next((x for x in ct.secretion if x.substrate == f), None)
-            base[f"{f} secretion"] = (sec.secretion_rate if sec else 0.0) * m
+            base[f"{f} secretion"] = (sec.secretion_rate if sec else 0.0) * m * share
             base[f"{f} secretion target"] = sec.target if sec else 1.0
-            base[f"{f} uptake"] = (sec.uptake_rate if sec else 0.0) * m
-            base[f"{f} export"] = (sec.net_export_rate if sec else 0.0) * m
+            base[f"{f} uptake"] = (sec.uptake_rate if sec else 0.0) * m * share
+            base[f"{f} export"] = (sec.net_export_rate if sec else 0.0) * m / site_volume
         rules: dict[str, list[dict[str, Any]]] = {}
         for r in model.rules:
             if r.cell_type != ct.name:
                 continue
             behaviour = "cycle entry" if r.behaviour == "exit from cycle phase 0" else r.behaviour
             sat = r.saturation_value
-            if behaviour in RATE_BEHAVIOURS or behaviour.endswith((" secretion", " uptake", " export")):
+            if behaviour.endswith((" secretion", " uptake")):
+                sat *= m * share
+            elif behaviour.endswith(" export"):
+                sat *= m / site_volume
+            elif behaviour in RATE_BEHAVIOURS:
                 sat *= m
             elif behaviour == "migration speed":
                 sat *= m / s
@@ -215,7 +224,7 @@ def export_project(
         types.append({
             "name": ct.name,
             "cc3d": cc3d_name(ct.name),
-            "target_volume": max(1.0, round(_disc_area(ct.volume, dims) / site_area)),
+            "target_volume": sites,
             "lambda_volume": LAMBDA_VOLUME,
             "base": base,
             "rules": rules,
@@ -249,7 +258,8 @@ def export_project(
         if ct.secretion:
             rep.add(f"{base_path}.secretion", "approximated",
                     "secretion towards the target and uptake at the cell's centre value, through CompuCell3D's field "
-                    "secretor")  # fmt: skip
+                    f"secretor, on every site the cell covers at {share:.3g} times the ABM-IR rate: the cell's volume "
+                    "over its sites' volume (site area times dz in 2D)")  # fmt: skip
     if any(r.signal == "pressure" for r in model.rules):
         rep.add("rules.pressure", "approximated",
                 "cellular Potts has no pressure; the signal is the fraction of the cell's boundary touching other "

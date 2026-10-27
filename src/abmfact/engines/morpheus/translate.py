@@ -103,6 +103,12 @@ def export_model(
     if names != [c.name for c in model.cell_types]:
         rep.add("cell_types[*].name", "approximated", "renamed to Morpheus symbols")
     fields = [symbol(x.name) for x in model.substrates]
+    # ABM-IR dilutes a cell's secretion, uptake and export over its voxel, dz deep in 2D. A Morpheus cell acts on
+    # each node it covers, so a node's rate is scaled by the cell's volume over the volume of those nodes.
+    node_volume = s * s * model.space.voxel.dz
+    radii = [(3 * c.volume / (4 * math.pi)) ** (1 / 3) for c in model.cell_types]
+    areas = [max(1.0, round(math.pi * r * r / (s * s))) for r in radii]
+    shares = {c.name: c.volume / (a * node_volume) for c, a in zip(model.cell_types, areas, strict=True)}
 
     root = ET.Element("MorpheusModel", version="5.0")
     desc = _sub(root, "Description")
@@ -141,7 +147,7 @@ def export_model(
             sats = [r.saturation_value for r in model.rules if r.cell_type == ct.name
                     and r.behaviour in (f"{sub.name} secretion", f"{sub.name} uptake")]  # fmt: skip
             own = (sec.secretion_rate + sec.uptake_rate) if sec else 0.0
-            k_max = max(k_max, sub.decay_rate + own + sum(sats))
+            k_max = max(k_max, sub.decay_rate + (own + sum(sats)) * shares[ct.name])
         # Morpheus substeps diffusion to stay stable, so fast diffusion is capped. The field's reactions are slowed
         # by the same factor, which keeps the steady profile (its decay length sqrt(D/k)) and slows only settling.
         d_nodes = sub.diffusion_coefficient * m / (s * s)
@@ -207,8 +213,7 @@ def export_model(
         base_path = f"cell_types[{ct.name}]"
         for prop, value in (("state", 0.0), ("death_time", 0.0), ("damage", 0.0)):
             _sub(el, "Property", symbol=prop, value=_num(value))
-        r = (3 * ct.volume / (4 * math.pi)) ** (1 / 3)
-        target = max(1.0, round(math.pi * r * r / (s * s)))
+        target, share = areas[model.cell_types.index(ct)], shares[ct.name]
         _sub(el, "VolumeConstraint", strength=_num(VOLUME_STRENGTH), target=_num(target))
         rep.add(
             f"{base_path}.volume", "approximated", f"a target area of {target:g} nodes, strength {VOLUME_STRENGTH:g}"
@@ -253,15 +258,18 @@ def export_model(
         }
         for sub, fname in zip(model.substrates, fields, strict=True):
             sec = next((x for x in ct.secretion if x.substrate == sub.name), None)
-            base[f"{sub.name} secretion"] = (sec.secretion_rate if sec else 0.0) * m
-            base[f"{sub.name} uptake"] = (sec.uptake_rate if sec else 0.0) * m
+            base[f"{sub.name} secretion"] = (sec.secretion_rate if sec else 0.0) * m * share
+            base[f"{sub.name} uptake"] = (sec.uptake_rate if sec else 0.0) * m * share
             _sub(el, "Constant", symbol=f"tgt_{fname}", value=_num(sec.target if sec else 1.0))
-            _sub(el, "Constant", symbol=f"exp_{fname}", value=_num((sec.net_export_rate if sec else 0.0) * m))
+            export = (sec.net_export_rate if sec else 0.0) * m / (target * node_volume)
+            _sub(el, "Constant", symbol=f"exp_{fname}", value=_num(export))
         by_behaviour: dict[str, list[dict[str, Any]]] = {}
         for rr in rules_here:
             beh = "cycle entry" if rr.behaviour == "exit from cycle phase 0" else rr.behaviour
             sat = rr.saturation_value
-            if beh in RATE_BEHAVIOURS or beh.endswith((" secretion", " uptake")):
+            if beh.endswith((" secretion", " uptake")):
+                sat *= m * share
+            elif beh in RATE_BEHAVIOURS:
                 sat *= m
             elif beh == "migration speed":
                 sat *= m / s
@@ -286,6 +294,11 @@ def export_model(
             _sub(_sub(el, "Function", symbol=sym), "Expression").text = expr
         if rules_here:
             rep.add(f"{base_path}.rules", "exact", "Hill-type rules combined as in PhysiCell 1.14.2")
+        if ct.secretion:
+            rep.add(f"{base_path}.secretion", "approximated",
+                    f"secretion and uptake on every node the cell covers at {share:.3g} times the ABM-IR rate: the "
+                    "cell's volume over its nodes' volume (node area times dz); export is spread over its target "
+                    "area")  # fmt: skip
 
         div = _sub(el, "CellDivision", division_plane="random")
         _sub(div, "Condition").text = f"{live} and rand_uni(0, 1) < r_cycle"

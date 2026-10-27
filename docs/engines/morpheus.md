@@ -60,7 +60,8 @@ Models are translated once per model and translator version, and cached.
 | space | a square lattice of `size / node_length` nodes, second-order neighbourhood; periodic edges kept | exact |
 | volume | `VolumeConstraint` with a target area (2D: the cross-section of the cell's sphere) in nodes, strength 1 | approximated |
 | adhesion and affinities | contact energies `J(a,b) = 20 - 10 e / 0.4` (at least 2), medium 10, with `e` the geometric mean of strength times affinity, as for CompuCell3D | approximated |
-| substrates | a global `Field` and a `DiffEqn` with diffusion in nodes² per step, decay, and secretion and uptake by the cells covering each node | exact |
+| substrates | a global `Field` and a `DiffEqn` with diffusion in nodes² per step and decay | exact |
+| secretion and uptake | by the cells covering each node. ABM-IR dilutes a cell's rates over its voxel, which is `dz` deep in 2D, so each node's rate is the ABM-IR rate times the cell's volume over the volume of its nodes (node area times `dz`); export is spread over the cell's target area | approximated |
 | live cycle | `CellDivision` with a per-step probability of rate times step length | exact |
 | apoptosis, necrosis | an `Event` that sets the state, then `CellDeath` after the clearance time; dead cells keep their size until then | approximated |
 | rules | Hill-type rules combined as in PhysiCell 1.14.2, as one Morpheus expression per behaviour; signals from `Mapper` (the field under the cell) and `NeighborhoodReporter` (contacts) | exact |

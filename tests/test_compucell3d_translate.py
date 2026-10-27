@@ -90,6 +90,10 @@ def test_diffusion_is_converted_and_capped_with_a_note(tmp_path):
     assert decay == pytest.approx(0.1 / slow)
     spec = json.loads((tmp_path / "spheroid" / "Simulation" / "abmfact_model.json").read_text())
     assert spec["field_slowdown"] == {"oxygen": pytest.approx(slow)}
+    # a cell takes up rate x volume per unit concentration, as in ABM-IR, whose 2D voxels are dz deep
+    tumour = spec["types"][0]
+    assert tumour["base"]["oxygen uptake"] * tumour["target_volume"] * 4 * 20 == pytest.approx(50 * 2494)
+    assert "times the ABM-IR rate" in {e.path: e.note for e in report.entries}["cell_types[tumour].secretion"]
 
 
 def test_events_attacks_and_names(tmp_path):
