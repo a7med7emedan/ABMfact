@@ -149,8 +149,9 @@ def test_engine_exports_ir_models_once_per_model_and_translator(tmp_path, monkey
     assert p1.context["ir_type_names"] == ["tumour", "effector"] and p1.context["scales"] == (2.0, 1.0)
     assert p1.argv[-1] == "60"  # saves every hour of model time
     monkeypatch.setattr("abmfact.engines.compucell3d.translate.exporter_fingerprint", lambda: "f" * 64)
-    engine.prepare(model, {"experiment.max_time": 60}, Knobs(), 1, workdir=tmp_path / "w")
+    again = engine.prepare(model, {"experiment.max_time": 60}, Knobs(), 1, workdir=tmp_path / "w")
     assert len(list((tmp_path / "cache" / "exports").iterdir())) == 2
+    assert again.request.key() == p1.request.key()  # the same project is the same run, whatever its fidelity notes say
 
 
 def test_recommend_shows_the_compucell3d_translation():

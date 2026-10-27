@@ -79,13 +79,18 @@ def _log_error(handle: RunHandle) -> str:
     return f"; CompuCell3D said: {errors[-1]}" if errors else ""
 
 
+#: Files ABMfact writes beside an exported project. CompuCell3D never reads them, so they stay out of the run key.
+BOOKKEEPING = frozenset({"fidelity.md", ".exported"})
+
+
 def _project_hash(folder: Path) -> str:
     import hashlib
 
     from ...digest import content_bytes
 
     h = hashlib.sha256()
-    for f in sorted(p for p in folder.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+    files = (p for p in folder.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
+    for f in sorted(p for p in files if p.relative_to(folder).as_posix() not in BOOKKEEPING):
         h.update(f.relative_to(folder).as_posix().encode())
         h.update(content_bytes(f))
     return h.hexdigest()
