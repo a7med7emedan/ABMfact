@@ -33,6 +33,7 @@ abmfact compare chemotaxis.compare.yaml --out results/chemotaxis --store runs/
 | `budget` | a number in the metric's units, or `{relative: f}`, a fraction of the baseline's mean |
 | `seeds`, `jobs`, `alpha` | seeds per engine, runs at once, and the one-sided significance level (0.05) |
 | `seeds_by_engine` | fewer seeds for a slow engine; the reason belongs in a comment or `notes` |
+| `seed_start` | the first seed (0); a follow-up starts above the seeds an earlier comparison used, so its sample is fresh |
 | `params` | ABM-IR parameters applied in every engine, such as `experiment.max_time` |
 | `options` | engine options by engine, as for `run-model --option` |
 | `claims_from` | an audit file whose threshold claims are evaluated in every engine |

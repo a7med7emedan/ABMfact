@@ -12,6 +12,8 @@ All notable changes are recorded here. The format follows
   a baseline engine against a declared disagreement budget (AGREE, DISAGREE, INCONCLUSIVE with the seeds
   needed, NOT_RUN), with each engine's fidelity report and, for threshold claims, whether every engine draws
   the same conclusion. Runs can be kept in a run store and reused.
+- Comparison files take `seed_start`, the first seed, so a follow-up comparison can draw seeds an earlier one
+  has not used.
 - Translation between ABM-IR and Morpheus (tier T1) with a fidelity report, in stated units of micron per
   node and minutes per step: one MorpheusML file with cell states, Hill-type rules as Morpheus expressions,
   division, death, motility, fields with secretion and uptake, attack and timed boundary values. MorpheusML

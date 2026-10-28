@@ -101,6 +101,16 @@ def test_a_store_reuses_runs(tmp_path):
     assert again.verdicts == first.verdicts
 
 
+def test_seed_start_draws_fresh_seeds(tmp_path):
+    later = compare(comparison(1.0, seed_start=100), workdir=tmp_path / "w", store=tmp_path / "store")
+    assert later.data["comparison"]["seed_start"] == 100 and later.data["engines"]["scaled"]["ok"] == 4
+    seeds = sorted({json.loads(p.read_text())["request"]["seed"]
+                    for p in (tmp_path / "store").rglob("record.json")})  # fmt: skip
+    assert seeds == [100, 101, 102, 103]
+    first = compare(comparison(1.0), workdir=tmp_path / "w", store=tmp_path / "store")
+    assert first.data["engines"]["reference"]["cached"] == 0  # seeds 0 to 3 are new runs, not the ones above
+
+
 def test_comparison_files_carry_budgets_and_claims(tmp_path):
     audit = tmp_path / "m.audit.yaml"
     audit.write_text(
@@ -121,7 +131,8 @@ def test_comparison_files_carry_budgets_and_claims(tmp_path):
     assert claim["status"]["reference"] == claim["status"]["scaled"] and claim["same_conclusion"]
     assert result.data["comparison"]["metrics"][0]["note"] == "a fifth of the colony"
     for broken, match in (("engines: [reference]", "two different"), ("baseline: other", "baseline"),
-                          ("seeds: 2", "at least 3"), ("extra: 1", "unknown")):  # fmt: skip
+                          ("seeds: 2", "at least 3"), ("seed_start: -1", "seed_start"),
+                          ("extra: 1", "unknown")):  # fmt: skip
         g = tmp_path / "bad.yaml"
         g.write_text(f.read_text() + broken + "\n" if not broken.startswith("engines") else
                      f.read_text().replace("engines: [reference, scaled]", broken))  # fmt: skip

@@ -103,7 +103,8 @@ class Comparison:
         baseline: The engine every other is compared with.
         options: Engine options by engine name, as for ``run-model --option``.
         params: ABM-IR parameters applied in every engine.
-        seeds: Seeds per engine (``0`` to ``seeds - 1``).
+        seeds: Seeds per engine (``seed_start`` to ``seed_start + seeds - 1``).
+        seed_start: The first seed, so a follow-up can draw seeds an earlier comparison has not seen.
         jobs: Runs at once.
         alpha: One-sided significance level; intervals cover ``1 - 2*alpha``.
         metrics: The compared metrics.
@@ -120,6 +121,7 @@ class Comparison:
     options: dict[str, dict[str, Any]] = field(default_factory=dict)
     params: dict[str, Any] = field(default_factory=dict)
     seeds: int = 10
+    seed_start: int = 0
     jobs: int = 1
     alpha: float = 0.05
     claims: list[Claim] = field(default_factory=list)
@@ -131,8 +133,8 @@ class Comparison:
         return int(self.seeds_by_engine.get(engine, self.seeds))
 
 
-KEYS = {"title", "model", "engines", "baseline", "metrics", "options", "params", "seeds", "jobs", "alpha",
-        "claims_from", "seeds_by_engine", "notes"}  # fmt: skip
+KEYS = {"title", "model", "engines", "baseline", "metrics", "options", "params", "seeds", "seed_start", "jobs",
+        "alpha", "claims_from", "seeds_by_engine", "notes"}  # fmt: skip
 
 
 def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None) -> Comparison:
@@ -170,6 +172,9 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
     seeds = int(raw.get("seeds", 10))
     if seeds < 3:
         raise CompareError("a comparison needs at least 3 seeds per engine")
+    seed_start = int(raw.get("seed_start", 0))
+    if seed_start < 0:
+        raise CompareError("seed_start must be 0 or more")
     alpha = float(raw.get("alpha", 0.05))
     if not 0 < alpha < 0.5:
         raise CompareError("alpha must lie between 0 and 0.5")
@@ -182,6 +187,7 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
         options={str(k): dict(v or {}) for k, v in (raw.get("options") or {}).items()},
         params=dict(raw.get("params") or {}),
         seeds=seeds,
+        seed_start=seed_start,
         jobs=int(raw.get("jobs", 1)),
         alpha=alpha,
         claims=claims,
@@ -325,7 +331,7 @@ def compare(
                 reason = f"could not prepare a run: {type(exc).__name__}: {exc}"
         engines[name] = {**info, "runs": reason is None, "reason": reason, "seeds": cmp.seeds_for(name)}
         if reason is None:
-            jobs += [_Run(name, s) for s in range(cmp.seeds_for(name))]
+            jobs += [_Run(name, cmp.seed_start + k) for k in range(cmp.seeds_for(name))]
     results = LocalBackend(workers=cmp.jobs).map(_CompareTask(cmp, root, Path(store) if store else None), jobs,
                                                   progress)  # fmt: skip
     values: dict[str, dict[str, list[float]]] = {n: {m.metric.expr: [] for m in cmp.metrics} for n in cmp.engines}
@@ -372,6 +378,7 @@ def compare(
             "baseline": cmp.baseline,
             "params": cmp.params,
             "seeds": cmp.seeds,
+            "seed_start": cmp.seed_start,
             "seeds_by_engine": cmp.seeds_by_engine,
             "alpha": cmp.alpha,
             "metrics": [{"metric": m.metric.expr, "budget": m.budget.describe(), "note": m.note} for m in cmp.metrics],
