@@ -1,0 +1,14 @@
+# Gate 3 follow-up: differential adhesion, CompuCell3D's last(light_spread). Committed before any run; see PROTOCOL.md.
+title: "Gate 3 follow-up: differential adhesion"
+model: ../../examples/ir/sorting.yaml
+engines: [reference, compucell3d]
+baseline: reference
+seed_start: 2000
+seeds: 570
+jobs: 10
+metrics:
+  - metric: last(light_spread)
+    budget: 33.6
+    note: "two cell diameters, as frozen in cc69375"
+notes:
+  seeds: "90% chance of a decision if the true difference equals the study's estimate: 3.17 times the study's 180, rounded up"

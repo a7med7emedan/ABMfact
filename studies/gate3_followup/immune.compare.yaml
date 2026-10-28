@@ -1,0 +1,19 @@
+# Gate 3 follow-up: immune attack. Committed before any run; see PROTOCOL.md.
+title: "Gate 3 follow-up: immune attack"
+model: ../../examples/ir/immune.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seed_start: 2000
+seeds: 380
+seeds_by_engine: {compucell3d: 200, morpheus: 100}
+jobs: 10
+metrics:
+  - metric: last(tumour_live)
+    budget: {relative: 0.25}
+    note: "a quarter of the surviving tumour, as frozen in cc69375"
+  - metric: max(tumour_dead)
+    budget: {relative: 0.25}
+    note: "a quarter of the baseline's peak dead count, as frozen in cc69375"
+notes:
+  seeds: "90% chance of a decision if the true difference equals the study's estimate: 3.17 times the study's 118 (physicell), 63 (compucell3d) and 29 (morpheus), rounded up"
+  verdicts: "physicell and morpheus last(tumour_live) and compucell3d max(tumour_dead) are the follow-up's verdicts; the other three pairs are secondary"

@@ -1,0 +1,14 @@
+# Gate 3 follow-up: drug pulse, Morpheus's last(live). Committed before any run; see PROTOCOL.md.
+title: "Gate 3 follow-up: drug pulse"
+model: ../../examples/ir/drug_pulse.yaml
+engines: [reference, morpheus]
+baseline: reference
+seed_start: 2000
+seeds: 1500
+jobs: 10
+metrics:
+  - metric: last(live)
+    budget: {relative: 0.25}
+    note: "a quarter of the surviving population, as frozen in cc69375"
+notes:
+  seeds: "90% chance of a decision if the true difference equals the study's estimate: 3.17 times the study's 473, rounded up"
