@@ -58,6 +58,17 @@ the baseline's, and reads it against the budget with the same three-outcome test
 | `INCONCLUSIVE` | neither; the result says how many seeds would settle it |
 | `NOT_RUN` | the engine refused the model, is not installed here, or every run failed; the reason is given |
 
+### Following up an INCONCLUSIVE verdict
+
+`seeds_needed` is the number of seeds at which the interval would just clear the budget's edge, if the estimate
+did not move. A rerun at that number decides only about half the time. About 3.2 times as many seeds give a
+90% chance of a decision when the true difference equals the estimate.
+
+Run the follow-up on fresh seeds, and fix the number before any run. Set `seed_start` above the seeds the first
+comparison used. Pooling new seeds with ones already seen makes it a look-then-extend design, which raises the
+error rate. An estimate that sits on the budget's edge cannot be settled by any number of seeds; report it as
+INCONCLUSIVE. `studies/gate3_followup/` follows up five Gate 3 comparisons this way.
+
 Each threshold claim from `claims_from` is also evaluated in each engine as `holds`, `fails` or `uncertain`, and
 `same_conclusion` says whether the engines that decided agree. Two engines can differ numerically and still draw
 the same conclusion, or the reverse; both are worth knowing. Monotone claims need a parameter sweep and are left

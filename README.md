@@ -51,7 +51,9 @@ it can run it, how faithfully its translation keeps the model, which checks beco
 is installed here. `abmfact compare` runs one model in several engines over the same seeds and reports, for
 each metric, whether each engine agrees with a baseline within a budget you declare beforehand. The
 [Gate 3 study](https://github.com/a7med7emedan/ABMfact/tree/main/studies/gate3) compares the six reference
-problems across four engines.
+problems across four engines, and its
+[follow-up](https://github.com/a7med7emedan/ABMfact/tree/main/studies/gate3_followup) reruns the INCONCLUSIVE
+comparisons on fresh seeds.
 
 ## Install
 

@@ -51,7 +51,8 @@ abmfact compare examples/ir/immune.yaml --engines reference,morpheus \
 ```
 
 A comparison file sets a budget per metric and can evaluate an audit's threshold claims in every engine;
-`studies/gate3/` has six. [Comparing engines](compare.md) explains the verdicts and how to choose a budget.
+`studies/gate3/` has six, and `studies/gate3_followup/` follows up its INCONCLUSIVE ones on fresh seeds.
+[Comparing engines](compare.md) explains the verdicts and how to choose a budget.
 
 ## Audit a model written in another language
 
