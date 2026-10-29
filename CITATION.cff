@@ -17,6 +17,7 @@ version: 0.2.0
 date-released: 2026-10-29
 license: Apache-2.0
 repository-code: "https://github.com/a7med7emedan/ABMfact"
+url: "https://a7med7emedan.github.io/ABMfact/"
 keywords:
   - agent-based modelling
   - computational biology

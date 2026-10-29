@@ -83,6 +83,7 @@ All notable changes are recorded here. The format follows
 - `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
 - When an engine image is missing, the message gives a `docker build` command that fetches its Dockerfile
   from GitHub at the release tag, so a `pip install` needs no checkout. The engine pages show the same.
+- The manual is published on GitHub Pages from main, and the package's Documentation link points there.
 
 ### Fixed
 

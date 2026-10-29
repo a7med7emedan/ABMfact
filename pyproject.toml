@@ -49,7 +49,7 @@ all = ["abmfact[mesa,store,physicell]"]
 [project.urls]
 Homepage = "https://github.com/a7med7emedan/ABMfact"
 Source = "https://github.com/a7med7emedan/ABMfact"
-Documentation = "https://github.com/a7med7emedan/ABMfact/tree/main/docs"
+Documentation = "https://a7med7emedan.github.io/ABMfact/"
 Issues = "https://github.com/a7med7emedan/ABMfact/issues"
 Changelog = "https://github.com/a7med7emedan/ABMfact/blob/main/CHANGELOG.md"
 

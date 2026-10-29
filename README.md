@@ -209,9 +209,10 @@ the source.
 
 ## Documentation
 
-The manual is in [`docs/`](https://github.com/a7med7emedan/ABMfact/tree/main/docs) and builds with
-Sphinx as web pages and as a PDF. It covers getting started, the user guide, ABM-IR and each engine,
-recipes, the command-line and Python API references, and a guide to writing an engine plug-in.
+The manual is at [a7med7emedan.github.io/ABMfact](https://a7med7emedan.github.io/ABMfact/). It is built
+from [`docs/`](https://github.com/a7med7emedan/ABMfact/tree/main/docs) with Sphinx as web pages and as a
+PDF. It covers getting started, the user guide, ABM-IR and each engine, recipes, the command-line and
+Python API references, and a guide to writing an engine plug-in.
 
 ## Roadmap
 
