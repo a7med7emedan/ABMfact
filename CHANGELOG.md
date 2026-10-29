@@ -6,6 +6,8 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
 ### Added
 
 - `abmfact compare`: runs one ABM-IR model in several engines over the same seeds and compares each metric with
@@ -77,8 +79,10 @@ All notable changes are recorded here. The format follows
 - A new logo for the platform, drawn by `scripts/make_logo.py`: agents on a lattice, off-lattice cells and
   cellular Potts cells under one lens. The README, manual front page, package description and citation
   now describe ABMfact as one interface to several simulators, with a table of supported tools.
-- Version 0.2.0.dev0. pydantic is now a core dependency (ABM-IR only; `import abmfact` does not load it).
+- pydantic is now a core dependency (ABM-IR only; `import abmfact` does not load it).
 - `abmfact demo` adds the convergence column (`--no-convergence` for the seven audit checks alone).
+- When an engine image is missing, the message gives a `docker build` command that fetches its Dockerfile
+  from GitHub at the release tag, so a `pip install` needs no checkout. The engine pages show the same.
 
 ### Fixed
 

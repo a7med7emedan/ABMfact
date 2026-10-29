@@ -57,14 +57,14 @@ comparisons on fresh seeds.
 
 ## Install
 
-ABMfact needs Python 3.11 to 3.13. Version 0.2 is not on PyPI yet, so install it from GitHub:
+ABMfact needs Python 3.11 to 3.13:
 
 ```bash
-pip install "abmfact @ git+https://github.com/a7med7emedan/ABMfact"
+pip install abmfact
 ```
 
-Once it is released, `pip install abmfact` will do. Extras add optional parts: `[mesa]`, `[netlogo]`,
-`[store]` (Parquet, Zarr and DuckDB), `[physicell]` (the pcdl output reader) and `[docs]`.
+Extras add optional parts: `[mesa]`, `[netlogo]`, `[store]` (Parquet, Zarr and DuckDB), `[physicell]` (the pcdl
+output reader) and `[docs]`.
 
 ## Quick start
 

@@ -7,7 +7,7 @@ must not care about. ABMfact reports which conclusions survive: are they finding
 
 from __future__ import annotations
 
-__version__ = "0.2.0.dev0"
+__version__ = "0.2.0"
 
 from .adapters import Adapter, AdapterError, CommandAdapter, MesaAdapter, NetLogoAdapter, PythonAdapter
 from .audit import AuditResult, run_audit

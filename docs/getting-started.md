@@ -12,7 +12,7 @@ ABMfact needs Python 3.11 to 3.13. The core depends only on NumPy, SciPy, PyYAML
 pip install abmfact
 ```
 
-Until a release is on PyPI, install from the repository instead:
+To try changes not yet released, install from the repository's main branch:
 
 ```bash
 pip install "abmfact @ git+https://github.com/a7med7emedan/ABMfact"

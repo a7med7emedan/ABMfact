@@ -13,7 +13,8 @@ type: software
 authors:
   - family-names: Hemedan
     given-names: Ahmed
-version: 0.1.0
+version: 0.2.0
+date-released: 2026-10-29
 license: Apache-2.0
 repository-code: "https://github.com/a7med7emedan/ABMfact"
 keywords:
