@@ -1,0 +1,27 @@
+name: audit
+
+# Checks the dependencies of every extra against known vulnerabilities. It also runs weekly, since an
+# advisory can be published without any change here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[all,netlogo,docs]" pip-audit
+      - run: pip-audit --skip-editable --progress-spinner off
