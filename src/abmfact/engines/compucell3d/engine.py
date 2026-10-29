@@ -138,7 +138,7 @@ class CompuCell3DEngine(Engine):
 
     def _route(self) -> tuple[str, str, str | None]:
         """``(kind, detail, runtime)``: ``native`` with ``CC3D_PYTHON``, ``docker`` with the image, or ``none``."""
-        from ...runtime.container import ContainerBackend
+        from ...runtime.container import ContainerBackend, build_command
 
         missing = []
         if self.prefer in ("auto", "native"):
@@ -152,8 +152,7 @@ class CompuCell3DEngine(Engine):
                 avail = backend.availability()
                 if avail.ok:
                     return "docker", f"{backend.runtime} image {self.image}", backend.runtime
-                missing.append(f"{avail.detail}; build it with: docker build --platform {PLATFORM} -t {self.image} "
-                               "containers/compucell3d")  # fmt: skip
+                missing.append(f"{avail.detail}; build it with: {build_command(self.image, 'compucell3d', PLATFORM)}")
             else:
                 missing.append("no running Docker or Podman")
         return "none", "; ".join(missing), None

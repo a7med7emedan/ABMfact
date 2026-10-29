@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,8 @@ from .local import run_command
 
 RUNTIMES = ("docker", "podman", "apptainer", "singularity")
 MOUNT = "/work"
+#: The repository whose ``containers/`` folder holds the engine images' Dockerfiles.
+REPOSITORY = "https://github.com/a7med7emedan/ABMfact.git"
 
 Runner = Callable[..., Any]
 
@@ -33,6 +36,21 @@ def _daemon_up(runtime: str, runner: Runner) -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return proc.returncode == 0
+
+
+def build_command(image: str, folder: str, platform: str | None = None, version: str | None = None) -> str:
+    """The ``docker build`` command for an engine image, with its Dockerfile fetched from GitHub.
+
+    A release builds from its own tag, so the image matches the installed code. A development version has
+    no tag and builds from main. Docker fetches ``containers/<folder>`` itself, so no checkout is needed.
+    """
+    if version is None:
+        from .. import __version__
+
+        version = __version__
+    ref = f"v{version}" if re.fullmatch(r"\d+\.\d+\.\d+", version) else "main"
+    option = f"--platform {platform} " if platform else ""
+    return f'docker build {option}-t {image} "{REPOSITORY}#{ref}:containers/{folder}"'
 
 
 def detect_runtime(which: Callable[[str], str | None] = shutil.which, runner: Runner = subprocess.run) -> str | None:

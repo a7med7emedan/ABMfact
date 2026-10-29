@@ -104,7 +104,7 @@ class MorpheusEngine(Engine):
 
     def _route(self) -> tuple[str, str, str | None]:
         """``(kind, detail, runtime)``: ``native`` with ``MORPHEUS_BIN``, ``docker`` with the image, or ``none``."""
-        from ...runtime.container import ContainerBackend
+        from ...runtime.container import ContainerBackend, build_command
 
         missing = []
         if self.prefer in ("auto", "native"):
@@ -118,8 +118,7 @@ class MorpheusEngine(Engine):
                 avail = backend.availability()
                 if avail.ok:
                     return "docker", f"{backend.runtime} image {self.image}", backend.runtime
-                missing.append(f"{avail.detail}; build it with: docker build --platform {PLATFORM} -t {self.image} "
-                               "containers/morpheus")  # fmt: skip
+                missing.append(f"{avail.detail}; build it with: {build_command(self.image, 'morpheus', PLATFORM)}")
             else:
                 missing.append("no running Docker or Podman")
         return "none", "; ".join(missing), None

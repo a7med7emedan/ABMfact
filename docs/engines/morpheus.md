@@ -13,8 +13,12 @@ The engine tries, in order:
    and verifies Morpheus's static Linux binary by its SHA-256:
 
    ```bash
-   docker build --platform linux/amd64 -t abmfact/morpheus:2.4.1 containers/morpheus
+   docker build --platform linux/amd64 -t abmfact/morpheus:2.4.1 \
+     "https://github.com/a7med7emedan/ABMfact.git#v0.2.0:containers/morpheus"
    ```
+
+   Docker fetches the folder from GitHub at the release tag, so no checkout is needed. In a checkout,
+   `containers/morpheus` in place of the URL builds the same image.
 
 Morpheus publishes its headless simulator as a static x86-64 binary and no arm64 build, so the image is amd64.
 On Apple silicon Docker runs it under emulation; on Intel and most cloud machines it runs natively. The

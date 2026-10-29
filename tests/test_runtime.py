@@ -11,7 +11,7 @@ import pytest
 from abmfact.engines.base import EngineError, PreparedRun
 from abmfact.records import RunRequest
 from abmfact.runtime import ContainerBackend, SlurmBackend, detect_runtime
-from abmfact.runtime.container import parse_inspect
+from abmfact.runtime.container import build_command, parse_inspect
 
 SHIM = """#!{python}
 import json, os, sys
@@ -68,6 +68,15 @@ def test_parse_inspect():
     assert parse_inspect("[]|sha256:id\n") == "sha256:id"
     assert parse_inspect("null|sha256:id") == "sha256:id"
     assert parse_inspect("garbage|") is None
+
+
+def test_build_command_fetches_the_dockerfile_at_the_release_tag():
+    url = "https://github.com/a7med7emedan/ABMfact.git"
+    assert build_command("abmfact/physicell:1.14.2", "physicell", version="0.2.0") == (
+        f'docker build -t abmfact/physicell:1.14.2 "{url}#v0.2.0:containers/physicell"'
+    )
+    dev = build_command("abmfact/morpheus:2.4.1", "morpheus", "linux/amd64", version="0.3.0.dev0")
+    assert dev == f'docker build --platform linux/amd64 -t abmfact/morpheus:2.4.1 "{url}#main:containers/morpheus"'
 
 
 def test_container_run_mounts_workdir_and_records_digest(tmp_path, fake_docker):

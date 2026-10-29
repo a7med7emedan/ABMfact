@@ -117,7 +117,8 @@ never translated. It is listed as a native extension so that nothing is lost sil
 ## Run a PhysiCell project as it is
 
 ```bash
-docker build -t abmfact/physicell:1.14.2 containers/physicell     # once, if no GNU g++ is installed
+# once, if no GNU g++ is installed:
+docker build -t abmfact/physicell:1.14.2 "https://github.com/a7med7emedan/ABMfact.git#v0.2.0:containers/physicell"
 abmfact run-model path/to/project --engine physicell --out results/run --option threads=1
 ```
 

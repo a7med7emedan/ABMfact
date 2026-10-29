@@ -134,14 +134,14 @@ def detect_toolchain(
             )
         missing.append("no GNU g++ with OpenMP (set PHYSICELL_CPP, e.g. Homebrew g++-14)")
     if prefer in ("auto", "docker"):
-        from ...runtime.container import ContainerBackend
+        from ...runtime.container import ContainerBackend, build_command
 
         backend = ContainerBackend(image, runtime="auto", runner=runner, which=which)
         if backend.runtime in ("docker", "podman"):
             avail = backend.availability()
             if avail.ok:
                 return Toolchain("docker", f"{backend.runtime} image {image}", image=image, runtime=backend.runtime)
-            missing.append(f"{avail.detail}; build it with: docker build -t {image} containers/physicell")
+            missing.append(f"{avail.detail}; build it with: {build_command(image, 'physicell')}")
         else:
             missing.append("no running Docker or Podman")
     return Toolchain("none", "; ".join(missing))

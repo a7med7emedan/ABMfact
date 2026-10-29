@@ -14,8 +14,12 @@ The engine tries, in order:
    and CompuCell3D by version and build:
 
    ```bash
-   docker build --platform linux/amd64 -t abmfact/compucell3d:4.10.0 containers/compucell3d
+   docker build --platform linux/amd64 -t abmfact/compucell3d:4.10.0 \
+     "https://github.com/a7med7emedan/ABMfact.git#v0.2.0:containers/compucell3d"
    ```
+
+   Docker fetches the folder from GitHub at the release tag, so no checkout is needed. In a checkout,
+   `containers/compucell3d` in place of the URL builds the same image.
 
 CompuCell3D publishes conda builds for linux-64 but not linux-aarch64, so the image is amd64. On Apple silicon
 Docker runs it under emulation, which works and is slower; on Intel and most cloud machines it runs natively.

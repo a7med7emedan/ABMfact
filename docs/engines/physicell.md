@@ -16,8 +16,11 @@ PhysiCell needs a GNU `g++` with OpenMP. The engine tries, in order:
    pinned to PhysiCell 1.14.2 and to a Debian base image digest:
 
    ```bash
-   docker build -t abmfact/physicell:1.14.2 containers/physicell
+   docker build -t abmfact/physicell:1.14.2 "https://github.com/a7med7emedan/ABMfact.git#v0.2.0:containers/physicell"
    ```
+
+   Docker fetches the folder from GitHub at the release tag, so no checkout is needed. In a checkout,
+   `containers/physicell` in place of the URL builds the same image.
 
 `abmfact engines` says which route is available and, if none is, what is missing. A project is built
 once per hash of its sources and the toolchain, under `~/.cache/abmfact/physicell` (change it with the
