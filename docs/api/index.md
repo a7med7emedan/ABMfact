@@ -15,5 +15,6 @@ records
 runtime
 reference
 verify
+modes
 zoo
 ```

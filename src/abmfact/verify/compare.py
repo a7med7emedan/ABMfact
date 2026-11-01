@@ -38,7 +38,6 @@ from .. import __version__
 from .. import stats as st
 from ..audit import _clean, _json_default
 from ..claims import Claim, ClaimError, Metric, parse_claims
-from ..knobs import Knobs
 
 VERDICTS = ("AGREE", "DISAGREE", "INCONCLUSIVE", "NOT_RUN")
 THRESHOLD_TESTS = ("greater_than", "less_than", "between")
@@ -199,75 +198,18 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
 # -- running ---------------------------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class _Run:
-    engine: str
-    seed: int
-
-
-class _CompareTask:
-    """One engine run in a worker process. Workers read the store but never write it; the parent does."""
-
-    def __init__(self, cmp: Comparison, workdir: Path, store_root: Path | None):
-        self.model = str(cmp.model)
-        self.params = dict(cmp.params)
-        self.options = cmp.options
-        self.workdir = workdir
-        self.store_root = store_root
-
-    def __call__(self, job: _Run) -> tuple[_Run, Any]:
-        from ..engines import get_engine
-        from ..records.store import RunStore
-
-        store = RunStore(self.store_root) if self.store_root else None
-        work = self.workdir / job.engine / f"seed-{job.seed}"
-        try:
-            engine = get_engine(job.engine, **self.options.get(job.engine, {}))
-            prepared = engine.prepare(self.model, dict(self.params), Knobs(), job.seed, work)
-            if store is not None and (hit := store.get(prepared.request)) is not None:
-                return job, hit
-            return job, engine.collect(engine.run(prepared))
-        except Exception as exc:  # noqa: BLE001 - one failed run is reported, not fatal
-            return job, f"{type(exc).__name__}: {exc}"
-
-
 def _engine_status(name: str, cmp: Comparison) -> tuple[str | None, dict[str, Any]]:
     """``(reason not to run, description)`` for one engine, with its fidelity report when it translates."""
-    from ..engines import get_engine
+    from ..modes.batch import engine_status
 
-    try:
-        engine = get_engine(name, **cmp.options.get(name, {}))
-    except Exception as exc:  # noqa: BLE001 - an unknown or broken engine is reported
-        return f"{type(exc).__name__}: {exc}", {}
-    info: dict[str, Any] = {"description": getattr(engine, "description", "")}
-    reasons = engine.refuse(str(cmp.model), Knobs())
-    if reasons:
-        return "; ".join(reasons), info
-    avail = engine.availability()
-    info["version"] = avail.version
-    if not avail.ok:
-        return f"not installed here: {avail.detail}", info
-    translate = getattr(engine, "translation", None)
-    report = translate(str(cmp.model)) if translate else None
-    if report is not None:
-        info["tier"] = report.tier
-        info["fidelity"] = report.counts()
-        info["losses"] = [[e.path, e.status, e.note] for e in report.entries if e.status != "exact"]
-    else:
-        info["tier"] = "T0"
-    return None, info
+    return engine_status(name, cmp.model, cmp.options.get(name, {}))
 
 
 def _warm_up(name: str, cmp: Comparison, workdir: Path) -> None:
     """Prepare one run in this process, so builds and translation caches exist before workers start."""
-    import shutil
+    from ..modes.batch import warm_up
 
-    from ..engines import get_engine
-
-    engine = get_engine(name, **cmp.options.get(name, {}))
-    with tempfile.TemporaryDirectory(dir=workdir) as tmp:
-        engine.prepare(str(cmp.model), dict(cmp.params), Knobs(), 0, Path(tmp))
-        shutil.rmtree(tmp, ignore_errors=True)
+    warm_up(cmp.model, name, cmp.options.get(name, {}), cmp.params, workdir)
 
 
 @dataclass
@@ -313,15 +255,13 @@ def compare(
         store: A run store; finished runs are kept there and reused when the comparison is run again.
         progress: Called with ``(done, total)`` after each run.
     """
-    from ..records.store import RunStore
-    from ..runtime.local import LocalBackend
+    from ..modes.batch import Job, run_batch
 
     owned = tempfile.TemporaryDirectory() if workdir is None else None
     root = Path(owned.name if owned else workdir)  # type: ignore[arg-type]
     root.mkdir(parents=True, exist_ok=True)
-    run_store = RunStore(store) if store else None
     engines: dict[str, dict[str, Any]] = {}
-    jobs: list[_Run] = []
+    jobs: list[Job] = []
     for name in cmp.engines:
         reason, info = _engine_status(name, cmp)
         if reason is None:
@@ -331,25 +271,22 @@ def compare(
                 reason = f"could not prepare a run: {type(exc).__name__}: {exc}"
         engines[name] = {**info, "runs": reason is None, "reason": reason, "seeds": cmp.seeds_for(name)}
         if reason is None:
-            jobs += [_Run(name, cmp.seed_start + k) for k in range(cmp.seeds_for(name))]
-    results = LocalBackend(workers=cmp.jobs).map(_CompareTask(cmp, root, Path(store) if store else None), jobs,
-                                                  progress)  # fmt: skip
+            jobs += [Job(name, cmp.seed_start + k, cmp.params, cmp.options.get(name, {}))
+                     for k in range(cmp.seeds_for(name))]  # fmt: skip
+    results = run_batch(cmp.model, jobs, workdir=root, store=store, workers=cmp.jobs, warm=False, progress=progress)
     values: dict[str, dict[str, list[float]]] = {n: {m.metric.expr: [] for m in cmp.metrics} for n in cmp.engines}
     claim_values: dict[str, dict[str, list[float]]] = {n: {c.id: [] for c in cmp.claims} for n in cmp.engines}
     for name in engines:
         engines[name].update({"ok": 0, "cached": 0, "failed": 0, "errors": [], "wall_time": 0.0})
-    for job, rec in results:
+    for r in results:
+        job, rec = r.job, r.record
         e = engines[job.engine]
-        if isinstance(rec, str) or rec.status not in ("ok", "cached") or rec.outputs is None:
+        if not r.ok or rec is None or rec.outputs is None:
             e["failed"] += 1
-            e["errors"].append(rec if isinstance(rec, str) else (rec.error or "no outputs"))
+            e["errors"].append(r.problem)
             continue
         e["cached" if rec.status == "cached" else "ok"] += 1
         e["wall_time"] += rec.wall_time or 0.0
-        if run_store is not None and rec.status == "ok":
-            outputs = rec.outputs
-            rec = run_store.put(rec)
-            rec.outputs = outputs
         scalars = rec.outputs.scalars
         try:
             for m in cmp.metrics:
