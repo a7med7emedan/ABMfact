@@ -14,6 +14,12 @@ Version 0.3.0.dev0.
   (mean with its 90% interval, standard deviation, 5%, 50% and 95% quantiles), as are metrics such as
   `last(cells)`, with each seed's value kept. Writes `ensemble.json`, `ensemble.csv` and `report.html`, and reuses
   runs through the run store.
+- `abmfact sweep`: one model over a design of parameter settings, each with the same seeds. Designs are a full grid,
+  a Latin hypercube or a scrambled Sobol sequence (`scipy.stats.qmc`), on linear or log scales, over ABM-IR paths,
+  native paths or engine options (`option:NAME`). Writes `sweep.json`, `design.csv`, `runs.csv`, `summary.csv` and
+  `report.html`. A sweep run again with the same store reuses every finished run, so an interrupted sweep resumes.
+  `--backend slurm` writes a Slurm job array for the runs not yet stored, and `--collect` reads them back.
+- `abmfact.records.store.read_run` reads a run written by `write_run`.
 
 ### Changed
 

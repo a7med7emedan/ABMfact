@@ -30,6 +30,8 @@ EXIT_CODES = {
     "recommend": "0, also when no engine can run the model; the output says why.",
     "compare": "0 unless an engine DISAGREEs with the baseline on a metric, then 1; 2 for an invalid comparison.",
     "ensemble": "0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.",
+    "sweep": "0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; "
+    "2 for an invalid sweep file.",
 }
 
 

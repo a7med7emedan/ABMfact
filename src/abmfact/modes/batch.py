@@ -200,12 +200,12 @@ def run_batch(
     def _blocked(job: Job) -> str | None:
         return blocked.get(setting(job))
 
+    run_store = RunStore(store) if store else None  # created here, so workers find it and errors surface once
     todo = [j for j in jobs if _blocked(j) is None]
     task = _BatchTask(str(model), root, Path(store) if store else None)
     done = iter(LocalBackend(workers=workers).map(task, todo, progress))
     results = [JobResult(j, error=why) if (why := _blocked(j)) is not None else next(done) for j in jobs]
-    if store:
-        run_store = RunStore(store)
+    if run_store is not None:
         for r in results:
             if r.record is not None and r.record.status == "ok" and r.record.outputs is not None:
                 outputs = r.record.outputs

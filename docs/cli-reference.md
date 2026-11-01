@@ -243,3 +243,25 @@ abmfact ensemble model [--engine ENGINE] [--seeds SEEDS] [--seed-start SEED_STAR
 | `-q`, `--quiet` | print only errors |  |
 
 Exit status: 0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.
+
+## `abmfact sweep`
+
+Run a model over a design of parameter settings (grid, lhs or sobol).
+
+```text
+abmfact sweep sweep [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--backend {local,slurm}] [--submit] [--collect] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `sweep` | sweep YAML file | required |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused, so a sweep can resume |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-sweep` |
+| `--backend` | local runs here; slurm writes a job array for the runs not yet in the store | `local` |
+| `--submit` | with --backend slurm: also submit the array with sbatch |  |
+| `--collect` | read the runs a Slurm array wrote under OUT/slurm |  |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; 2 for an invalid sweep file.

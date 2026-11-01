@@ -1,4 +1,4 @@
-"""Command line for the modes: ``abmfact ensemble``.
+"""Command line for the modes: ``abmfact ensemble`` and ``abmfact sweep``.
 
 Only ``argparse`` is imported here at load time; each command imports what it needs when it runs.
 """
@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-COMMANDS = ("ensemble",)
+COMMANDS = ("ensemble", "sweep")
 
 
 def add_parsers(sub: Any) -> None:
@@ -31,9 +31,23 @@ def add_parsers(sub: Any) -> None:
     en.add_argument("--out", default="abmfact-ensemble", help="output folder (default: abmfact-ensemble)")
     en.add_argument("-q", "--quiet", action="store_true", help="print only errors")
 
+    sw = sub.add_parser("sweep", help="run a model over a design of parameter settings (grid, lhs or sobol)")
+    sw.add_argument("sweep", help="sweep YAML file")
+    sw.add_argument("--jobs", type=int, help="runs at once (overrides the file)")
+    sw.add_argument("--store", help="run store: finished runs are kept and reused, so a sweep can resume")
+    sw.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
+    sw.add_argument("--out", default="abmfact-sweep", help="output folder (default: abmfact-sweep)")
+    sw.add_argument("--backend", choices=["local", "slurm"], default="local",
+                    help="local runs here; slurm writes a job array for the runs not yet in the store")  # fmt: skip
+    sw.add_argument("--submit", action="store_true", help="with --backend slurm: also submit the array with sbatch")
+    sw.add_argument("--collect", action="store_true", help="read the runs a Slurm array wrote under OUT/slurm")
+    sw.add_argument("-q", "--quiet", action="store_true", help="print only errors")
+
 
 def run(args: argparse.Namespace) -> int:
     """Run the chosen mode command and return its exit code."""
+    if args.command == "sweep":
+        return cmd_sweep(args)
     return cmd_ensemble(args)
 
 
@@ -86,3 +100,45 @@ def cmd_ensemble(args: argparse.Namespace) -> int:
             print(f"  {name:<24} {last['mean']:>10.4g}  {iv} at t={last['time']:g}")
         print(f"  wrote {Path(paths['json']).parent}")
     return 1 if d["runs"]["failed"] else 0
+
+
+def cmd_sweep(args: argparse.Namespace) -> int:
+    """Run ``abmfact sweep``; exit code 1 when any run failed or was not collected, else 0."""
+    import numpy as np
+
+    from ..cli import _progress
+    from ..config import ConfigError
+    from .sweep import load_sweep, run_sweep, write_slurm
+
+    out = Path(args.out)
+    try:
+        spec = load_sweep(args.sweep, {"jobs": args.jobs})
+        if args.backend == "slurm":
+            script, written, cached = write_slurm(spec, out / "slurm", args.store, submit=args.submit)
+            if not args.quiet:
+                print(f"  {written} runs to do, {cached} already in the store")
+                if script is not None:
+                    print(f"  {'submitted' if args.submit else 'wrote'} {script}")
+                    print(f"  when the array has finished: abmfact sweep {args.sweep} --collect --out {out}")
+            return 0
+        result = run_sweep(spec, workdir=args.workdir, store=args.store, progress=_progress(args.quiet),
+                           collect_from=out / "slurm" if args.collect else None)  # fmt: skip
+    except ValueError as exc:
+        if type(exc).__name__ == "IRError":
+            raise
+        raise ConfigError(str(exc)) from exc
+    paths = result.write(out)
+    d = result.data
+    if not args.quiet:
+        c = d["counts"]
+        s = d["sweep"]
+        size = f"{s['design']['points']} points x {s['seeds_per_point']} seeds in {s['engine']}"
+        print(f"  {s['title']}: {size}: {c['ok']} new, {c['cached']} reused, {c['failed']} failed")
+        for err in c["errors"]:
+            print(f"    error: {err}")
+        for m in d["sweep"]["metrics"]:
+            means = result.values(m)
+            if np.isfinite(means).any():
+                print(f"  {m:<24} point means from {np.nanmin(means):.4g} to {np.nanmax(means):.4g}")
+        print(f"  wrote {paths['json'].parent}")
+    return 1 if d["counts"]["failed"] else 0
