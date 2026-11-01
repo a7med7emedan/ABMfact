@@ -1,4 +1,4 @@
-"""Command line for the modes: ``abmfact ensemble``, ``sweep`` and ``sensitivity``.
+"""Command line for the modes: ``abmfact ensemble``, ``sweep``, ``sensitivity`` and ``calibrate``.
 
 Only ``argparse`` is imported here at load time; each command imports what it needs when it runs.
 """
@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-COMMANDS = ("ensemble", "sweep", "sensitivity")
+COMMANDS = ("ensemble", "sweep", "sensitivity", "calibrate")
 
 
 def add_parsers(sub: Any) -> None:
@@ -59,10 +59,20 @@ def add_parsers(sub: Any) -> None:
     se.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
     se.add_argument("--out", default="abmfact-sensitivity", help="output folder (default: abmfact-sensitivity)")
     se.add_argument("-q", "--quiet", action="store_true", help="print only errors")
+    ca = sub.add_parser("calibrate", help="fit parameters to target data or another engine's ensemble")
+    ca.add_argument("calibration", help="calibration YAML file")
+    ca.add_argument("--method", help="override the file's method: bayesopt, abc-smc or a plug-in")
+    ca.add_argument("--jobs", type=int, help="runs at once (overrides the file)")
+    ca.add_argument("--store", help="run store: finished runs are kept and reused")
+    ca.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
+    ca.add_argument("--out", default="abmfact-calibration", help="output folder (default: abmfact-calibration)")
+    ca.add_argument("-q", "--quiet", action="store_true", help="print only errors")
 
 
 def run(args: argparse.Namespace) -> int:
     """Run the chosen mode command and return its exit code."""
+    if args.command == "calibrate":
+        return cmd_calibrate(args)
     if args.command == "sweep":
         return cmd_sweep(args)
     if args.command == "sensitivity":
@@ -224,3 +234,34 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
                 print(f"  warning ({metric}): {w}")
         print(f"  wrote {paths['json'].parent}")
     return 1 if d["counts"]["failed"] or any("error" in m for m in d["metrics"].values()) else 0
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    """Run ``abmfact calibrate``; exit code 0 when a fit was found, 2 for an invalid file or no usable evaluation."""
+    from ..config import ConfigError
+    from .calibrate import load_calibration, run_calibration
+
+    def show(e: Any) -> None:
+        values = ", ".join(f"{k} {v:.4g}" for k, v in e.values.items())
+        print(f"  evaluation {e.index + 1:>3}: {values}  distance {e.distance:.4g}", flush=True)
+
+    try:
+        spec = load_calibration(args.calibration, {"jobs": args.jobs, "method": args.method})
+        result = run_calibration(
+            spec, workdir=args.workdir, store=args.store, on_evaluation=None if args.quiet else show
+        )
+    except ValueError as exc:
+        if type(exc).__name__ == "IRError":
+            raise
+        raise ConfigError(str(exc)) from exc
+    paths = result.write(args.out)
+    if not args.quiet:
+        r = result.data["result"]
+        for name, value in r["best"].items():
+            lo, hi = r["interval"][name]
+            print(f"  {name}: {value:.4g} ({lo:.4g} to {hi:.4g}), distance {r['best_distance']:.4g}")
+        print(f"  interval: {r['interval_meaning']}")
+        for w in r.get("warnings", []):
+            print(f"  warning: {w}")
+        print(f"  wrote {paths['json'].parent}")
+    return 0

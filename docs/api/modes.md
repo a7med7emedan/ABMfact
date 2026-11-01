@@ -1,7 +1,7 @@
 # Modes
 
-Running one model many times: the shared run loop, ensembles of seeds, sweeps over parameter designs and
-sensitivity analysis.
+Running one model many times: the shared run loop, ensembles of seeds, sweeps over parameter designs,
+sensitivity analysis and calibration.
 
 ## `abmfact.modes`
 
@@ -37,6 +37,12 @@ sensitivity analysis.
 
 ```{eval-rst}
 .. automodule:: abmfact.modes.sensitivity
+```
+
+## `abmfact.modes.calibrate`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.calibrate
 ```
 
 ## `abmfact.modes.report`

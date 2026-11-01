@@ -24,6 +24,14 @@ Version 0.3.0.dev0.
   points run as a sweep, each the mean over its seeds, and the report gives the share of output variance that is
   seed noise. It warns when N is not a power of two or below 512, when an interval is wider than ±0.1, when Morris
   has fewer than 10 trajectories or an odd number of levels, and when seed noise is above 20% of the variance.
+- `abmfact calibrate`: fits parameters so a model's observables match a target. The target can be data (a CSV of
+  observables over time, with optional standard deviations), an `ensemble.json`, or another engine's ensemble run
+  on the fly. The distance is the mean squared standardised gap between the simulated means and the target.
+  Bayesian optimisation (bayesian-optimization, MIT, in the new `[calibrate]` extra) finds the best fit. Each
+  parameter's interval is bounded by bisection: the values, with the others at the best fit, whose distance the
+  seeds cannot tell from the best. Writes `calibration.json`, `evaluations.csv` and `report.html`. Fitted ABM-IR
+  values go into `calibrated.yaml`, with a provenance note; fitted engine options go into
+  `calibrated_options.json`. Calibration methods can be added through the `abmfact.calibrators` entry point.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
 - CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
   fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a
@@ -31,7 +39,7 @@ Version 0.3.0.dev0.
 
 ### Changed
 
-- `abmfact[all]` includes `[sensitivity]`.
+- `abmfact[all]` includes `[sensitivity]` and `[calibrate]`.
 - The CompuCell3D steppable reads the pressure gain, so every CompuCell3D run key changes once and stored
   CompuCell3D runs from 0.2.0 are not reused. Morpheus exports at gain 1 are byte-identical to 0.2.0's.
 - The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results

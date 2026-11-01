@@ -286,3 +286,23 @@ abmfact sensitivity sensitivity [--method {sobol,morris}] [--n N] [--jobs JOBS] 
 | `-q`, `--quiet` | print only errors |  |
 
 Exit status: 0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; 2 for an invalid file.
+
+## `abmfact calibrate`
+
+Fit parameters to target data or another engine's ensemble.
+
+```text
+abmfact calibrate calibration [--method METHOD] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `calibration` | calibration YAML file | required |
+| `--method` | override the file's method: bayesopt, abc-smc or a plug-in |  |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-calibration` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be scored.

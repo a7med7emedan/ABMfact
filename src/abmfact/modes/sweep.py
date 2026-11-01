@@ -119,7 +119,7 @@ def _check_ir_paths(model: Path, params: Sequence[Parameter], fixed: Mapping[str
     try:
         apply_params(m, {**{k: v for k, v in fixed.items() if "/" not in k}, **{p.key: p.low for p in ir}})
     except ValueError as exc:
-        raise DesignError(f"a sweep parameter does not fit the model: {exc}") from exc
+        raise DesignError(f"a parameter does not fit the model: {exc}") from exc
 
 
 def load_sweep(path: str | Path, overrides: Mapping[str, Any] | None = None) -> SweepSpec:

@@ -34,6 +34,8 @@ EXIT_CODES = {
     "2 for an invalid sweep file.",
     "sensitivity": "0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; "
     "2 for an invalid file.",
+    "calibrate": "0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be "
+    "scored.",
 }
 
 
