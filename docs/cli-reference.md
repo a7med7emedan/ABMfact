@@ -292,12 +292,13 @@ Exit status: 0 when every metric got indices (warnings included), 1 when any run
 Fit parameters to target data or another engine's ensemble.
 
 ```text
-abmfact calibrate calibration [--method METHOD] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+abmfact calibrate calibration [--methods] [--method METHOD] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
 ```
 
 | Argument | Meaning | Default |
 |---|---|---|
 | `calibration` | calibration YAML file | required |
+| `--methods` | list the calibration methods and plug-ins, and exit |  |
 | `--method` | override the file's method: bayesopt, abc-smc or a plug-in |  |
 | `--jobs` | runs at once (overrides the file) |  |
 | `--store` | run store: finished runs are kept and reused |  |

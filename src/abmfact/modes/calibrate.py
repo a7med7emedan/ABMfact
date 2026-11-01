@@ -564,7 +564,14 @@ def calibrators() -> dict[str, Callable[[Problem, Mapping[str, Any]], dict[str, 
     """Every calibration method: the built-ins and those registered under ``abmfact.calibrators``."""
     from importlib.metadata import entry_points
 
-    found: dict[str, Callable[[Problem, Mapping[str, Any]], dict[str, Any]]] = {"bayesopt": bayesopt}
+    from .abc_smc import abc_smc
+    from .plugins import builtin_plugins
+
+    found: dict[str, Callable[[Problem, Mapping[str, Any]], dict[str, Any]]] = {
+        "bayesopt": bayesopt,
+        "abc-smc": abc_smc,
+    }
+    found.update(builtin_plugins())
     for ep in entry_points(group="abmfact.calibrators"):
         found.setdefault(ep.name, ep.load())
     return found

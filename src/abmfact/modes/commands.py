@@ -60,7 +60,8 @@ def add_parsers(sub: Any) -> None:
     se.add_argument("--out", default="abmfact-sensitivity", help="output folder (default: abmfact-sensitivity)")
     se.add_argument("-q", "--quiet", action="store_true", help="print only errors")
     ca = sub.add_parser("calibrate", help="fit parameters to target data or another engine's ensemble")
-    ca.add_argument("calibration", help="calibration YAML file")
+    ca.add_argument("calibration", nargs="?", help="calibration YAML file")
+    ca.add_argument("--methods", action="store_true", help="list the calibration methods and plug-ins, and exit")
     ca.add_argument("--method", help="override the file's method: bayesopt, abc-smc or a plug-in")
     ca.add_argument("--jobs", type=int, help="runs at once (overrides the file)")
     ca.add_argument("--store", help="run store: finished runs are kept and reused")
@@ -240,6 +241,19 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     """Run ``abmfact calibrate``; exit code 0 when a fit was found, 2 for an invalid file or no usable evaluation."""
     from ..config import ConfigError
     from .calibrate import load_calibration, run_calibration
+
+    if args.methods:
+        from .calibrate import calibrators
+        from .plugins import status
+
+        slots = {s["method"]: s for s in status()}
+        for name in sorted(calibrators()):
+            s = slots.get(name)
+            where = "" if s is None else f"  ({s['package']} {s['version'] or 'not installed'}: {s['does']})"
+            print(f"  {name}{where}")
+        return 0
+    if not args.calibration:
+        raise ConfigError("give a calibration file, or --methods")
 
     def show(e: Any) -> None:
         values = ", ".join(f"{k} {v:.4g}" for k, v in e.values.items())

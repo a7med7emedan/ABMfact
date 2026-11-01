@@ -45,6 +45,18 @@ sensitivity analysis and calibration.
 .. automodule:: abmfact.modes.calibrate
 ```
 
+## `abmfact.modes.abc_smc`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.abc_smc
+```
+
+## `abmfact.modes.plugins`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.plugins
+```
+
 ## `abmfact.modes.report`
 
 ```{eval-rst}

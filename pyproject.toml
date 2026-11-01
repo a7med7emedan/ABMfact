@@ -45,7 +45,7 @@ store = ["pyarrow>=15", "duckdb>=1.0", "zarr>=3.0", "xarray>=2024.1"]
 physicell = ["pcdl>=3.3"]
 docs = ["sphinx>=7.3", "myst-parser>=3.0", "furo>=2024.1", "sphinxcontrib-svg2pdfconverter>=1.2", "cairosvg>=2.7"]
 sensitivity = ["SALib>=1.5"]
-calibrate = ["bayesian-optimization>=2.0"]
+calibrate = ["bayesian-optimization>=2.0", "pyabc>=0.12"]
 all = ["abmfact[mesa,store,physicell,sensitivity,calibrate]"]
 
 [project.urls]

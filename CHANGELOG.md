@@ -32,6 +32,15 @@ Version 0.3.0.dev0.
   seeds cannot tell from the best. Writes `calibration.json`, `evaluations.csv` and `report.html`. Fitted ABM-IR
   values go into `calibrated.yaml`, with a provenance note; fitted engine options go into
   `calibrated_options.json`. Calibration methods can be added through the `abmfact.calibrators` entry point.
+- ABC-SMC calibration through pyABC (BSD-3, in `[calibrate]`). It reports a weighted posterior, the posterior
+  median with a 90% credible interval, and per-generation epsilon, evaluations and effective sample size. It warns
+  on a small last-generation sample, a stop forced by the simulation cap, and intervals that barely narrow the prior.
+- Calibration plug-in slots:
+  - `uq-physicell` runs ABC-SMC with UQ-PhysiCell's weight and kernel safeguards and its standardised kernel,
+    through any engine.
+  - `fitmulticell` detects FitMultiCell. Its native-Morpheus calibration is not bridged yet; the slot says so and
+    points to `abc-smc`.
+  - `abmfact calibrate --methods` lists the methods and plug-ins.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
 - CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
   fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a
