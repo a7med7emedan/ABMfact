@@ -6,6 +6,13 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+Version 0.3.0.dev0.
+
+### Changed
+
+- The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results
+  are unchanged.
+
 ## [0.2.0] - 2026-10-29
 
 ### Added
