@@ -1,0 +1,42 @@
+# Gate 4 calibration model for pressure_gain: a colony growing along a closed narrow strip. It is not one of the six
+# Gate 3 problems: its geometry, division rate and inhibition rule differ from the monolayer's. Written before any
+# Gate 4 run; see ../PROTOCOL.md.
+schema_version: "0.1"
+name: contact_inhibition_strip
+description: >
+  A colony in a closed strip six cells wide. Cells divide about every 9.6 hours when uncrowded, and pressure from
+  neighbours switches division off, so the colony fills the strip's width and then grows along it.
+space:
+  dimensions: 2
+  bounds: {x_min: -400, x_max: 400, y_min: -80, y_max: 80}
+  voxel: {dx: 20, dy: 20}
+  boundary: closed
+cell_types:
+  - name: strip_cell
+    volume: 2494
+    cycle: {model: live, rates: [0.00174]}
+    death: {apoptosis_rate: 0.00001}
+    mechanics: {adhesion_strength: 0.4, repulsion_strength: 10, max_adhesion_distance: 1.25}
+rules:
+  - cell_type: strip_cell
+    signal: pressure
+    direction: decreases
+    behaviour: cycle entry
+    saturation_value: 0
+    half_max: 0.6
+    hill_power: 3
+initial_conditions:
+  placements:
+    - {kind: rectangle, cell_type: strip_cell, count: 24, centre: [0, 0], size: [120, 120]}
+observables:
+  - {name: cells, kind: live_count}
+  - {name: spread, kind: radius_of_gyration}
+experiment:
+  max_time: 1440
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 120
+provenance:
+  source: ABMfact Gate 4 calibration model
+  licence: Apache-2.0

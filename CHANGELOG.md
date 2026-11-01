@@ -56,8 +56,10 @@ Version 0.3.0.dev0.
     fields, and movies (GIF through Pillow, MP4 through imageio-ffmpeg, which runs a separate ffmpeg program).
   - It writes a VTK export for ParaView (`.vtp` cells, `.vti` fields, `.pvd` time series) without any dependency.
   - Plots and movies come in the new `[viz]` extra (matplotlib, imageio, imageio-ffmpeg).
-- Comparison files take `options_from`, which names a `translation.json` per engine, so a frozen comparison uses
-  calibrated gains without being edited.
+- Comparison files take `options_from`, which names one `translation.json` or a list of them per engine, so a
+  frozen comparison uses calibrated gains without being edited.
+- The Gate 4 study protocol (`studies/gate4/`): T2 translation of the Gate 3 problems, with each lattice gain
+  fitted once on its own calibration model and every judged comparison held out.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
 - CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
   fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a

@@ -110,8 +110,8 @@ class Comparison:
         claims: Threshold claims whose status is reported per engine.
         seeds_by_engine: Fewer seeds for a slow engine, with the reason in ``notes``.
         notes: Free-text notes kept in the result.
-        options_from: T2 translation files (``translation.json``) by engine; their calibrated gains are merged into
-            ``options``, so a frozen comparison takes calibrated gains without being edited.
+        options_from: T2 translation files (``translation.json``), one or a list per engine; their calibrated gains
+            are merged into ``options`` in order, so a frozen comparison takes calibrated gains without being edited.
     """
 
     title: str
@@ -128,7 +128,7 @@ class Comparison:
     claims: list[Claim] = field(default_factory=list)
     seeds_by_engine: dict[str, int] = field(default_factory=dict)
     notes: dict[str, str] = field(default_factory=dict)
-    options_from: dict[str, str] = field(default_factory=dict)
+    options_from: dict[str, list[str]] = field(default_factory=dict)
 
     def seeds_for(self, engine: str) -> int:
         """The number of seeds ``engine`` runs."""
@@ -181,16 +181,18 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
     if not 0 < alpha < 0.5:
         raise CompareError("alpha must lie between 0 and 0.5")
     options = {str(k): dict(v or {}) for k, v in (raw.get("options") or {}).items()}
-    options_from = {str(k): str((path.parent / v).resolve()) for k, v in (raw.get("options_from") or {}).items()}
-    for name, source in options_from.items():
+    options_from = {str(k): [str((path.parent / f).resolve()) for f in ([v] if isinstance(v, str) else v)]
+                    for k, v in (raw.get("options_from") or {}).items()}  # fmt: skip
+    for name, sources in options_from.items():
         from ..modes.translate import options_from as calibrated
 
         if name not in engines:
             raise CompareError(f"options_from names {name!r}, which is not among the engines {engines}")
-        try:
-            options[name] = {**options.get(name, {}), **calibrated(source, name)}
-        except (OSError, ValueError, KeyError) as exc:
-            raise CompareError(f"options_from {name}: {exc}") from exc
+        for source in sources:
+            try:
+                options[name] = {**options.get(name, {}), **calibrated(source, name)}
+            except (OSError, ValueError, KeyError) as exc:
+                raise CompareError(f"options_from {name}: {exc}") from exc
     return Comparison(
         title=str(raw.get("title", path.stem)),
         model=(path.parent / raw["model"]).resolve(),

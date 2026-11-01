@@ -162,6 +162,14 @@ def test_comparisons_take_calibrated_gains_from_a_translation_file(tmp_path):
     (tmp_path / "c.yaml").write_text(yaml.safe_dump(raw))
     cmp = load_comparison(tmp_path / "c.yaml")
     assert cmp.options["morpheus"] == {"threads": 1, "motility_gain": 1.3, "pressure_gain": 0.6}
+    (tmp_path / "second.json").write_text(
+        json.dumps({"tier": "T2", "engine": "morpheus", "gains": {"motility_gain": 2.0}})
+    )
+    (tmp_path / "c.yaml").write_text(
+        yaml.safe_dump({**raw, "options_from": {"morpheus": ["translation.json", "second.json"]}})
+    )
+    assert load_comparison(tmp_path / "c.yaml").options["morpheus"]["motility_gain"] == 2.0  # later files win
+    (tmp_path / "c.yaml").write_text(yaml.safe_dump(raw))
     (tmp_path / "c.yaml").write_text(yaml.safe_dump({**raw, "options_from": {"compucell3d": "translation.json"}}))
     with pytest.raises(CompareError, match="not among the engines"):
         load_comparison(tmp_path / "c.yaml")
