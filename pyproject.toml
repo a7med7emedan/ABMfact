@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "abmfact"
-version = "0.2.0"
+version = "0.3.0.dev0"
 description = "Run agent-based models across simulators through one interface, and check that their conclusions are findings, not artefacts."
 readme = "README.md"
 license = "Apache-2.0"
@@ -44,7 +44,10 @@ netlogo = ["pynetlogo>=0.5"]
 store = ["pyarrow>=15", "duckdb>=1.0", "zarr>=3.0", "xarray>=2024.1"]
 physicell = ["pcdl>=3.3"]
 docs = ["sphinx>=7.3", "myst-parser>=3.0", "furo>=2024.1", "sphinxcontrib-svg2pdfconverter>=1.2", "cairosvg>=2.7"]
-all = ["abmfact[mesa,store,physicell]"]
+sensitivity = ["SALib>=1.5"]
+calibrate = ["bayesian-optimization>=2.0", "pyabc>=0.12"]
+viz = ["matplotlib>=3.8", "imageio>=2.34", "imageio-ffmpeg>=0.5"]
+all = ["abmfact[mesa,store,physicell,sensitivity,calibrate,viz]"]
 
 [project.urls]
 Homepage = "https://github.com/a7med7emedan/ABMfact"

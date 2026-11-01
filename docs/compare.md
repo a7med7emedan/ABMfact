@@ -36,6 +36,7 @@ abmfact compare chemotaxis.compare.yaml --out results/chemotaxis --store runs/
 | `seed_start` | the first seed (0); a follow-up starts above the seeds an earlier comparison used, so its sample is fresh |
 | `params` | ABM-IR parameters applied in every engine, such as `experiment.max_time` |
 | `options` | engine options by engine, as for `run-model --option` |
+| `options_from` | a [T2 translation](modes/translate.md) file (`translation.json`) by engine, whose calibrated gains are added to `options` |
 | `claims_from` | an audit file whose threshold claims are evaluated in every engine |
 
 For a quick look, compare a model directly; every metric then gets the same relative budget:

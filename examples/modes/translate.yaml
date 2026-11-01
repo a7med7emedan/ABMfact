@@ -1,0 +1,17 @@
+# T2 translation of the monolayer into Morpheus: fit only the pressure gain so the translated colony's cell count
+# matches the reference engine's, and hold out its spread. Needs Morpheus (natively or its Docker image).
+# Run:  abmfact translate examples/modes/translate.yaml --store results/store --out results/t2
+title: monolayer pressure gain in Morpheus
+model: ../ir/monolayer.yaml
+to: morpheus
+source: {engine: reference, seeds: 20, seed_start: 500}
+calibrate_on: [cells]
+hold_out: [spread]
+free:
+  - {name: pressure_gain, low: 0.1, high: 10}   # log scale by default
+params: {experiment.max_time: 720}
+seeds_per_evaluation: 8
+seed_start: 500
+method: bayesopt
+bayesopt: {n_init: 6, n_iter: 10, seed: 1}
+jobs: 10

@@ -1,0 +1,14 @@
+# A Latin hypercube over the monolayer's division rate and contact inhibition, 3 seeds per point.
+# Run:  abmfact sweep examples/modes/sweep.yaml --store results/store --out results/sweep
+title: monolayer division and contact inhibition
+model: ../ir/monolayer.yaml
+engine: reference
+params:
+  experiment.max_time: 1440                 # one day, as in reference problem 1
+parameters:
+  - {name: "cell_types[epithelial].cycle.rates[0]", low: 0.0007, high: 0.0028, scale: log}
+  - {name: "rules[0].half_max", low: 0.25, high: 1.0}
+design: {method: lhs, n: 8, seed: 1}
+seeds_per_point: 3
+metrics: ["last(cells)", "last(spread)"]
+jobs: 4

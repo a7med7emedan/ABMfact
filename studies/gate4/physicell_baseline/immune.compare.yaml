@@ -1,0 +1,22 @@
+# Gate 4, secondary: immune with PhysiCell as baseline, from the same runs as immune.compare.yaml (the run store
+# serves them). Relative budgets follow PhysiCell's mean. Written before any Gate 4 run; see ../PROTOCOL.md.
+title: "Gate 4, PhysiCell as baseline, problem 6: immune attack, T2 translation"
+model: ../../../examples/ir/immune.yaml
+engines: [physicell, compucell3d, morpheus]
+baseline: physicell
+seeds: 20
+jobs: 10
+options_from:                      # the calibrated gains; every other setting is Gate 3's, frozen in cc69375
+  compucell3d: [../results/calibration/pressure_compucell3d/translation.json,
+                ../results/calibration/motility_compucell3d/translation.json]
+  morpheus: [../results/calibration/pressure_morpheus/translation.json,
+             ../results/calibration/motility_morpheus/translation.json]
+seed_start: 4000                   # fresh seeds: 0 to 19 were Gate 3's, 2000 and up the follow-up's, 3000 and up calibration's
+claims_from: ../../../examples/suite/immune.audit.yaml
+metrics:
+  - metric: last(tumour_live)
+    budget: {relative: 0.25}
+    note: "a quarter of the surviving tumour"
+  - metric: max(tumour_dead)
+    budget: {relative: 0.25}
+    note: "a quarter of the baseline's peak dead count"

@@ -1,0 +1,21 @@
+# Gate 4: the Gate 3 comparison of monolayer, unchanged except for fresh seeds and the T2 gains.
+# Written and committed before any Gate 4 run; see PROTOCOL.md.
+title: "Gate 4, problem 1: monolayer with contact inhibition, T2 translation"
+model: ../../examples/ir/monolayer.yaml
+engines: [reference, physicell, compucell3d, morpheus]
+baseline: reference
+seeds: 20
+jobs: 10
+options_from:                      # the calibrated gains; every other setting is Gate 3's, frozen in cc69375
+  compucell3d: [results/calibration/pressure_compucell3d/translation.json,
+                results/calibration/motility_compucell3d/translation.json]
+  morpheus: [results/calibration/pressure_morpheus/translation.json,
+             results/calibration/motility_morpheus/translation.json]
+seed_start: 4000                   # fresh seeds: 0 to 19 were Gate 3's, 2000 and up the follow-up's, 3000 and up calibration's
+params:
+  experiment.max_time: 1440        # one day, as the suite audit's claims
+claims_from: ../../examples/suite/monolayer.audit.yaml
+metrics:
+  - metric: last(cells)
+    budget: {relative: 0.25}
+    note: "a quarter of the colony; counts are compared relative to their size"

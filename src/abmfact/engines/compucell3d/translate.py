@@ -70,6 +70,13 @@ def _steppables_source() -> str:
     return (resources.files(__package__) / "ir_steppables.py.in").read_text(encoding="utf-8")
 
 
+def _gain(name: str, value: float) -> float:
+    value = float(value)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be a positive number, got {value!r}")
+    return value
+
+
 def _disc_area(volume: float, dims: int) -> float:
     """Sites' worth of area (2D) or volume (3D) for a cell of ``volume`` cubic micron."""
     if dims == 3:
@@ -79,11 +86,21 @@ def _disc_area(volume: float, dims: int) -> float:
 
 
 def export_project(
-    model: IRModel, out: str | Path, site_length: float = 2.0, mcs_minutes: float = 1.0
+    model: IRModel,
+    out: str | Path,
+    site_length: float = 2.0,
+    mcs_minutes: float = 1.0,
+    pressure_gain: float = 1.0,
+    motility_gain: float = 1.0,
 ) -> FidelityReport:
-    """Write ``model`` as a CompuCell3D project in ``out`` and return what was kept, approximated or dropped."""
+    """Write ``model`` as a CompuCell3D project in ``out`` and return what was kept, approximated or dropped.
+
+    ``pressure_gain`` scales the contact fraction that stands in for pressure, and ``motility_gain`` the strength of
+    the motility potential. Both are 1 in a structural (T1) translation; T2 translation calibrates them.
+    """
     out = Path(out)
     s, m = float(site_length), float(mcs_minutes)
+    pressure_gain, motility_gain = _gain("pressure_gain", pressure_gain), _gain("motility_gain", motility_gain)
     rep = FidelityReport("abm-ir", f"compucell3d:{out.name}", tier="T1")
     rep.add("units", "approximated", f"one lattice site is {s:g} micron and one Monte Carlo step {m:g} minutes")
     if out.exists():
@@ -245,8 +262,10 @@ def export_project(
         rep.add(f"{base_path}.death", "approximated",
                 "dead cells keep their size until their clearance time, then shrink away")  # fmt: skip
         if ct.motility.speed > 0:
+            gain = f" (motility_gain {motility_gain:g})" if motility_gain != 1 else ""
             rep.add(f"{base_path}.motility", "approximated",
-                    f"a persistent walk driven by an external potential of strength {MOTILITY_LAMBDA:g} x speed; "
+                    f"a persistent walk driven by an external potential of strength "
+                    f"{MOTILITY_LAMBDA * motility_gain:g} x speed{gain}; "
                     "the speed reached depends on the temperature and the volume constraint")  # fmt: skip
         if ct.interactions.attack_rates:
             rep.add(f"{base_path}.interactions", "exact", "attack, damage and attack duration, as in PhysiCell 1.14.2")
@@ -261,9 +280,10 @@ def export_project(
                     f"secretor, on every site the cell covers at {share:.3g} times the ABM-IR rate: the cell's volume "
                     "over its sites' volume (site area times dz in 2D)")  # fmt: skip
     if any(r.signal == "pressure" for r in model.rules):
+        scaled = f", times pressure_gain {pressure_gain:g}" if pressure_gain != 1 else ""
         rep.add("rules.pressure", "approximated",
                 "cellular Potts has no pressure; the signal is the fraction of the cell's boundary touching other "
-                "cells")  # fmt: skip
+                f"cells{scaled}")  # fmt: skip
     if model.rules:
         rep.add("rules", "exact", "Hill-type rules combined as in PhysiCell 1.14.2")
 
@@ -319,7 +339,8 @@ def export_project(
         "mcs_minutes": m,
         "site_volume": site_area,
         "phenotype_every": max(1, round(model.experiment.dt_phenotype / m)),
-        "motility_lambda": MOTILITY_LAMBDA,
+        "motility_lambda": MOTILITY_LAMBDA * motility_gain,
+        "pressure_gain": pressure_gain,
         "fields": fields,
         "field_slowdown": slowdown,
         "types": types,

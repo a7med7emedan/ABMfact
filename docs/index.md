@@ -23,7 +23,9 @@ size, then reports which of the model's stated conclusions survive.
 Today ABMfact runs PhysiCell and PhysiBoSS, CompuCell3D and Morpheus projects as they are, translates
 ABM-IR models to and from each of them, and has its own reference engine; Mesa, NetLogo, Python and any
 other program run through adapters. `abmfact recommend` ranks the engines for a model, and `abmfact
-compare` runs one model in several of them against a declared disagreement budget. The
+compare` runs one model in several of them against a declared disagreement budget. The modes run a model many
+times: ensembles of seeds, parameter sweeps, sensitivity analysis, calibration to data or to another engine, and
+T2 translation, which calibrates the two lattice mapping gains. The
 [architecture](architecture.md) page lists every engine and its status.
 
 This manual is built from one source as web pages and as a PDF:
@@ -32,6 +34,9 @@ This manual is built from one source as web pages and as a PDF:
 - **User guide:** [concepts](concepts.md), [claims](claims.md), [checks](checks.md),
   [adapters](adapters.md), [statistics](statistics.md), [convergence](convergence.md) and
   [comparing engines](compare.md).
+- **Modes:** [ensembles](modes/ensemble.md), [sweeps](modes/sweep.md),
+  [sensitivity analysis](modes/sensitivity.md), [calibration](modes/calibrate.md),
+  [T2 translation](modes/translate.md) and [visualisation](modes/visualise.md).
 - **Models and engines:** the [architecture](architecture.md), the [ABM-IR reference](ir-reference.md),
   the [reference engine](engines/reference.md), [PhysiCell and PhysiBoSS](engines/physicell.md), [CompuCell3D](engines/compucell3d.md) and [Morpheus](engines/morpheus.md).
 - [Recipes](howto.md) for common tasks.
@@ -61,6 +66,19 @@ adapters
 statistics
 convergence
 compare
+```
+
+```{toctree}
+:hidden:
+:caption: Modes
+:maxdepth: 2
+
+modes/ensemble
+modes/sweep
+modes/sensitivity
+modes/calibrate
+modes/translate
+modes/visualise
 ```
 
 ```{toctree}

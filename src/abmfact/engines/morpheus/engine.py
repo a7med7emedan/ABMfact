@@ -33,7 +33,7 @@ from typing import Any
 from ...knobs import Knobs
 from ...records import FidelityReport, RunRecord, RunRequest
 from ...records.record import canonical
-from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle
+from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle, gain_suffix
 from .model import MorpheusModel, is_model
 from .outputs import read_output
 
@@ -71,6 +71,9 @@ class MorpheusEngine(Engine):
             unless given.
         time_minutes: Minutes per Morpheus time unit, used to report times.
         threads: Morpheus threads; 1 by default, so a seed always gives the same run.
+        pressure_gain: Scale on the contact fraction that stands in for pressure in ABM-IR translations; 1 (T1)
+            unless calibrated (T2).
+        motility_gain: Scale on the motility strength in ABM-IR translations; 1 (T1) unless calibrated (T2).
         observables: ABM-IR observable specs to compute; ``None`` uses :func:`default_observables`.
         timeout: The time limit for each run, in seconds; ``None`` for no limit.
     """
@@ -89,6 +92,8 @@ class MorpheusEngine(Engine):
         threads: int = 1,
         observables: Sequence[Mapping[str, Any]] | None = None,
         timeout: float | None = None,
+        pressure_gain: float = 1.0,
+        motility_gain: float = 1.0,
     ):
         self.prefer = toolchain
         self.image = image
@@ -97,6 +102,7 @@ class MorpheusEngine(Engine):
         self.node_length = float(node_length) if node_length is not None else None
         self.time_minutes = float(time_minutes)
         self.threads = int(threads)
+        self.gains = {"pressure_gain": float(pressure_gain), "motility_gain": float(motility_gain)}
         self.observables = [dict(o) for o in observables] if observables else None
         self.timeout = timeout
 
@@ -170,7 +176,7 @@ class MorpheusEngine(Engine):
             return None
         node, minutes = self._scales(True)
         with tempfile.TemporaryDirectory() as tmp:
-            return export_model(loaded, Path(tmp) / "model", node_length=node, time_minutes=minutes)
+            return export_model(loaded, Path(tmp) / "model", node_length=node, time_minutes=minutes, **self.gains)
 
     def _export(self, model: Any, params: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
         """Translate an ABM-IR model after its IR parameters; return the model file and the MorpheusML parameters."""
@@ -181,10 +187,10 @@ class MorpheusEngine(Engine):
         xml_params = {k: v for k, v in params.items() if k not in ir_params}
         m = apply_params(model, ir_params)
         node, minutes = self._scales(True)
-        key = f"{model_hash(m)[:16]}-{translator_fingerprint()[:12]}-{node:g}-{minutes:g}"
+        key = f"{model_hash(m)[:16]}-{translator_fingerprint()[:12]}-{node:g}-{minutes:g}" + gain_suffix(self.gains)
         out = self.cache_dir / "exports" / key
         if not (out / ".exported").exists():
-            report = export_model(m, out, node_length=node, time_minutes=minutes)
+            report = export_model(m, out, node_length=node, time_minutes=minutes, **self.gains)
             (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")
             (out / ".exported").write_text(m.name, encoding="utf-8")
         return out / MODEL_FILE, xml_params
