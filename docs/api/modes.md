@@ -13,3 +13,21 @@ Running one model many times: the shared run loop that ensembles, sweeps and com
 ```{eval-rst}
 .. automodule:: abmfact.modes.batch
 ```
+
+## `abmfact.modes.ensemble`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.ensemble
+```
+
+## `abmfact.modes.report`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.report
+```
+
+## `abmfact.modes.commands`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.commands
+```

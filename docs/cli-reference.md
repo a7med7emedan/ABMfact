@@ -217,3 +217,29 @@ abmfact recommend model [--details] [--json]
 | `--json` | print JSON instead of a table |  |
 
 Exit status: 0, also when no engine can run the model; the output says why.
+
+## `abmfact ensemble`
+
+Run many seeds of one setting in one engine and summarise with intervals.
+
+```text
+abmfact ensemble model [--engine ENGINE] [--seeds SEEDS] [--seed-start SEED_START] [--param KEY=VALUE] [--option KEY=VALUE] [--metric METRIC] [--alpha ALPHA] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `model` | ABM-IR file, or a native project folder for engines that take one | required |
+| `--engine` | engine name (see: abmfact engines) | `reference` |
+| `--seeds` | number of seeds (default 20) | `20` |
+| `--seed-start` | the first seed (default 0) | `0` |
+| `--param` | parameter for every run, e.g. 'experiment.max_time=600'; repeatable |  |
+| `--option` | engine option, e.g. threads=1 |  |
+| `--metric` | metric to summarise, e.g. 'last(cells)'; repeatable |  |
+| `--alpha` | one-sided level; intervals cover 1-2*alpha | `0.05` |
+| `--jobs` | runs at once | `1` |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-ensemble` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.

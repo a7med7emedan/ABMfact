@@ -1,5 +1,5 @@
 """Command line: ``abmfact run | check | demo | init | replay | engines | run-model | import | export |
-converge``."""
+converge | compare | recommend``, and the modes in :mod:`abmfact.modes.commands`."""
 
 from __future__ import annotations
 
@@ -444,6 +444,9 @@ def build_parser() -> argparse.ArgumentParser:
     rc.add_argument("model", help="ABM-IR file, or a native project folder")
     rc.add_argument("--details", action="store_true", help="list every approximated or dropped part")
     rc.add_argument("--json", action="store_true", help="print JSON instead of a table")
+    from .modes import commands as mode_commands
+
+    mode_commands.add_parsers(sub)
     return p
 
 
@@ -476,6 +479,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_export(args)
         if args.command == "compare":
             return cmd_compare(args)
+        from .modes import commands as mode_commands
+
+        if args.command in mode_commands.COMMANDS:
+            return mode_commands.run(args)
         return cmd_replay(args)
     except (ConfigError, ClaimError, AdapterError, EngineError, json.JSONDecodeError, FileNotFoundError) as exc:
         print(f"abmfact: error: {exc}", file=sys.stderr)

@@ -8,6 +8,13 @@ All notable changes are recorded here. The format follows
 
 Version 0.3.0.dev0.
 
+### Added
+
+- `abmfact ensemble`: many seeds of one setting in any engine. Every observable is summarised at each save time
+  (mean with its 90% interval, standard deviation, 5%, 50% and 95% quantiles), as are metrics such as
+  `last(cells)`, with each seed's value kept. Writes `ensemble.json`, `ensemble.csv` and `report.html`, and reuses
+  runs through the run store.
+
 ### Changed
 
 - The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results
