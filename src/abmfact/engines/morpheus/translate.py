@@ -87,12 +87,27 @@ def _hill_expr(base: float, rules: list[dict[str, Any]], sig: dict[str, str]) ->
 
 
 def export_model(
-    model: IRModel, out: str | Path, node_length: float = 2.0, time_minutes: float = 1.0
+    model: IRModel,
+    out: str | Path,
+    node_length: float = 2.0,
+    time_minutes: float = 1.0,
+    pressure_gain: float = 1.0,
+    motility_gain: float = 1.0,
 ) -> FidelityReport:
-    """Write ``model`` as a Morpheus model in the folder ``out`` and return what was kept or changed."""
+    """Write ``model`` as a Morpheus model in the folder ``out`` and return what was kept or changed.
+
+    ``pressure_gain`` scales the contact fraction that stands in for pressure, and ``motility_gain`` the strength of
+    persistent and directed motion. Both are 1 in a structural (T1) translation; T2 translation calibrates them.
+    """
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     s, m = float(node_length), float(time_minutes)
+    for name, value in (("pressure_gain", pressure_gain), ("motility_gain", motility_gain)):
+        if not math.isfinite(float(value)) or float(value) <= 0:
+            raise ValueError(f"{name} must be a positive number, got {value!r}")
+    pressure_gain, motility_gain = float(pressure_gain), float(motility_gain)
+    strength = MOTILITY_STRENGTH * motility_gain
+    gain_note = f" (motility_gain {motility_gain:g})" if motility_gain != 1 else ""
     rep = FidelityReport("abm-ir", f"morpheus:{out.name}", tier="T1")
     rep.add("units", "approximated", f"one lattice node is {s:g} micron and one time unit (one MCS) {m:g} min")
     if model.space.dimensions != 2:
@@ -218,7 +233,10 @@ def export_model(
         rep.add(
             f"{base_path}.volume", "approximated", f"a target area of {target:g} nodes, strength {VOLUME_STRENGTH:g}"
         )
-        sig: dict[str, str] = {"pressure": "contact / max(perimeter, 1)", "damage": "damage", "dead": "(state > 0)",
+        pressure = "contact / max(perimeter, 1)"
+        if pressure_gain != 1:
+            pressure = f"{_num(pressure_gain)} * {pressure}"
+        sig: dict[str, str] = {"pressure": pressure, "damage": "damage", "dead": "(state > 0)",
                                "is dead": "(state > 0)", "time": f"time * {_num(m)}"}  # fmt: skip
         for sub, fname in zip(model.substrates, fields, strict=True):
             prop = f"at_{fname}"
@@ -317,10 +335,10 @@ def export_model(
 
         if ct.motility.speed > 0:
             pm = _sub(el, "PersistentMotion", decay_time=_num(ct.motility.persistence_time / m),
-                      strength=f"{live} * {_num(MOTILITY_STRENGTH)} * speed * (1 - bias)")  # fmt: skip
+                      strength=f"{live} * {_num(strength)} * speed * (1 - bias)")  # fmt: skip
             del pm
             rep.add(f"{base_path}.motility", "approximated",
-                    f"persistent motion of strength {MOTILITY_STRENGTH:g} x speed; the speed reached depends on the "
+                    f"persistent motion of strength {strength:g} x speed{gain_note}; the speed reached depends on the "
                     "temperature and the volume constraint")  # fmt: skip
         chemo = ct.motility.chemotaxis
         if chemo is not None and ct.motility.migration_bias > 0:
@@ -335,10 +353,10 @@ def export_model(
                 _sub(mapper, "Output", symbol_ref=f"cell_grad_{axis}_{fname}", mapping="average")
             sign = "" if chemo.direction > 0 else "-"
             _sub(el, "DirectedMotion", direction=f"{sign}cell_grad_x_{fname}, {sign}cell_grad_y_{fname}, 0",
-                 strength=f"{live} * {_num(MOTILITY_STRENGTH)} * speed * bias")  # fmt: skip
+                 strength=f"{live} * {_num(strength)} * speed * bias")  # fmt: skip
             note = (f"DirectedMotion along the gradient's direction averaged over the cell, of strength "
-                    f"{MOTILITY_STRENGTH:g} x speed x bias as for persistent motion; the speed reached depends on the "
-                    "temperature and the volume constraint")  # fmt: skip
+                    f"{strength:g} x speed x bias{gain_note} as for persistent motion; the speed reached depends "
+                    "on the temperature and the volume constraint")  # fmt: skip
             rep.add(f"{base_path}.motility.chemotaxis", "approximated", note)
             gradients.add(fname)
 
@@ -381,9 +399,10 @@ def export_model(
             _sub(reporter, "Input", value=f"{fname} * {d}", scaling="cell")
             _sub(reporter, "Output", symbol_ref=f"grad_{axis}_{fname}", mapping="sum")
     if pressure_used:
+        scaled = f", times pressure_gain {pressure_gain:g}" if pressure_gain != 1 else ""
         rep.add("rules.pressure", "approximated",
                 "cellular Potts has no pressure; the signal is the fraction of the cell's boundary touching other "
-                "cells")  # fmt: skip
+                f"cells{scaled}")  # fmt: skip
     medium = _sub(types_el, "CellType", name="medium", **{"class": "medium"})
     for fname in fields:
         for pre in ("sec_", "up_", "exp_", "tgt_"):

@@ -138,7 +138,7 @@ class IRBehaviour(SteppableBasePy):
         if name in SPEC["fields"]:
             return self.sensed(name, cell)
         if name == "pressure":
-            return contact_fraction  # cellular Potts has no pressure; see the fidelity report
+            return SPEC["pressure_gain"] * contact_fraction  # cellular Potts has no pressure; see the fidelity report
         if name in ("time", "current time", "global time"):
             return self.mcs * SPEC["mcs_minutes"]
         if name in ("dead", "is dead"):

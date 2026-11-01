@@ -25,10 +25,15 @@ Version 0.3.0.dev0.
   seed noise. It warns when N is not a power of two or below 512, when an interval is wider than ±0.1, when Morris
   has fewer than 10 trajectories or an odd number of levels, and when seed noise is above 20% of the variance.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
+- CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
+  fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a
+  structural translation (T1); T2 translation calibrates them. The fidelity report names any gain that is not 1.
 
 ### Changed
 
 - `abmfact[all]` includes `[sensitivity]`.
+- The CompuCell3D steppable reads the pressure gain, so every CompuCell3D run key changes once and stored
+  CompuCell3D runs from 0.2.0 are not reused. Morpheus exports at gain 1 are byte-identical to 0.2.0's.
 - The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results
   are unchanged.
 
