@@ -58,11 +58,15 @@ def test_engine_options_reach_the_export_and_change_the_run_key(tmp_path, name):
     scaled = get_engine(name, cache_dir=tmp_path / "cache", pressure_gain=2.0)
     report = scaled.translation(str(ROOT / "examples" / "ir" / "monolayer.yaml"))
     assert any("pressure_gain 2" in e.note for e in report.entries)
+    plain._export(MONOLAYER, {})
+    scaled._export(MONOLAYER, {})
+    exports = sorted(p.name for p in (tmp_path / "cache" / "exports").iterdir())
+    assert len(exports) == 2 and sum(n.endswith("-pressure_gain2") for n in exports) == 1
+    if not plain.availability().ok:
+        pytest.skip(f"{name} cannot run here, so run keys are not built: {plain.availability().detail}")
     a = plain.prepare(str(ROOT / "examples" / "ir" / "monolayer.yaml"), {}, Knobs(), 0, tmp_path / "a")
     b = scaled.prepare(str(ROOT / "examples" / "ir" / "monolayer.yaml"), {}, Knobs(), 0, tmp_path / "b")
     assert a.request.key() != b.request.key()
-    exports = sorted(p.name for p in (tmp_path / "cache" / "exports").iterdir())
-    assert len(exports) == 2 and sum(n.endswith("-pressure_gain2") for n in exports) == 1
 
 
 def _cells(name: str, gain: float, tmp_path: Path) -> float:

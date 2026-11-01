@@ -79,6 +79,7 @@ def test_the_command_writes_its_tables(tmp_path, capsys):
     assert "Sweep: sweep" in (out / "report.html").read_text()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Slurm array tasks are POSIX shell command lines")
 def test_the_slurm_path_writes_an_array_that_runs_and_collects(tmp_path):
     path = sweep_file(tmp_path, slurm={"partition": "batch", "command": f"{sys.executable} -m abmfact"})
     spec = load_sweep(path)

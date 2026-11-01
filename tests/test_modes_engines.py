@@ -20,6 +20,10 @@ SHORT = {"experiment.max_time": 120, "experiment.save_interval": 60}
 
 
 def _engine_or_skip(name: str) -> None:
+    if name == "physicell":
+        from test_physicell_engine import _toolchain_or_skip
+
+        _toolchain_or_skip()  # a native g++ also needs PHYSICELL_SOURCE
     avail = get_engine(name).availability()
     if not avail.ok:
         pytest.skip(f"{name} cannot run here: {avail.detail}")

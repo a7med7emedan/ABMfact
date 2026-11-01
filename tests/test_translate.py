@@ -202,6 +202,7 @@ def test_the_command_refuses_a_biological_free_parameter(tmp_path, capsys):
 
 @pytest.mark.morpheus
 def test_a_short_t2_translation_into_morpheus_runs_end_to_end(tmp_path):
+    pytest.importorskip("bayes_opt")
     from abmfact.engines import get_engine
 
     if not get_engine("morpheus").availability().ok:
