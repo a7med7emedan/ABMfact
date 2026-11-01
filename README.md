@@ -55,6 +55,22 @@ problems across four engines, and its
 [follow-up](https://github.com/a7med7emedan/ABMfact/tree/main/studies/gate3_followup) reruns the INCONCLUSIVE
 comparisons on fresh seeds.
 
+## Modes
+
+Beyond a single run, audit and comparison, every engine can be run many times:
+
+| Command | What it does |
+|---|---|
+| `abmfact ensemble` | many seeds of one setting, each observable summarised with its interval and quantiles |
+| `abmfact sweep` | a grid, Latin hypercube or Sobol design over ABM-IR, native or engine parameters; resumable, with a Slurm array path |
+| `abmfact sensitivity` | Sobol or Morris indices with bootstrap intervals (SALib), with warnings when the sample is too small |
+| `abmfact calibrate` | fit parameters to data or to another engine's ensemble, by Bayesian optimisation or ABC-SMC (pyABC) |
+| `abmfact translate` | T2 translation: calibrate only the lattice mapping gains, with held-out observables |
+| `abmfact visualise` | time series, cell snapshots, fields, GIF or MP4 movies, and VTK files for ParaView |
+
+Each mode reuses the run store, so a repeated or interrupted mode picks up where it stopped. The
+[manual](https://a7med7emedan.github.io/ABMfact/) has a page and an example for each.
+
 ## Install
 
 ABMfact needs Python 3.11 to 3.13:
@@ -64,7 +80,8 @@ pip install abmfact
 ```
 
 Extras add optional parts: `[mesa]`, `[netlogo]`, `[store]` (Parquet, Zarr and DuckDB), `[physicell]` (the pcdl
-output reader) and `[docs]`.
+output reader), `[sensitivity]` (SALib), `[calibrate]` (bayesian-optimization and pyABC), `[viz]` (matplotlib,
+imageio and imageio-ffmpeg) and `[docs]`. `[all]` installs every extra except `[netlogo]` and `[docs]`.
 
 ## Quick start
 
@@ -218,10 +235,10 @@ Python API references, and a guide to writing an engine plug-in.
 
 These are plans, not features yet:
 
-- **Next:** more engines (Chaste, Agents.jl, BioDynaMo, Tissue Forge, FLAME GPU 2, Repast4Py), and the
-  monotone claims of the reference problems compared across engines, which needs parameter sweeps in each.
-- **Later:** calibration, sensitivity analysis and surrogate models through existing tools as plug-ins;
-  more engines; and a twin mode that re-audits a model each time new data recalibrates it.
+- **Next:** intracellular models (PhysiBoSS and MaBoSS, SBML), and more engines (Mesa and NetLogo
+  translation, Agents.jl, Repast4Py, Chaste, BioDynaMo, Tissue Forge, FLAME GPU 2, Artistoo).
+- **Later:** surrogate models; a twin mode that recalibrates and re-audits a model each time new data
+  arrives; data import from AnnData and SpatialData; published engine images; and a stable 1.0 interface.
 
 ## Limits
 
