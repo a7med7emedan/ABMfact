@@ -265,3 +265,24 @@ abmfact sweep sweep [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT
 | `-q`, `--quiet` | print only errors |  |
 
 Exit status: 0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; 2 for an invalid sweep file.
+
+## `abmfact sensitivity`
+
+Sobol or Morris sensitivity indices with bootstrap intervals (SALib).
+
+```text
+abmfact sensitivity sensitivity [--method {sobol,morris}] [--n N] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `sensitivity` | sensitivity YAML file: a sweep file with a 'sensitivity' section | required |
+| `--method` | override the file's method |  |
+| `--n` | override N (Sobol base sample) or the Morris trajectories |  |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-sensitivity` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; 2 for an invalid file.

@@ -19,10 +19,16 @@ Version 0.3.0.dev0.
   native paths or engine options (`option:NAME`). Writes `sweep.json`, `design.csv`, `runs.csv`, `summary.csv` and
   `report.html`. A sweep run again with the same store reuses every finished run, so an interrupted sweep resumes.
   `--backend slurm` writes a Slurm job array for the runs not yet stored, and `--collect` reads them back.
+- `abmfact sensitivity`: Sobol (Saltelli) first-order, total and optional second-order indices, or Morris
+  `mu_star`, `mu` and `sigma`, with bootstrap intervals, through SALib (MIT) in the new `[sensitivity]` extra. The
+  points run as a sweep, each the mean over its seeds, and the report gives the share of output variance that is
+  seed noise. It warns when N is not a power of two or below 512, when an interval is wider than ±0.1, when Morris
+  has fewer than 10 trajectories or an odd number of levels, and when seed noise is above 20% of the variance.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
 
 ### Changed
 
+- `abmfact[all]` includes `[sensitivity]`.
 - The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results
   are unchanged.
 

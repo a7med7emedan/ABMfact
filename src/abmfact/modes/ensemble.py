@@ -32,8 +32,16 @@ def summarise(values: Sequence[float], alpha: float) -> dict[str, float | int]:
     x = np.asarray(values, dtype=float)
     iv = st.mean_interval(x, alpha)
     q = np.quantile(x, QUANTILES)
-    return {"n": iv.n, "mean": iv.estimate, "low": iv.low, "high": iv.high, "sd": iv.sd,
-            "q05": float(q[0]), "q50": float(q[1]), "q95": float(q[2])}  # fmt: skip
+    return {
+        "n": iv.n,
+        "mean": iv.estimate,
+        "low": iv.low,
+        "high": iv.high,
+        "sd": iv.sd,
+        "q05": float(q[0]),
+        "q50": float(q[1]),
+        "q95": float(q[2]),
+    }
 
 
 def series_by_time(outputs: Sequence[Mapping[str, Any]]) -> dict[str, dict[float, list[float]]]:
@@ -77,8 +85,22 @@ class EnsembleResult:
 
     def rows(self) -> list[list[Any]]:
         """One row per observable and save time: name, time, n, mean, low, high, sd, q05, q50, q95."""
-        return [[name, row["time"], row["n"], row["mean"], row["low"], row["high"], row["sd"], row["q05"],
-                 row["q50"], row["q95"]] for name, rows in self.data["series"].items() for row in rows]  # fmt: skip
+        return [
+            [
+                name,
+                row["time"],
+                row["n"],
+                row["mean"],
+                row["low"],
+                row["high"],
+                row["sd"],
+                row["q05"],
+                row["q50"],
+                row["q95"],
+            ]
+            for name, rows in self.data["series"].items()
+            for row in rows
+        ]
 
     def write(self, out: str | Path) -> dict[str, Path]:
         """Write ``ensemble.json``, ``ensemble.csv`` and ``report.html`` to ``out``."""
@@ -136,8 +158,17 @@ def run_ensemble(
         raise ValueError(f"engine {engine} cannot run this model: {reason}")
     batch = [Job(engine, seed_start + k, params, options) for k in range(seeds)]
     results = run_batch(model, batch, workdir=workdir, store=store, workers=jobs, progress=progress)
-    return summarise_results(model, engine, results, info=info, params=params, options=options,
-                             metrics=parsed, alpha=alpha, seed_start=seed_start)  # fmt: skip
+    return summarise_results(
+        model,
+        engine,
+        results,
+        info=info,
+        params=params,
+        options=options,
+        metrics=parsed,
+        alpha=alpha,
+        seed_start=seed_start,
+    )
 
 
 def summarise_results(
@@ -212,21 +243,37 @@ def render_html(result: EnsembleResult) -> str:
     """The ensemble as a self-contained HTML page: settings, runs, metrics and every series."""
     d = result.data
     e, runs = d["ensemble"], d["runs"]
-    settings = table(["setting", "value"], [["model", e["model"]], ["engine", e["engine"]],
-                     ["tier", d["engine"].get("tier", "")], ["seeds", f"{e['seeds']} from {e['seed_start']}"],
-                     ["interval", e["interval"]], ["params", dumps(e["params"]).strip()],
-                     ["options", dumps(e["options"]).strip()]])  # fmt: skip
-    run_rows = [["ok", runs["ok"]], ["reused from the store", runs["cached"]], ["failed", runs["failed"]],
-                ["total wall time (s)", runs["wall_time"]]] + [["error", x] for x in runs["errors"]]  # fmt: skip
+    settings = table(
+        ["setting", "value"],
+        [
+            ["model", e["model"]],
+            ["engine", e["engine"]],
+            ["tier", d["engine"].get("tier", "")],
+            ["seeds", f"{e['seeds']} from {e['seed_start']}"],
+            ["interval", e["interval"]],
+            ["params", dumps(e["params"]).strip()],
+            ["options", dumps(e["options"]).strip()],
+        ],
+    )
+    run_rows = [
+        ["ok", runs["ok"]],
+        ["reused from the store", runs["cached"]],
+        ["failed", runs["failed"]],
+        ["total wall time (s)", runs["wall_time"]],
+    ] + [["error", x] for x in runs["errors"]]
     sections = [("Settings", settings), ("Runs", table(["", ""], run_rows))]
     if d["metrics"]:
-        rows = [[k, v.get("n", 0), v.get("mean"), v.get("low"), v.get("high"), v.get("sd"), v.get("q05"),
-                 v.get("q95")] for k, v in d["metrics"].items()]  # fmt: skip
+        rows = [
+            [k, v.get("n", 0), v.get("mean"), v.get("low"), v.get("high"), v.get("sd"), v.get("q05"), v.get("q95")]
+            for k, v in d["metrics"].items()
+        ]
         sections.append(("Metrics", table(["metric", "n", "mean", "low", "high", "sd", "5%", "95%"], rows)))
     for name, rows in d["series"].items():
-        body = table(["time", "n", "mean", "low", "high", "sd", "5%", "50%", "95%"],
-                     [[r["time"], r["n"], r["mean"], r["low"], r["high"], r["sd"], r["q05"], r["q50"], r["q95"]]
-                      for r in rows])  # fmt: skip
+        body = table(
+            ["time", "n", "mean", "low", "high", "sd", "5%", "50%", "95%"],
+            [[r["time"], r["n"], r["mean"], r["low"], r["high"], r["sd"], r["q05"], r["q50"], r["q95"]] for r in rows],
+        )
         sections.append((f"Series: {name}", body))
-    return page(f"Ensemble: {Path(e['model']).name} in {e['engine']}", f"ABMfact {d['version']} · {d['created']}",
-                sections)  # fmt: skip
+    return page(
+        f"Ensemble: {Path(e['model']).name} in {e['engine']}", f"ABMfact {d['version']} · {d['created']}", sections
+    )

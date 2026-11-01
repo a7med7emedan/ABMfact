@@ -32,6 +32,8 @@ EXIT_CODES = {
     "ensemble": "0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.",
     "sweep": "0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; "
     "2 for an invalid sweep file.",
+    "sensitivity": "0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; "
+    "2 for an invalid file.",
 }
 
 

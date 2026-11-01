@@ -33,8 +33,10 @@ def test_log_scale_spans_orders_of_magnitude_evenly():
     assert B.unit(v) == pytest.approx([0.0, 0.5, 1.0])
 
 
-@pytest.mark.parametrize("bad", [dict(low=1, high=1), dict(low=2, high=1), dict(low=0, high=1, scale="log"),
-                                 dict(low=0, high=1, scale="cubic")])  # fmt: skip
+@pytest.mark.parametrize(
+    "bad",
+    [dict(low=1, high=1), dict(low=2, high=1), dict(low=0, high=1, scale="log"), dict(low=0, high=1, scale="cubic")],
+)
 def test_bad_ranges_are_refused(bad):
     with pytest.raises(DesignError):
         Parameter("p", **bad)

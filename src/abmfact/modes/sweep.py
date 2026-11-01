@@ -31,8 +31,21 @@ from .design import DesignError, Parameter, make_design, setting
 from .ensemble import summarise
 from .report import dumps, num, page, table
 
-KEYS = {"title", "model", "engine", "options", "params", "parameters", "design", "seeds_per_point", "seed_start",
-        "metrics", "jobs", "alpha", "slurm"}  # fmt: skip
+KEYS = {
+    "title",
+    "model",
+    "engine",
+    "options",
+    "params",
+    "parameters",
+    "design",
+    "seeds_per_point",
+    "seed_start",
+    "metrics",
+    "jobs",
+    "alpha",
+    "slurm",
+}
 SLURM_KEYS = {"partition", "time", "mem", "cpus_per_task", "account", "max_parallel", "command"}
 
 
@@ -85,8 +98,10 @@ class SweepSpec:
         out = []
         for i, row in enumerate(points):
             run_params, options = setting(self.parameters, row, self.params, self.options)
-            out += [Job(self.engine, self.seed_start + k, run_params, options, f"p{i:04d}")
-                    for k in range(self.seeds_per_point)]  # fmt: skip
+            out += [
+                Job(self.engine, self.seed_start + k, run_params, options, f"p{i:04d}")
+                for k in range(self.seeds_per_point)
+            ]
         return out
 
 
@@ -195,8 +210,16 @@ class SweepResult:
         d = self.data
         names = [p["name"] for p in d["sweep"]["parameters"]]
         metrics = d["sweep"]["metrics"]
-        paths = {k: out / f for k, f in (("json", "sweep.json"), ("design", "design.csv"), ("runs", "runs.csv"),
-                                          ("summary", "summary.csv"), ("report", "report.html"))}  # fmt: skip
+        paths = {
+            k: out / f
+            for k, f in (
+                ("json", "sweep.json"),
+                ("design", "design.csv"),
+                ("runs", "runs.csv"),
+                ("summary", "summary.csv"),
+                ("report", "report.html"),
+            )
+        }
         paths["json"].write_text(self.to_json(), encoding="utf-8")
         with paths["design"].open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
@@ -205,8 +228,19 @@ class SweepResult:
         with paths["runs"].open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             w.writerow(["point", "seed", "run_id", "status", *metrics, "error"])
-            w.writerows([[r["point"], r["seed"], r["run_id"], r["status"], *(r["metrics"].get(m) for m in metrics),
-                          r.get("error") or ""] for r in d["runs"]])  # fmt: skip
+            w.writerows(
+                [
+                    [
+                        r["point"],
+                        r["seed"],
+                        r["run_id"],
+                        r["status"],
+                        *(r["metrics"].get(m) for m in metrics),
+                        r.get("error") or "",
+                    ]
+                    for r in d["runs"]
+                ]
+            )
         with paths["summary"].open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             cols = [f"{m}_{s}" for m in metrics for s in ("n", "mean", "low", "high", "sd")]
@@ -249,8 +283,9 @@ def run_sweep(
     return summarise_sweep(spec, pts, results, info)
 
 
-def summarise_sweep(spec: SweepSpec, points: np.ndarray, results: Sequence[JobResult],
-                    info: Mapping[str, Any] | None = None) -> SweepResult:  # fmt: skip
+def summarise_sweep(
+    spec: SweepSpec, points: np.ndarray, results: Sequence[JobResult], info: Mapping[str, Any] | None = None
+) -> SweepResult:
     """Turn finished runs into a sweep result: per-run metrics and a per-point summary."""
     names = [p.name for p in spec.parameters]
     design: list[dict[str, Any]] = [
@@ -259,9 +294,13 @@ def summarise_sweep(spec: SweepSpec, points: np.ndarray, results: Sequence[JobRe
     runs: list[dict[str, Any]] = []
     per_point: dict[str, dict[str, list[float]]] = {p["point"]: {m.expr: [] for m in spec.metrics} for p in design}
     for r in results:
-        row: dict[str, Any] = {"point": r.job.label, "seed": r.job.seed, "metrics": {},
-                               "run_id": r.record.run_id if r.record else None,
-                               "status": r.record.status if r.record else "failed"}  # fmt: skip
+        row: dict[str, Any] = {
+            "point": r.job.label,
+            "seed": r.job.seed,
+            "metrics": {},
+            "run_id": r.record.run_id if r.record else None,
+            "status": r.record.status if r.record else "failed",
+        }
         if not r.ok:
             row["status"], row["error"] = "failed", r.problem
         else:
@@ -275,9 +314,14 @@ def summarise_sweep(spec: SweepSpec, points: np.ndarray, results: Sequence[JobRe
                 row["metrics"][m.expr] = v
                 per_point[r.job.label][m.expr].append(v)
         runs.append(row)
-    summary = [{"point": p["point"], "values": p["values"],
-                "metrics": {k: summarise(v, spec.alpha) for k, v in per_point[p["point"]].items() if v}}
-               for p in design]  # fmt: skip
+    summary = [
+        {
+            "point": p["point"],
+            "values": p["values"],
+            "metrics": {k: summarise(v, spec.alpha) for k, v in per_point[p["point"]].items() if v},
+        }
+        for p in design
+    ]
     ok = [r for r in results if r.ok]
     data = {
         "tool": "abmfact",
@@ -331,8 +375,18 @@ def _job_dir(root: Path, job: Job) -> Path:
 
 def _run_model_command(spec: SweepSpec, job: Job, folder: Path) -> list[str]:
     base = shlex.split(str(spec.slurm.get("command", "abmfact")))
-    argv = [*base, "run-model", str(spec.model), "--engine", job.engine, "--seed", str(job.seed),
-            "--out", str(folder), "-q"]  # fmt: skip
+    argv = [
+        *base,
+        "run-model",
+        str(spec.model),
+        "--engine",
+        job.engine,
+        "--seed",
+        str(job.seed),
+        "--out",
+        str(folder),
+        "-q",
+    ]
     if job.params:
         argv += ["--params", json.dumps(dict(job.params), sort_keys=True)]
     for k, v in sorted(job.options.items()):
@@ -340,8 +394,13 @@ def _run_model_command(spec: SweepSpec, job: Job, folder: Path) -> list[str]:
     return argv
 
 
-def write_slurm(spec: SweepSpec, out: str | Path, store: str | Path | None = None, submit: bool = False,
-                points: np.ndarray | None = None) -> tuple[Path | None, int, int]:  # fmt: skip
+def write_slurm(
+    spec: SweepSpec,
+    out: str | Path,
+    store: str | Path | None = None,
+    submit: bool = False,
+    points: np.ndarray | None = None,
+) -> tuple[Path | None, int, int]:
     """Write a Slurm job array for every run not yet in ``store``; submit it only when asked.
 
     Returns ``(script or None, runs written, runs already stored)``. Each task runs ``abmfact run-model`` (or
@@ -367,8 +426,11 @@ def write_slurm(spec: SweepSpec, out: str | Path, store: str | Path | None = Non
             cached += 1
             continue
         folder.mkdir(parents=True, exist_ok=True)
-        todo.append(PreparedRun(job.engine, prepared.request, workdir=folder,
-                                argv=_run_model_command(spec, job, folder / "run")))  # fmt: skip
+        todo.append(
+            PreparedRun(
+                job.engine, prepared.request, workdir=folder, argv=_run_model_command(spec, job, folder / "run")
+            )
+        )
     if not todo:
         return None, 0, cached
     settings = {k: v for k, v in spec.slurm.items() if k != "command"}
@@ -401,8 +463,9 @@ def render_html(result: SweepResult) -> str:
     d = result.data
     s, c = d["sweep"], d["counts"]
     names = [p["name"] for p in s["parameters"]]
-    params = table(["parameter", "low", "high", "scale"], [[p["name"], p["low"], p["high"], p["scale"]]
-                                                          for p in s["parameters"]])  # fmt: skip
+    params = table(
+        ["parameter", "low", "high", "scale"], [[p["name"], p["low"], p["high"], p["scale"]] for p in s["parameters"]]
+    )
     settings = table(
         ["setting", "value"],
         [
@@ -414,9 +477,17 @@ def render_html(result: SweepResult) -> str:
             ["options", dumps(s["options"]).strip()],
         ],
     )
-    counts = table(["", ""], [["runs", c["runs"]], ["new", c["ok"]], ["reused from the store", c["cached"]],
-                              ["failed", c["failed"]], ["total wall time (s)", c["wall_time"]]]
-                   + [["error", e] for e in c["errors"]])  # fmt: skip
+    counts = table(
+        ["", ""],
+        [
+            ["runs", c["runs"]],
+            ["new", c["ok"]],
+            ["reused from the store", c["cached"]],
+            ["failed", c["failed"]],
+            ["total wall time (s)", c["wall_time"]],
+        ]
+        + [["error", e] for e in c["errors"]],
+    )
     rows = []
     for p in d["summary"]:
         cells: list[Any] = [p["point"], *(p["values"][n] for n in names)]
@@ -425,5 +496,8 @@ def render_html(result: SweepResult) -> str:
             cells.append(f"{num(x['mean'])} ({num(x['low'])} to {num(x['high'])})" if x else "no runs")
         rows.append(cells)
     summary = table(["point", *names, *s["metrics"]], rows)
-    return page(f"Sweep: {s['title']}", f"ABMfact {d['version']} · {d['created']}",
-                [("Settings", settings), ("Parameters", params), ("Runs", counts), ("Points", summary)])  # fmt: skip
+    return page(
+        f"Sweep: {s['title']}",
+        f"ABMfact {d['version']} · {d['created']}",
+        [("Settings", settings), ("Parameters", params), ("Runs", counts), ("Points", summary)],
+    )

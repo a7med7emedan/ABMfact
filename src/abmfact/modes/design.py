@@ -94,8 +94,13 @@ class Parameter:
         if unknown:
             raise DesignError(f"unknown parameter keys {unknown}")
         try:
-            return cls(str(raw["name"]), float(raw["low"]), float(raw["high"]), raw.get("scale", "linear"),
-                       bool(raw.get("integer", False)))  # fmt: skip
+            return cls(
+                str(raw["name"]),
+                float(raw["low"]),
+                float(raw["high"]),
+                raw.get("scale", "linear"),
+                bool(raw.get("integer", False)),
+            )
         except KeyError as exc:
             raise DesignError(f"a parameter needs name, low and high: {dict(raw)!r}") from exc
 
@@ -138,16 +143,20 @@ def sobol(params: Sequence[Parameter], n: int, seed: int = 0, scramble: bool = T
     if n < 2:
         raise DesignError("a Sobol design needs at least 2 points")
     if n & (n - 1):
-        warnings.warn(f"Sobol points are balanced only in powers of two; {n} is not one", DesignWarning,
-                      stacklevel=2)  # fmt: skip
+        warnings.warn(f"Sobol points are balanced only in powers of two; {n} is not one", DesignWarning, stacklevel=2)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)  # scipy repeats the power-of-two warning
         u = qmc.Sobol(d=len(params), scramble=scramble, rng=np.random.default_rng(seed)).random(n)
     return np.stack([p.scaled(u[:, i]) for i, p in enumerate(params)], axis=1)
 
 
-def make_design(params: Sequence[Parameter], method: str, n: int | None = None,
-                levels: int | Sequence[int] | None = None, seed: int = 0) -> np.ndarray:  # fmt: skip
+def make_design(
+    params: Sequence[Parameter],
+    method: str,
+    n: int | None = None,
+    levels: int | Sequence[int] | None = None,
+    seed: int = 0,
+) -> np.ndarray:
     """The points of a ``grid`` (with ``levels``), ``lhs`` or ``sobol`` design (with ``n``)."""
     if method == "grid":
         if levels is None:
@@ -160,8 +169,12 @@ def make_design(params: Sequence[Parameter], method: str, n: int | None = None,
     return latin_hypercube(params, n, seed) if method == "lhs" else sobol(params, n, seed)
 
 
-def setting(params: Sequence[Parameter], point: Sequence[float], base_params: Mapping[str, Any] | None = None,
-            base_options: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:  # fmt: skip
+def setting(
+    params: Sequence[Parameter],
+    point: Sequence[float],
+    base_params: Mapping[str, Any] | None = None,
+    base_options: Mapping[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """The run parameters and engine options for one design point, on top of the fixed ones."""
     run_params, options = dict(base_params or {}), dict(base_options or {})
     for p, v in zip(params, point, strict=True):

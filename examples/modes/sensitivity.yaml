@@ -1,0 +1,18 @@
+# Which of the monolayer's two growth parameters drives the colony size after half a day?
+# Run:  abmfact sensitivity examples/modes/sensitivity.yaml --store results/store --out results/sensitivity
+# Needs SALib:  pip install "abmfact[sensitivity]"
+title: monolayer growth sensitivity
+model: ../ir/monolayer.yaml
+engine: reference
+params:
+  experiment.max_time: 720                  # half a day keeps the example quick
+parameters:
+  - {name: "cell_types[epithelial].cycle.rates[0]", low: 0.0007, high: 0.0028, scale: log}
+  - {name: "rules[0].half_max", low: 0.25, high: 1.0}
+sensitivity:
+  method: sobol
+  n: 32                                     # small on purpose: the output warns that it is too small
+  seed: 1
+seeds_per_point: 2
+metrics: ["last(cells)"]
+jobs: 8

@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e ".[mesa]" pytest pytest-cov jsonschema
+      - run: pip install -e ".[mesa,sensitivity]" pytest pytest-cov jsonschema
       - name: Fast suite with coverage
         run: pytest -m "not slow" --cov=abmfact --cov-report=term --cov-fail-under=85
       - name: Examples

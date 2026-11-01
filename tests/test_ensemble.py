@@ -34,8 +34,15 @@ def test_series_are_aligned_by_time_across_runs():
 
 
 def test_an_ensemble_summarises_every_series_and_metric_and_reuses_the_store(tmp_path):
-    res = run_ensemble(MODEL, "reference", 3, params=SHORT, metrics=["last(cells)", "max(nosuch)"],
-                       store=tmp_path / "store", workdir=tmp_path / "w")  # fmt: skip
+    res = run_ensemble(
+        MODEL,
+        "reference",
+        3,
+        params=SHORT,
+        metrics=["last(cells)", "max(nosuch)"],
+        store=tmp_path / "store",
+        workdir=tmp_path / "w",
+    )
     d = res.data
     assert d["runs"]["ok"] == 3 and d["runs"]["failed"] == 0
     assert set(d["series"]) == {"cells", "spread"}
@@ -57,8 +64,22 @@ def test_bad_settings_are_refused_before_any_run():
 
 def test_the_command_writes_json_csv_and_a_report(tmp_path, capsys):
     out = tmp_path / "out"
-    code = main(["ensemble", str(MODEL), "--seeds", "2", "--param", "experiment.max_time=120",
-                 "--param", "experiment.save_interval=60", "--metric", "last(cells)", "--out", str(out)])  # fmt: skip
+    code = main(
+        [
+            "ensemble",
+            str(MODEL),
+            "--seeds",
+            "2",
+            "--param",
+            "experiment.max_time=120",
+            "--param",
+            "experiment.save_interval=60",
+            "--metric",
+            "last(cells)",
+            "--out",
+            str(out),
+        ]
+    )
     assert code == 0
     d = json.loads((out / "ensemble.json").read_text())
     assert d["ensemble"]["params"] == SHORT
