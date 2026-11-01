@@ -1,4 +1,5 @@
-"""Command line for the modes: ``abmfact ensemble``, ``sweep``, ``sensitivity``, ``calibrate`` and ``translate``.
+"""Command line for the modes: ``abmfact ensemble``, ``sweep``, ``sensitivity``, ``calibrate``, ``translate`` and
+``visualise``.
 
 Only ``argparse`` is imported here at load time; each command imports what it needs when it runs.
 """
@@ -10,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-COMMANDS = ("ensemble", "sweep", "sensitivity", "calibrate", "translate")
+COMMANDS = ("ensemble", "sweep", "sensitivity", "calibrate", "translate", "visualise")
 
 
 def add_parsers(sub: Any) -> None:
@@ -95,10 +96,22 @@ def add_parsers(sub: Any) -> None:
     tr.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
     tr.add_argument("--out", default="abmfact-translation", help="output folder (default: abmfact-translation)")
     tr.add_argument("-q", "--quiet", action="store_true", help="print only errors")
+    vi = sub.add_parser("visualise", help="plots, cell snapshots, fields, movies and VTK files from results or a run")
+    vi.add_argument("target", help="a mode's result file or folder, a run folder, or a run id with --store")
+    vi.add_argument("--store", help="run store to find a run id in")
+    vi.add_argument("--out", default="abmfact-plots", help="output folder (default: abmfact-plots)")
+    vi.add_argument("--times", default="last", help="for a run: last (default), all, or comma-separated times")
+    vi.add_argument("--colour", choices=["type", "state"], default="type", help="colour cells by type or state")
+    vi.add_argument("--field", action="append", help="substrate to draw (default: every one); repeatable")
+    vi.add_argument("--movie", choices=["gif", "mp4"], help="also film every save time")
+    vi.add_argument("--vtk", action="store_true", help="also write VTK files for ParaView")
+    vi.add_argument("-q", "--quiet", action="store_true", help="print only errors")
 
 
 def run(args: argparse.Namespace) -> int:
     """Run the chosen mode command and return its exit code."""
+    if args.command == "visualise":
+        return cmd_visualise(args)
     if args.command == "translate":
         return cmd_translate(args)
     if args.command == "calibrate":
@@ -369,3 +382,48 @@ def cmd_translate(args: argparse.Namespace) -> int:
             print(f"  warning: {w}")
         print(f"  wrote {paths['json'].parent} (tier T2)")
     return 0
+
+
+RESULT_FILES = ("ensemble.json", "sweep.json", "indices.json", "calibration.json", "calibration/calibration.json")
+
+
+def cmd_visualise(args: argparse.Namespace) -> int:
+    """Run ``abmfact visualise``; exit code 0 when something was drawn, 2 when the target is not recognised."""
+    from ..config import ConfigError
+    from ..records.store import RunStore, read_run
+    from .visualise import visualise_result, visualise_run
+
+    target, out = Path(args.target), Path(args.out)
+    try:
+        if target.is_file() and target.suffix == ".json":
+            paths = visualise_result(target, out)
+        elif target.is_dir() and (target / "record.json").exists():
+            paths = _run_plots(read_run(target), out, args, visualise_run)
+        elif target.is_dir() and any((target / f).exists() for f in RESULT_FILES):
+            paths = visualise_result(next(target / f for f in RESULT_FILES if (target / f).exists()), out)
+        elif args.store:
+            store = RunStore(args.store)
+            matches = [d for d in (store.root / "runs").glob(f"*/{args.target}*") if (d / "record.json").exists()]
+            if len(matches) != 1:
+                raise ConfigError(f"{len(matches)} runs in the store start with {args.target!r}; give more of the id")
+            paths = _run_plots(read_run(matches[0]), out, args, visualise_run)
+        else:
+            raise ConfigError(
+                f"{args.target} is not a result file, a result folder, a run folder, or a run id with --store"
+            )
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+    if not args.quiet:
+        for p in paths:
+            print(f"  wrote {p}")
+    return 0
+
+
+def _run_plots(record: Any, out: Path, args: argparse.Namespace, draw: Any) -> list[Path]:
+    from ..config import ConfigError
+
+    if record.outputs is None:
+        raise ConfigError("this run has no outputs to draw")
+    return draw(
+        record.outputs, out, times=args.times, colour=args.colour, fields=args.field, film=args.movie, vtk=args.vtk
+    )

@@ -46,7 +46,8 @@ physicell = ["pcdl>=3.3"]
 docs = ["sphinx>=7.3", "myst-parser>=3.0", "furo>=2024.1", "sphinxcontrib-svg2pdfconverter>=1.2", "cairosvg>=2.7"]
 sensitivity = ["SALib>=1.5"]
 calibrate = ["bayesian-optimization>=2.0", "pyabc>=0.12"]
-all = ["abmfact[mesa,store,physicell,sensitivity,calibrate]"]
+viz = ["matplotlib>=3.8", "imageio>=2.34", "imageio-ffmpeg>=0.5"]
+all = ["abmfact[mesa,store,physicell,sensitivity,calibrate,viz]"]
 
 [project.urls]
 Homepage = "https://github.com/a7med7emedan/ABMfact"

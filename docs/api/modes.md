@@ -1,7 +1,7 @@
 # Modes
 
 Running one model many times: the shared run loop, ensembles of seeds, sweeps over parameter designs,
-sensitivity analysis and calibration.
+sensitivity analysis, calibration, T2 translation and visualisation.
 
 ## `abmfact.modes`
 
@@ -61,6 +61,18 @@ sensitivity analysis and calibration.
 
 ```{eval-rst}
 .. automodule:: abmfact.modes.translate
+```
+
+## `abmfact.modes.visualise`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.visualise
+```
+
+## `abmfact.modes.vtk`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.vtk
 ```
 
 ## `abmfact.modes.report`

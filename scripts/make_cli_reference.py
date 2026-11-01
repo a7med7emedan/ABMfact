@@ -38,6 +38,7 @@ EXIT_CODES = {
     "scored.",
     "translate": "0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not "
     "a mapping gain or a held-out observable that is also calibrated on.",
+    "visualise": "0 when the plots or files were written; 2 when the target is not recognised.",
 }
 
 

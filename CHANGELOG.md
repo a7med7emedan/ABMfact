@@ -48,6 +48,14 @@ Version 0.3.0.dev0.
     difference with its interval, without judging it.
   - Writes the project at the calibrated gains, `translation.json` (tier T2) and a fidelity report that records each
     calibration.
+- `abmfact visualise` draws, for any engine, from the common output schema:
+  - from mode results: ensemble time series with their interval and 5% to 95% bands, sweep point means against
+    each parameter, sensitivity indices with intervals, and calibration distances with the best fit against the
+    target;
+  - from a run (a `run-model` folder or a run id in a store): cell snapshots coloured by type or state, substrate
+    fields, and movies (GIF through Pillow, MP4 through imageio-ffmpeg, which runs a separate ffmpeg program).
+  - It writes a VTK export for ParaView (`.vtp` cells, `.vti` fields, `.pvd` time series) without any dependency.
+  - Plots and movies come in the new `[viz]` extra (matplotlib, imageio, imageio-ffmpeg).
 - Comparison files take `options_from`, which names a `translation.json` per engine, so a frozen comparison uses
   calibrated gains without being edited.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
@@ -57,7 +65,7 @@ Version 0.3.0.dev0.
 
 ### Changed
 
-- `abmfact[all]` includes `[sensitivity]` and `[calibrate]`.
+- `abmfact[all]` includes `[sensitivity]`, `[calibrate]` and `[viz]`.
 - The CompuCell3D steppable reads the pressure gain, so every CompuCell3D run key changes once and stored
   CompuCell3D runs from 0.2.0 are not reused. Morpheus exports at gain 1 are byte-identical to 0.2.0's.
 - The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results

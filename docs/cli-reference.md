@@ -337,3 +337,25 @@ abmfact translate target [--to {compucell3d,morpheus}] [--calibrate-on CALIBRATE
 | `-q`, `--quiet` | print only errors |  |
 
 Exit status: 0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not a mapping gain or a held-out observable that is also calibrated on.
+
+## `abmfact visualise`
+
+Plots, cell snapshots, fields, movies and VTK files from results or a run.
+
+```text
+abmfact visualise target [--store STORE] [--out OUT] [--times TIMES] [--colour {type,state}] [--field FIELD] [--movie {gif,mp4}] [--vtk] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `target` | a mode's result file or folder, a run folder, or a run id with --store | required |
+| `--store` | run store to find a run id in |  |
+| `--out` | output folder | `abmfact-plots` |
+| `--times` | for a run: last (default), all, or comma-separated times | `last` |
+| `--colour` | colour cells by type or state | `type` |
+| `--field` | substrate to draw (default: every one); repeatable |  |
+| `--movie` | also film every save time |  |
+| `--vtk` | also write VTK files for ParaView |  |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when the plots or files were written; 2 when the target is not recognised.
