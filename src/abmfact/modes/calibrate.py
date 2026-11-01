@@ -333,14 +333,30 @@ class Problem:
         return self.spec.parameters
 
     def features(self, scalars: Mapping[str, Any]) -> np.ndarray:
-        """A run's observables at the target's times (NaN outside the run's saved times)."""
+        """A run's observables at the target's times, interpolated between saves.
+
+        A target time up to half a save interval beyond the run's first or last save takes that save's value, since
+        engines differ by a step in where they place their saves (CompuCell3D saves its last Monte Carlo step at
+        1439 minutes of a 1440-minute run). Times further outside the run are missing (NaN).
+        """
         times = np.asarray(scalars.get("time", []), dtype=float)
         out = np.full(len(self.labels), np.nan)
+        if not times.size:
+            return out
+        slack = 0.5 * float(np.min(np.diff(times))) if times.size > 1 else 0.0
         for i, (name, t) in enumerate(self.labels):
             series = scalars.get(name)
-            if isinstance(series, list) and times.size and len(series) == times.size and times[0] <= t <= times[-1]:
+            if isinstance(series, list) and len(series) == times.size and times[0] - slack <= t <= times[-1] + slack:
                 out[i] = float(np.interp(t, times, np.asarray(series, dtype=float)))
         return out
+
+    def missing(self) -> list[str]:
+        """The fitted points that no run of any evaluation could give, as ``observable at time``."""
+        seen = np.zeros(len(self.labels), dtype=bool)
+        for e in self.evaluations:
+            if e.per_seed.size:
+                seen |= np.isfinite(e.per_seed).any(axis=0)
+        return [f"{n} at t = {t:g}" for (n, t), ok in zip(self.labels, seen, strict=True) if not ok]
 
     def score(self, per_seed: np.ndarray) -> float:
         """The distance of the seeds' means from the target; infinite when a fitted point has no value."""
@@ -513,7 +529,12 @@ def bayesopt(problem: Problem, settings: Mapping[str, Any]) -> dict[str, Any]:
         opt.register(params=dict(zip(names, map(float, u), strict=True)), target=objective(d))
     finite = [e for e in problem.evaluations if math.isfinite(e.distance)]
     if not finite:
-        raise CalibrationError("no evaluation gave every fitted observable; see the run errors")
+        errors = sorted({x for e in problem.evaluations for x in e.errors})[:3]
+        raise CalibrationError(
+            "no evaluation gave every fitted point; missing: "
+            + ", ".join(problem.missing()[:5])
+            + (f"; run errors: {errors}" if errors else "")
+        )
     best = min(finite, key=lambda e: e.distance)
     searched = len(problem.evaluations)
     warnings = []

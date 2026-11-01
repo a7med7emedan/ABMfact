@@ -85,7 +85,9 @@ def test_features_interpolate_between_saves_and_are_missing_outside():
     p = Growth(spec(Parameter("rate", 0.0, 0.01)), growth_target(0.005))
     f = p.features({"time": [0, 100, 200], "cells": [0, 10, 20]})
     assert list(f) == [0.0, 6.0, 12.0, 18.0]
-    assert np.isnan(p.features({"time": [0, 100], "cells": [0, 10]})[2:]).all()
+    assert np.isnan(p.features({"time": [0, 20, 40, 60, 80, 100], "cells": [0, 2, 4, 6, 8, 10]})[2:]).all()
+    # A last save one step short of a target time, as CompuCell3D's at 1439 of 1440 minutes, takes its value.
+    assert p.features({"time": [0, 60, 119, 179], "cells": [1, 2, 3, 4]})[-1] == 4.0
     assert math.isinf(p.score(np.array([[np.nan] * 4])))
 
 
