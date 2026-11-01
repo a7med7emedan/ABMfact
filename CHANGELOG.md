@@ -41,6 +41,15 @@ Version 0.3.0.dev0.
   - `fitmulticell` detects FitMultiCell. Its native-Morpheus calibration is not bridged yet; the slot says so and
     points to `abc-smc`.
   - `abmfact calibrate --methods` lists the methods and plug-ins.
+- `abmfact translate`: T2 translation by calibration into CompuCell3D or Morpheus.
+  - It fits only the mapping gains (`pressure_gain`, `motility_gain`) so chosen observables match the source
+    model's ensemble, and refuses any biological parameter.
+  - It needs at least one held-out observable outside the calibrated ones, and reports each held-out observable's
+    difference with its interval, without judging it.
+  - Writes the project at the calibrated gains, `translation.json` (tier T2) and a fidelity report that records each
+    calibration.
+- Comparison files take `options_from`, which names a `translation.json` per engine, so a frozen comparison uses
+  calibrated gains without being edited.
 - `abmfact.records.store.read_run` reads a run written by `write_run`.
 - CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
   fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a

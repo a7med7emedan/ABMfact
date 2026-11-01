@@ -57,6 +57,12 @@ sensitivity analysis and calibration.
 .. automodule:: abmfact.modes.plugins
 ```
 
+## `abmfact.modes.translate`
+
+```{eval-rst}
+.. automodule:: abmfact.modes.translate
+```
+
 ## `abmfact.modes.report`
 
 ```{eval-rst}

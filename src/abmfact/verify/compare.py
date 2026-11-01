@@ -110,6 +110,8 @@ class Comparison:
         claims: Threshold claims whose status is reported per engine.
         seeds_by_engine: Fewer seeds for a slow engine, with the reason in ``notes``.
         notes: Free-text notes kept in the result.
+        options_from: T2 translation files (``translation.json``) by engine; their calibrated gains are merged into
+            ``options``, so a frozen comparison takes calibrated gains without being edited.
     """
 
     title: str
@@ -126,14 +128,15 @@ class Comparison:
     claims: list[Claim] = field(default_factory=list)
     seeds_by_engine: dict[str, int] = field(default_factory=dict)
     notes: dict[str, str] = field(default_factory=dict)
+    options_from: dict[str, str] = field(default_factory=dict)
 
     def seeds_for(self, engine: str) -> int:
         """The number of seeds ``engine`` runs."""
         return int(self.seeds_by_engine.get(engine, self.seeds))
 
 
-KEYS = {"title", "model", "engines", "baseline", "metrics", "options", "params", "seeds", "seed_start", "jobs",
-        "alpha", "claims_from", "seeds_by_engine", "notes"}  # fmt: skip
+KEYS = {"title", "model", "engines", "baseline", "metrics", "options", "options_from", "params", "seeds", "seed_start",
+        "jobs", "alpha", "claims_from", "seeds_by_engine", "notes"}  # fmt: skip
 
 
 def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None) -> Comparison:
@@ -177,13 +180,24 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
     alpha = float(raw.get("alpha", 0.05))
     if not 0 < alpha < 0.5:
         raise CompareError("alpha must lie between 0 and 0.5")
+    options = {str(k): dict(v or {}) for k, v in (raw.get("options") or {}).items()}
+    options_from = {str(k): str((path.parent / v).resolve()) for k, v in (raw.get("options_from") or {}).items()}
+    for name, source in options_from.items():
+        from ..modes.translate import options_from as calibrated
+
+        if name not in engines:
+            raise CompareError(f"options_from names {name!r}, which is not among the engines {engines}")
+        try:
+            options[name] = {**options.get(name, {}), **calibrated(source, name)}
+        except (OSError, ValueError, KeyError) as exc:
+            raise CompareError(f"options_from {name}: {exc}") from exc
     return Comparison(
         title=str(raw.get("title", path.stem)),
         model=(path.parent / raw["model"]).resolve(),
         engines=engines,
         baseline=baseline,
         metrics=metrics,
-        options={str(k): dict(v or {}) for k, v in (raw.get("options") or {}).items()},
+        options=options,
         params=dict(raw.get("params") or {}),
         seeds=seeds,
         seed_start=seed_start,
@@ -192,6 +206,7 @@ def load_comparison(path: str | Path, overrides: Mapping[str, Any] | None = None
         claims=claims,
         seeds_by_engine={str(k): int(v) for k, v in (raw.get("seeds_by_engine") or {}).items()},
         notes={str(k): str(v) for k, v in (raw.get("notes") or {}).items()},
+        options_from=options_from,
     )
 
 
@@ -320,6 +335,7 @@ def compare(
             "alpha": cmp.alpha,
             "metrics": [{"metric": m.metric.expr, "budget": m.budget.describe(), "note": m.note} for m in cmp.metrics],
             "notes": cmp.notes,
+            **({"options_from": cmp.options_from, "options": cmp.options} if cmp.options_from else {}),
         },
         "engines": engines,
         "means": {

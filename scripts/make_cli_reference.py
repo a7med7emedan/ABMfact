@@ -36,6 +36,8 @@ EXIT_CODES = {
     "2 for an invalid file.",
     "calibrate": "0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be "
     "scored.",
+    "translate": "0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not "
+    "a mapping gain or a held-out observable that is also calibrated on.",
 }
 
 

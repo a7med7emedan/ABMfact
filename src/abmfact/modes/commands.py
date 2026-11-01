@@ -1,4 +1,4 @@
-"""Command line for the modes: ``abmfact ensemble``, ``sweep``, ``sensitivity`` and ``calibrate``.
+"""Command line for the modes: ``abmfact ensemble``, ``sweep``, ``sensitivity``, ``calibrate`` and ``translate``.
 
 Only ``argparse`` is imported here at load time; each command imports what it needs when it runs.
 """
@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-COMMANDS = ("ensemble", "sweep", "sensitivity", "calibrate")
+COMMANDS = ("ensemble", "sweep", "sensitivity", "calibrate", "translate")
 
 
 def add_parsers(sub: Any) -> None:
@@ -68,10 +68,39 @@ def add_parsers(sub: Any) -> None:
     ca.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
     ca.add_argument("--out", default="abmfact-calibration", help="output folder (default: abmfact-calibration)")
     ca.add_argument("-q", "--quiet", action="store_true", help="print only errors")
+    tr = sub.add_parser(
+        "translate", help="T2 translation: calibrate a lattice engine's mapping gains to a source model"
+    )
+    tr.add_argument(
+        "target", help="translation YAML file, or an ABM-IR model with --to, --calibrate-on, --hold-out, --free"
+    )
+    tr.add_argument("--to", choices=["compucell3d", "morpheus"], help="the target engine")
+    tr.add_argument("--calibrate-on", help="comma-separated observables the gains are fitted to")
+    tr.add_argument("--hold-out", help="comma-separated observables kept out of the fit and reported")
+    tr.add_argument(
+        "--free",
+        action="append",
+        metavar="GAIN=LOW:HIGH",
+        help="a mapping gain to fit, e.g. pressure_gain=0.2:5; only pressure_gain and motility_gain",
+    )
+    tr.add_argument("--source-engine", default="reference", help="the source engine (default reference)")
+    tr.add_argument("--source-seeds", type=int, default=20, help="seeds of the source ensemble (default 20)")
+    tr.add_argument("--seeds", type=int, default=10, help="seeds per evaluation of the target (default 10)")
+    tr.add_argument("--seed-start", type=int, default=0, help="the first seed (default 0)")
+    tr.add_argument("--method", default="bayesopt", help="bayesopt (default) or abc-smc")
+    tr.add_argument("--param", action="append", metavar="KEY=VALUE", help="fixed ABM-IR parameter for both engines")
+    tr.add_argument("--option", action="append", metavar="KEY=VALUE", help="fixed target-engine option")
+    tr.add_argument("--jobs", type=int, help="runs at once")
+    tr.add_argument("--store", help="run store: finished runs are kept and reused")
+    tr.add_argument("--workdir", help="folder for run folders (default: a temporary folder)")
+    tr.add_argument("--out", default="abmfact-translation", help="output folder (default: abmfact-translation)")
+    tr.add_argument("-q", "--quiet", action="store_true", help="print only errors")
 
 
 def run(args: argparse.Namespace) -> int:
     """Run the chosen mode command and return its exit code."""
+    if args.command == "translate":
+        return cmd_translate(args)
     if args.command == "calibrate":
         return cmd_calibrate(args)
     if args.command == "sweep":
@@ -278,4 +307,65 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
         for w in r.get("warnings", []):
             print(f"  warning: {w}")
         print(f"  wrote {paths['json'].parent}")
+    return 0
+
+
+def cmd_translate(args: argparse.Namespace) -> int:
+    """Run ``abmfact translate``; exit code 0 when the gains were calibrated, 2 for an invalid translation."""
+    import yaml
+
+    from ..config import ConfigError
+    from .translate import TranslationSpec, load_translation, parse_free, translate
+
+    def show(e: Any) -> None:
+        values = ", ".join(f"{k.removeprefix('option:')} {v:.4g}" for k, v in e.values.items())
+        print(f"  evaluation {e.index + 1:>3}: {values}  distance {e.distance:.4g}", flush=True)
+
+    try:
+        raw = yaml.safe_load(Path(args.target).read_text(encoding="utf-8")) or {}
+        if isinstance(raw, dict) and "schema_version" in raw:
+            if not (args.to and args.calibrate_on and args.hold_out and args.free):
+                raise ConfigError("translating a model directly needs --to, --calibrate-on, --hold-out and --free")
+            spec = TranslationSpec(
+                title=Path(args.target).stem,
+                model=Path(args.target).resolve(),
+                to=args.to,
+                calibrate_on=[s for s in args.calibrate_on.split(",") if s],
+                hold_out=[s for s in args.hold_out.split(",") if s],
+                free=parse_free([f for item in args.free for f in item.split(",") if f]),
+                source={"engine": args.source_engine, "seeds": args.source_seeds, "seed_start": args.seed_start},
+                options=pairs(args.option, "engine option"),
+                params=pairs(args.param, "parameter"),
+                seeds_per_evaluation=args.seeds,
+                seed_start=args.seed_start,
+                method=args.method,
+                jobs=args.jobs or 1,
+            )
+            spec.check()
+        else:
+            spec = load_translation(args.target, {"jobs": args.jobs})
+        result = translate(spec, workdir=args.workdir, store=args.store, on_evaluation=None if args.quiet else show)
+    except ValueError as exc:
+        if type(exc).__name__ == "IRError":
+            raise
+        raise ConfigError(str(exc)) from exc
+    paths = result.write(args.out)
+    if not args.quiet:
+        d = result.data
+        for gain, value in d["gains"].items():
+            lo, hi = d["interval"][gain]
+            print(
+                f"  {gain}: {value:.4g} ({lo:.4g} to {hi:.4g}) on {', '.join(d['calibrate_on'])}, distance "
+                f"{d['distance']:.4g}"
+            )
+        for row in d["held_out"]:
+            diff = row.get("difference")
+            iv = f"{diff['estimate']:+.4g} ({diff['low']:+.4g} to {diff['high']:+.4g})" if diff else "n/a"
+            print(
+                f"  held out {row['metric']}: source {row['source_mean']:.4g}, {d['engine']} {row['target_mean']:.4g}, "
+                f"difference {iv}"
+            )
+        for w in d["warnings"]:
+            print(f"  warning: {w}")
+        print(f"  wrote {paths['json'].parent} (tier T2)")
     return 0

@@ -307,3 +307,33 @@ abmfact calibrate calibration [--methods] [--method METHOD] [--jobs JOBS] [--sto
 | `-q`, `--quiet` | print only errors |  |
 
 Exit status: 0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be scored.
+
+## `abmfact translate`
+
+T2 translation: calibrate a lattice engine's mapping gains to a source model.
+
+```text
+abmfact translate target [--to {compucell3d,morpheus}] [--calibrate-on CALIBRATE_ON] [--hold-out HOLD_OUT] [--free GAIN=LOW:HIGH] [--source-engine SOURCE_ENGINE] [--source-seeds SOURCE_SEEDS] [--seeds SEEDS] [--seed-start SEED_START] [--method METHOD] [--param KEY=VALUE] [--option KEY=VALUE] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `target` | translation YAML file, or an ABM-IR model with --to, --calibrate-on, --hold-out, --free | required |
+| `--to` | the target engine |  |
+| `--calibrate-on` | comma-separated observables the gains are fitted to |  |
+| `--hold-out` | comma-separated observables kept out of the fit and reported |  |
+| `--free` | a mapping gain to fit, e.g. pressure_gain=0.2:5; only pressure_gain and motility_gain |  |
+| `--source-engine` | the source engine (default reference) | `reference` |
+| `--source-seeds` | seeds of the source ensemble (default 20) | `20` |
+| `--seeds` | seeds per evaluation of the target (default 10) | `10` |
+| `--seed-start` | the first seed (default 0) | `0` |
+| `--method` | bayesopt (default) or abc-smc | `bayesopt` |
+| `--param` | fixed ABM-IR parameter for both engines |  |
+| `--option` | fixed target-engine option |  |
+| `--jobs` | runs at once |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-translation` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not a mapping gain or a held-out observable that is also calibrated on.
