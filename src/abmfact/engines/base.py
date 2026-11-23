@@ -97,6 +97,17 @@ class RunHandle:
     image_digest: str | None = None
 
 
+#: Translation coefficients between modelling paradigms that T2 translation may calibrate, and nothing else: the scale
+#: on the contact fraction that stands in for pressure, and the scale on motility strength in lattice engines.
+MAPPING_GAINS = ("pressure_gain", "motility_gain")
+
+
+def gain_suffix(gains: Mapping[str, float]) -> str:
+    """A cache-key suffix for mapping gains: empty when every gain is 1, so T1 exports keep their keys."""
+    changed = {k: v for k, v in sorted(gains.items()) if v != 1}
+    return "".join(f"-{k}{v:.12g}" for k, v in changed.items())
+
+
 def changed_knobs(knobs: Knobs) -> list[str]:
     """Knob names that differ from their defaults, in :data:`KNOB_NAMES` order."""
     changed = knobs.changed()

@@ -217,3 +217,145 @@ abmfact recommend model [--details] [--json]
 | `--json` | print JSON instead of a table |  |
 
 Exit status: 0, also when no engine can run the model; the output says why.
+
+## `abmfact ensemble`
+
+Run many seeds of one setting in one engine and summarise with intervals.
+
+```text
+abmfact ensemble model [--engine ENGINE] [--seeds SEEDS] [--seed-start SEED_START] [--param KEY=VALUE] [--option KEY=VALUE] [--metric METRIC] [--alpha ALPHA] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `model` | ABM-IR file, or a native project folder for engines that take one | required |
+| `--engine` | engine name (see: abmfact engines) | `reference` |
+| `--seeds` | number of seeds (default 20) | `20` |
+| `--seed-start` | the first seed (default 0) | `0` |
+| `--param` | parameter for every run, e.g. 'experiment.max_time=600'; repeatable |  |
+| `--option` | engine option, e.g. threads=1 |  |
+| `--metric` | metric to summarise, e.g. 'last(cells)'; repeatable |  |
+| `--alpha` | one-sided level; intervals cover 1-2*alpha | `0.05` |
+| `--jobs` | runs at once | `1` |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-ensemble` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.
+
+## `abmfact sweep`
+
+Run a model over a design of parameter settings (grid, lhs or sobol).
+
+```text
+abmfact sweep sweep [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--backend {local,slurm}] [--submit] [--collect] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `sweep` | sweep YAML file | required |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused, so a sweep can resume |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-sweep` |
+| `--backend` | local runs here; slurm writes a job array for the runs not yet in the store | `local` |
+| `--submit` | with --backend slurm: also submit the array with sbatch |  |
+| `--collect` | read the runs a Slurm array wrote under OUT/slurm |  |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; 2 for an invalid sweep file.
+
+## `abmfact sensitivity`
+
+Sobol or Morris sensitivity indices with bootstrap intervals (SALib).
+
+```text
+abmfact sensitivity sensitivity [--method {sobol,morris}] [--n N] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `sensitivity` | sensitivity YAML file: a sweep file with a 'sensitivity' section | required |
+| `--method` | override the file's method |  |
+| `--n` | override N (Sobol base sample) or the Morris trajectories |  |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-sensitivity` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; 2 for an invalid file.
+
+## `abmfact calibrate`
+
+Fit parameters to target data or another engine's ensemble.
+
+```text
+abmfact calibrate calibration [--methods] [--method METHOD] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `calibration` | calibration YAML file | required |
+| `--methods` | list the calibration methods and plug-ins, and exit |  |
+| `--method` | override the file's method: bayesopt, abc-smc or a plug-in |  |
+| `--jobs` | runs at once (overrides the file) |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-calibration` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be scored.
+
+## `abmfact translate`
+
+T2 translation: calibrate a lattice engine's mapping gains to a source model.
+
+```text
+abmfact translate target [--to {compucell3d,morpheus}] [--calibrate-on CALIBRATE_ON] [--hold-out HOLD_OUT] [--free GAIN=LOW:HIGH] [--source-engine SOURCE_ENGINE] [--source-seeds SOURCE_SEEDS] [--seeds SEEDS] [--seed-start SEED_START] [--method METHOD] [--param KEY=VALUE] [--option KEY=VALUE] [--jobs JOBS] [--store STORE] [--workdir WORKDIR] [--out OUT] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `target` | translation YAML file, or an ABM-IR model with --to, --calibrate-on, --hold-out, --free | required |
+| `--to` | the target engine |  |
+| `--calibrate-on` | comma-separated observables the gains are fitted to |  |
+| `--hold-out` | comma-separated observables kept out of the fit and reported |  |
+| `--free` | a mapping gain to fit, e.g. pressure_gain=0.2:5; only pressure_gain and motility_gain |  |
+| `--source-engine` | the source engine (default reference) | `reference` |
+| `--source-seeds` | seeds of the source ensemble (default 20) | `20` |
+| `--seeds` | seeds per evaluation of the target (default 10) | `10` |
+| `--seed-start` | the first seed (default 0) | `0` |
+| `--method` | bayesopt (default) or abc-smc | `bayesopt` |
+| `--param` | fixed ABM-IR parameter for both engines |  |
+| `--option` | fixed target-engine option |  |
+| `--jobs` | runs at once |  |
+| `--store` | run store: finished runs are kept and reused |  |
+| `--workdir` | folder for run folders |  |
+| `--out` | output folder | `abmfact-translation` |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not a mapping gain or a held-out observable that is also calibrated on.
+
+## `abmfact visualise`
+
+Plots, cell snapshots, fields, movies and VTK files from results or a run.
+
+```text
+abmfact visualise target [--store STORE] [--out OUT] [--times TIMES] [--colour {type,state}] [--field FIELD] [--movie {gif,mp4}] [--vtk] [--quiet]
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `target` | a mode's result file or folder, a run folder, or a run id with --store | required |
+| `--store` | run store to find a run id in |  |
+| `--out` | output folder | `abmfact-plots` |
+| `--times` | for a run: last (default), all, or comma-separated times | `last` |
+| `--colour` | colour cells by type or state | `type` |
+| `--field` | substrate to draw (default: every one); repeatable |  |
+| `--movie` | also film every save time |  |
+| `--vtk` | also write VTK files for ParaView |  |
+| `-q`, `--quiet` | print only errors |  |
+
+Exit status: 0 when the plots or files were written; 2 when the target is not recognised.

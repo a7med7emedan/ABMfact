@@ -31,7 +31,7 @@ from typing import Any
 from ...knobs import Knobs
 from ...records import FidelityReport, RunRecord, RunRequest
 from ...records.record import canonical
-from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle
+from ..base import Availability, Capabilities, Engine, EngineError, PreparedRun, RunHandle, gain_suffix
 from .outputs import read_output
 from .project import CC3DProject, is_project
 
@@ -109,6 +109,9 @@ class CompuCell3DEngine(Engine):
         mcs_minutes: Minutes per Monte Carlo step, used to report times.
         observables: ABM-IR observable specs to compute; ``None`` uses :func:`default_observables`.
         timeout: The time limit for each run, in seconds; ``None`` for no limit.
+        pressure_gain: Scale on the contact fraction that stands in for pressure in ABM-IR translations; 1 (T1)
+            unless calibrated (T2).
+        motility_gain: Scale on the motility strength in ABM-IR translations; 1 (T1) unless calibrated (T2).
     """
 
     name = "compucell3d"
@@ -124,6 +127,8 @@ class CompuCell3DEngine(Engine):
         mcs_minutes: float = 1.0,
         observables: Sequence[Mapping[str, Any]] | None = None,
         timeout: float | None = None,
+        pressure_gain: float = 1.0,
+        motility_gain: float = 1.0,
     ):
         self.prefer = toolchain
         self.image = image
@@ -133,6 +138,7 @@ class CompuCell3DEngine(Engine):
         self.mcs_minutes = float(mcs_minutes)
         self.observables = [dict(o) for o in observables] if observables else None
         self.timeout = timeout
+        self.gains = {"pressure_gain": float(pressure_gain), "motility_gain": float(motility_gain)}
 
     # -- discovery ---------------------------------------------------------------------------------------
 
@@ -211,7 +217,7 @@ class CompuCell3DEngine(Engine):
             return None
         site, mcs = self._scales(True)
         with tempfile.TemporaryDirectory() as tmp:
-            return export_project(loaded, Path(tmp) / "project", site_length=site, mcs_minutes=mcs)
+            return export_project(loaded, Path(tmp) / "project", site_length=site, mcs_minutes=mcs, **self.gains)
 
     def _export(self, model: Any, params: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
         """Export an ABM-IR model after its IR parameters; return the project and the CC3DML parameters."""
@@ -222,10 +228,10 @@ class CompuCell3DEngine(Engine):
         xml_params = {k: v for k, v in params.items() if k not in ir_params}
         m = apply_params(model, ir_params)
         site, mcs = self._scales(True)
-        key = f"{model_hash(m)[:16]}-{exporter_fingerprint()[:12]}-{site:g}-{mcs:g}"
+        key = f"{model_hash(m)[:16]}-{exporter_fingerprint()[:12]}-{site:g}-{mcs:g}" + gain_suffix(self.gains)
         out = self.cache_dir / "exports" / key
         if not (out / ".exported").exists():
-            report = export_project(m, out, site_length=site, mcs_minutes=mcs)
+            report = export_project(m, out, site_length=site, mcs_minutes=mcs, **self.gains)
             (out / "fidelity.md").write_text(report.to_markdown(), encoding="utf-8")
             (out / ".exported").write_text(m.name, encoding="utf-8")
         return out, xml_params

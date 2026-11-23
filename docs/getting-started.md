@@ -26,8 +26,11 @@ Optional parts come as extras, so the core stays small:
 | `netlogo` | NetLogo models through pynetlogo (NetLogo itself is installed separately) |
 | `store` | Parquet, Zarr and DuckDB storage for the run store |
 | `physicell` | reading PhysiCell outputs with pcdl (a SciPy reader works without it) |
+| `sensitivity` | Sobol and Morris indices through SALib |
+| `calibrate` | Bayesian optimisation (bayesian-optimization) and ABC-SMC (pyABC) |
+| `viz` | plots and movies: matplotlib, imageio and imageio-ffmpeg |
 | `docs` | the tools that build this manual |
-| `all` | `mesa`, `store` and `physicell` |
+| `all` | `mesa`, `store`, `physicell`, `sensitivity`, `calibrate` and `viz` |
 
 For example, `pip install "abmfact[mesa,store]"`. Check the install with `abmfact --version`.
 

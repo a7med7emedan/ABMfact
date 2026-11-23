@@ -1,0 +1,22 @@
+# Recover a planted division rate: the target is the monolayer run with a rate of 0.0021 per minute, and the
+# calibration searches 0.0007 to 0.0028 for the rate that reproduces its cell count and spread over half a day.
+# Run:  abmfact calibrate examples/modes/calibrate.yaml --store results/store --out results/calibrate
+# Needs:  pip install "abmfact[calibrate]"
+title: monolayer division rate
+model: ../ir/monolayer.yaml
+engine: reference
+params:
+  experiment.max_time: 720
+  experiment.save_interval: 120
+parameters:
+  - {name: "cell_types[epithelial].cycle.rates[0]", low: 0.0007, high: 0.0028, scale: log}
+target:
+  engine: reference
+  seeds: 20
+  seed_start: 1000                          # target seeds differ from the calibration's
+  params: {"cell_types[epithelial].cycle.rates[0]": 0.0021}
+observables: [cells, spread]
+seeds_per_evaluation: 5
+method: bayesopt
+bayesopt: {n_init: 6, n_iter: 10, seed: 1}
+jobs: 8

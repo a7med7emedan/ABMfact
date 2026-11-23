@@ -1,0 +1,42 @@
+# Gate 4 calibration model for motility_gain: sparse cells that do not divide or die, walking at two speeds. It is
+# not one of the six Gate 3 problems and has no pressure rule. Written before any Gate 4 run; see ../PROTOCOL.md.
+schema_version: "0.1"
+name: two_speed_migration
+description: >
+  Two kinds of cell start in the same disc and walk persistently with no bias, one at 2 micron per minute and one
+  at 0.5. Their spreads grow as they disperse. The gain is fitted on the fast cells and checked on the slow ones.
+space:
+  dimensions: 2
+  bounds: {x_min: -600, x_max: 600, y_min: -600, y_max: 600}
+  voxel: {dx: 25, dy: 25}
+  boundary: closed
+cell_types:
+  - name: fast
+    volume: 2494
+    cycle: {model: live, rates: [0.0]}
+    death: {apoptosis_rate: 0.0}
+    mechanics: {adhesion_strength: 0.0, repulsion_strength: 10, max_adhesion_distance: 1.25}
+    motility: {speed: 2, persistence_time: 5}
+  - name: slow
+    volume: 2494
+    cycle: {model: live, rates: [0.0]}
+    death: {apoptosis_rate: 0.0}
+    mechanics: {adhesion_strength: 0.0, repulsion_strength: 10, max_adhesion_distance: 1.25}
+    motility: {speed: 0.5, persistence_time: 5}
+initial_conditions:
+  placements:
+    - {kind: disc, cell_type: fast, count: 20, centre: [0, 0], radius: 150}
+    - {kind: disc, cell_type: slow, count: 20, centre: [0, 0], radius: 150}
+observables:
+  - {name: fast_spread, kind: radius_of_gyration, cell_type: fast}
+  - {name: slow_spread, kind: radius_of_gyration, cell_type: slow}
+  - {name: cells, kind: live_count}
+experiment:
+  max_time: 720
+  dt_diffusion: 1.0
+  dt_mechanics: 0.1
+  dt_phenotype: 6.0
+  save_interval: 60
+provenance:
+  source: ABMfact Gate 4 calibration model
+  licence: Apache-2.0

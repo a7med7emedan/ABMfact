@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e ".[mesa]" pytest pytest-cov jsonschema
+      - run: pip install -e ".[mesa,sensitivity,viz]" pytest pytest-cov jsonschema
       - name: Fast suite with coverage
         run: pytest -m "not slow" --cov=abmfact --cov-report=term --cov-fail-under=85
       - name: Examples
@@ -65,6 +65,25 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[store,physicell]" pytest jsonschema
       - run: pytest -m "not slow" tests/test_store.py tests/test_physicell_engine.py tests/test_physicell_translate.py
+
+  modes:
+    name: mode extras
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[sensitivity,calibrate,viz]" pytest jsonschema
+      - name: Modes with every optional library
+        run: pytest -m "not slow" -rs tests/test_calibrate.py tests/test_abc_smc.py tests/test_translate.py tests/test_sensitivity.py tests/test_visualise.py tests/test_ensemble.py tests/test_sweep.py
+      - name: The examples run
+        run: |
+          abmfact sweep examples/modes/sweep.yaml --out results/sweep -q
+          abmfact sensitivity examples/modes/sensitivity.yaml --method morris --n 4 --out results/morris -q
+          abmfact calibrate examples/modes/calibrate.yaml --out results/calibrate -q
+          abmfact visualise results/calibrate --out results/plots -q
 
   physicell:
     name: PhysiCell integration (native g++)
@@ -110,7 +129,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
-      - run: pip install -e . pytest
+      - run: pip install -e ".[calibrate]" pytest
       - name: Morpheus 2.4.1 image
         run: docker build --platform linux/amd64 -t abmfact/morpheus:2.4.1 containers/morpheus
       - name: Run Morpheus models

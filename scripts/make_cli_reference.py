@@ -29,6 +29,16 @@ EXIT_CODES = {
     "engines": "0.",
     "recommend": "0, also when no engine can run the model; the output says why.",
     "compare": "0 unless an engine DISAGREEs with the baseline on a metric, then 1; 2 for an invalid comparison.",
+    "ensemble": "0 when every run worked, 1 when any run failed; 2 for invalid settings or a model the engine refuses.",
+    "sweep": "0 when every run worked (or the Slurm array was written), 1 when any run failed or was not collected; "
+    "2 for an invalid sweep file.",
+    "sensitivity": "0 when every metric got indices (warnings included), 1 when any run failed or a metric got none; "
+    "2 for an invalid file.",
+    "calibrate": "0 when a fit was found; 2 for an invalid file, an unknown method or when no evaluation could be "
+    "scored.",
+    "translate": "0 when the gains were calibrated; 2 for an invalid translation, such as a free parameter that is not "
+    "a mapping gain or a held-out observable that is also calibrated on.",
+    "visualise": "0 when the plots or files were written; 2 when the target is not recognised.",
 }
 
 

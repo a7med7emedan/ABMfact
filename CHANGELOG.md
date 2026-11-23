@@ -6,6 +6,73 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+Version 0.3.0.dev0.
+
+### Added
+
+- `abmfact ensemble`: many seeds of one setting in any engine. Every observable is summarised at each save time
+  (mean with its 90% interval, standard deviation, 5%, 50% and 95% quantiles), as are metrics such as
+  `last(cells)`, with each seed's value kept. Writes `ensemble.json`, `ensemble.csv` and `report.html`, and reuses
+  runs through the run store.
+- `abmfact sweep`: one model over a design of parameter settings, each with the same seeds. Designs are a full grid,
+  a Latin hypercube or a scrambled Sobol sequence (`scipy.stats.qmc`), on linear or log scales, over ABM-IR paths,
+  native paths or engine options (`option:NAME`). Writes `sweep.json`, `design.csv`, `runs.csv`, `summary.csv` and
+  `report.html`. A sweep run again with the same store reuses every finished run, so an interrupted sweep resumes.
+  `--backend slurm` writes a Slurm job array for the runs not yet stored, and `--collect` reads them back.
+- `abmfact sensitivity`: Sobol (Saltelli) first-order, total and optional second-order indices, or Morris
+  `mu_star`, `mu` and `sigma`, with bootstrap intervals, through SALib (MIT) in the new `[sensitivity]` extra. The
+  points run as a sweep, each the mean over its seeds, and the report gives the share of output variance that is
+  seed noise. It warns when N is not a power of two or below 512, when an interval is wider than ±0.1, when Morris
+  has fewer than 10 trajectories or an odd number of levels, and when seed noise is above 20% of the variance.
+- `abmfact calibrate`: fits parameters so a model's observables match a target. The target can be data (a CSV of
+  observables over time, with optional standard deviations), an `ensemble.json`, or another engine's ensemble run
+  on the fly. The distance is the mean squared standardised gap between the simulated means and the target.
+  Bayesian optimisation (bayesian-optimization, MIT, in the new `[calibrate]` extra) finds the best fit. Each
+  parameter's interval is bounded by bisection: the values, with the others at the best fit, whose distance the
+  seeds cannot tell from the best. Writes `calibration.json`, `evaluations.csv` and `report.html`. Fitted ABM-IR
+  values go into `calibrated.yaml`, with a provenance note; fitted engine options go into
+  `calibrated_options.json`. Calibration methods can be added through the `abmfact.calibrators` entry point.
+- ABC-SMC calibration through pyABC (BSD-3, in `[calibrate]`). It reports a weighted posterior, the posterior
+  median with a 90% credible interval, and per-generation epsilon, evaluations and effective sample size. It warns
+  on a small last-generation sample, a stop forced by the simulation cap, and intervals that barely narrow the prior.
+- Calibration plug-in slots:
+  - `uq-physicell` runs ABC-SMC with UQ-PhysiCell's weight and kernel safeguards and its standardised kernel,
+    through any engine.
+  - `fitmulticell` detects FitMultiCell. Its native-Morpheus calibration is not bridged yet; the slot says so and
+    points to `abc-smc`.
+  - `abmfact calibrate --methods` lists the methods and plug-ins.
+- `abmfact translate`: T2 translation by calibration into CompuCell3D or Morpheus.
+  - It fits only the mapping gains (`pressure_gain`, `motility_gain`) so chosen observables match the source
+    model's ensemble, and refuses any biological parameter.
+  - It needs at least one held-out observable outside the calibrated ones, and reports each held-out observable's
+    difference with its interval, without judging it.
+  - Writes the project at the calibrated gains, `translation.json` (tier T2) and a fidelity report that records each
+    calibration.
+- `abmfact visualise` draws, for any engine, from the common output schema:
+  - from mode results: ensemble time series with their interval and 5% to 95% bands, sweep point means against
+    each parameter, sensitivity indices with intervals, and calibration distances with the best fit against the
+    target;
+  - from a run (a `run-model` folder or a run id in a store): cell snapshots coloured by type or state, substrate
+    fields, and movies (GIF through Pillow, MP4 through imageio-ffmpeg, which runs a separate ffmpeg program).
+  - It writes a VTK export for ParaView (`.vtp` cells, `.vti` fields, `.pvd` time series) without any dependency.
+  - Plots and movies come in the new `[viz]` extra (matplotlib, imageio, imageio-ffmpeg).
+- Comparison files take `options_from`, which names one `translation.json` or a list of them per engine, so a
+  frozen comparison uses calibrated gains without being edited.
+- The Gate 4 study protocol (`studies/gate4/`): T2 translation of the Gate 3 problems, with each lattice gain
+  fitted once on its own calibration model and every judged comparison held out.
+- `abmfact.records.store.read_run` reads a run written by `write_run`.
+- CompuCell3D and Morpheus take two mapping gains as engine options, `pressure_gain` (a scale on the contact
+  fraction that stands in for pressure) and `motility_gain` (a scale on motility strength). Both are 1 in a
+  structural translation (T1); T2 translation calibrates them. The fidelity report names any gain that is not 1.
+
+### Changed
+
+- `abmfact[all]` includes `[sensitivity]`, `[calibrate]` and `[viz]`.
+- The CompuCell3D steppable reads the pressure gain, so every CompuCell3D run key changes once and stored
+  CompuCell3D runs from 0.2.0 are not reused. Morpheus exports at gain 1 are byte-identical to 0.2.0's.
+- The run loop that `abmfact compare` used is now shared by every mode (`abmfact.modes.batch`). Comparison results
+  are unchanged.
+
 ## [0.2.0] - 2026-10-29
 
 ### Added

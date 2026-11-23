@@ -1,0 +1,15 @@
+# Gate 4 calibration: pressure_gain in compucell3d, fitted once on its own calibration model and then used in every
+# problem. Written and committed before any Gate 4 run; see ../PROTOCOL.md.
+title: "Gate 4 calibration: pressure_gain in compucell3d"
+model: contact_inhibition.yaml
+to: compucell3d
+source: {engine: reference, seeds: 20, seed_start: 3000}
+calibrate_on: [cells]
+hold_out: [spread]
+free:
+  - {name: pressure_gain, low: 0.1, high: 10}      # log scale
+seeds_per_evaluation: 10
+seed_start: 3000
+method: bayesopt
+bayesopt: {n_init: 8, n_iter: 16, refine: 4, seed: 1}
+jobs: 10

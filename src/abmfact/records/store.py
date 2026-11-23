@@ -60,6 +60,15 @@ def write_run(record: RunRecord, folder: str | Path, formats: str = "auto") -> R
     return RunStore.__new__(RunStore)._configure(formats).write_run(record, Path(folder))
 
 
+def read_run(folder: str | Path) -> RunRecord:
+    """Read a run written by :func:`write_run` (or a store entry): its record with the outputs loaded."""
+    d = Path(folder)
+    record = RunRecord.from_dict(json.loads((d / "record.json").read_text(encoding="utf-8")))
+    if (d / "meta.json").exists():
+        record = replace(record, outputs=RunStore.__new__(RunStore)._configure("auto")._load_outputs(d, record))
+    return record
+
+
 class RunStore:
     """Store and look up runs by request.
 
@@ -110,7 +119,9 @@ class RunStore:
 
     def load_outputs(self, record: RunRecord) -> RunOutputs:
         """Read a stored run's outputs back from its folder."""
-        d = self.run_dir(record.run_id)
+        return self._load_outputs(self.run_dir(record.run_id), record)
+
+    def _load_outputs(self, d: Path, record: RunRecord) -> RunOutputs:
         meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
         out = RunOutputs(type_names=list(meta["type_names"]), save_times=list(meta["save_times"]))
         out.scalars = json.loads((d / "scalars.json").read_text(encoding="utf-8"))
